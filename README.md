@@ -13,7 +13,7 @@
 | F | FrankenPHP | 应用服务器（内置 Caddy、自动 HTTPS、worker 模式） |
 | R | Redis | 分布式缓存 / 队列 / 会话 |
 | A | Agent | MCP 服务器：对接 AI Agent 的工具接入层 |
-| M | MySQL | 关系数据库 |
+| M | MySQL / MariaDB | 关系数据库（默认发行 MariaDB） |
 | P | PHP | 主要开发语言 |
 | P | Python | 支撑语言：自动化 / AI 负载（可选组件） |
 

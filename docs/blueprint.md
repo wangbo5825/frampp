@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.0（2026-08-19）
+> 状态：设计稿 v1.1（2026-08-19，M1 组件定版）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -25,7 +25,7 @@
 | F | FrankenPHP | 应用服务器（内置 Caddy、自动 HTTPS、worker 模式） |
 | R | Redis | 分布式缓存 / 队列 / 会话 |
 | A | Agent | MCP 服务器：对接 AI Agent 的工具接入层 |
-| M | MySQL | 关系数据库 |
+| M | MySQL / MariaDB | 关系数据库（默认发行 MariaDB，字母含义不变） |
 | P | PHP | 主要开发语言 |
 | P | Python | 支撑语言：自动化 / AI 负载（可选组件） |
 
@@ -39,11 +39,20 @@
   - 结论：**A = Agent**。理由：差异化最大（同类产品无此形态）、生态时机成熟（MCP 已成事实标准）、与开源贡献目标契合。
   - APCu 不占字母，作为**内置扩展**默认附带（L1 本地缓存，与 Redis 组成两级缓存）。
   - Adminer 作为附赠开发工具（不占字母）。
-  - Authelia 作为可选“生产模式”模块（不占字母）。
+  - Authelia 否决 / 移除：SSO / 2FA 属具体应用开发范畴，不作为平台组件（v1.1 定版）。
   - Apache APISIX 否决：与 FrankenPHP 内置 Caddy 职责重叠，依赖 etcd/OpenResty，过重。
 - **最后一个 P**：Perl → Python。
   - 理由：Perl 在现代 PHP 开发中已无实际场景（XAMPP 中属历史包袱）；Laragon 等现代 Windows PHP 环境已用 Python 取代 Perl；Python 与 Redis / MySQL / AI 生态协同更好。
 - **名称可用性**：未检索到同名知名项目，可放心使用。
+
+### 2.4 M1 组件定版（v1.1）
+
+- **M = MariaDB（默认）**：再分发许可更宽松、与 XAMPP 先例一致、Windows 原生支持成熟；MySQL 保留为可选。字母含义不变。
+- **R = Redis（Windows 直接用 Redis）**：官方无原生 Windows 构建（官方文档推荐 Memurai / WSL）。采用社区活跃维护的 `redis-windows` 构建（随官方源码同步发布、含安全修复），固定版本 + SHA-256 校验 + 仅绑定 127.0.0.1 + 随机密码。风险中低、可接受并文档化；若维护滞后则切换 Memurai（Redis 官方 Windows 合作伙伴）。
+- **P = PHP 由 FrankenPHP 提供（CLI 模式）**：不单独安装 PHP；Web 用 `frankenphp php-server`，命令行用 `frankenphp php-cli`。FrankenPHP v1.12+ 原生支持 Windows（链接官方 Visual Studio 编译的 PHP 二进制，扩展齐全）。
+- **Composer 随包集成**：以 `composer.phar` 分发，由 `frankenphp php-cli composer.phar` 执行；M1 需验证 mbstring / openssl / xml 等 Composer 依赖扩展可用。
+- **APCu / Adminer 保留**：均为轻量附赠（APCu 扩展 DLL、Adminer 单文件），不占字母，保留在默认发行中。
+- **Python 保留为嵌入式轻量方案**：默认勾选的可选组件，用 uv / 嵌入式发行版按需安装，控制包体积。
 
 ---
 
@@ -55,25 +64,24 @@
 flowchart LR
   subgraph FRAMPP[FRAMPP 一键安装包]
     FP[FrankenPHP<br/>内置 Caddy + worker 模式]
-    MYSQL[(MySQL)]
+    MARIA[(MariaDB)]
     REDIS[(Redis)]
     APCU[APCu 扩展<br/>L1 本地缓存]
     AGENT[Agent / MCP 服务器]
     PY[Python 运行时<br/>可选]
     ADMIN[Adminer<br/>附赠]
-    AUTH[Authelia<br/>可选生产模块]
     PANEL[控制面板]
   end
   DEV[AI 编码 Agent<br/>Claude Code / Cursor / Codex]
   DEV -- "MCP stdio / Streamable HTTP" --> AGENT
-  AGENT --> MYSQL
+  AGENT --> MARIA
   AGENT --> REDIS
   AGENT --> FP
-  FP --> MYSQL
+  FP --> MARIA
   FP --> REDIS
   FP --> APCU
   PANEL --> FP
-  PANEL --> MYSQL
+  PANEL --> MARIA
   PANEL --> REDIS
 ```
 
@@ -89,6 +97,7 @@ flowchart LR
 - FrankenPHP 采用 ZTS 线程模型，worker 模式为默认（Symfony 7.4+ / API Platform 官方支持）
 - 官方基准：API Platform 应用在 worker 模式下比 FPM 快约 3.5 倍
 - 自动 HTTPS：本地证书 + hosts 管理
+- PHP 运行时由 FrankenPHP 自带：Web 与命令行均走 CLI 模式（`php-server` / `php-cli`），不单独安装 PHP；内置 Composer（`php-cli composer.phar`）供项目模板与 Agent 使用
 
 ---
 
@@ -105,7 +114,7 @@ frampp/
 ├─ control-panel/         # 控制面板（GUI / CLI）
 ├─ installer/             # 安装器脚本与打包配置
 ├─ templates/             # 项目模板：API Platform starter、PHP 最小工程
-├─ dist/                  # 第三方二进制（FrankenPHP / MySQL / Redis / Python）
+├─ dist/                  # 第三方二进制（FrankenPHP / MariaDB / Redis / Python）
 ├─ tests/                 # 单元 / 集成 / 端到端
 └─ .github/workflows/     # CI（多平台矩阵）
 ```
@@ -115,10 +124,11 @@ frampp/
 ```text
 frampp/
 ├─ frankenphp/            # 应用服务器 + PHP
-├─ mysql/                 # 数据库
+├─ mariadb/               # 数据库（MariaDB）
 ├─ redis/                 # 缓存 / 队列
 ├─ python/                # Python 运行时（可选）
 ├─ agent/                 # MCP 服务器
+├─ bin/                   # 内置 CLI 工具（composer.phar 等）
 ├─ htdocs/                # 默认站点目录
 ├─ logs/                  # 统一日志
 ├─ data/                  # 数据与配置
@@ -164,7 +174,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 ### 5.5 安全边界（必须项）
 
 - 默认仅绑定 `127.0.0.1`
-- MySQL 独立只读账号（仅 SELECT 权限，自动加 LIMIT）
+- MariaDB 独立只读账号（仅 SELECT 权限，自动加 LIMIT）
 - Redis 命令白名单（只读命令）
 - 外部命令白名单（`php -v`、`composer show` 等只读命令）
 - 全部工具调用写审计日志（缓冲到 Redis，落盘）
@@ -190,13 +200,16 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 ### 6.1 FrankenPHP
 
 - worker 模式为默认运行方式
+- PHP 由 FrankenPHP 自带，默认 CLI 模式：`frankenphp php-server`（Web）、`frankenphp php-cli`（命令行）；Composer 以 `php-cli composer.phar` 方式集成
+- 原生 Windows 支持自 v1.12 起（链接官方 Visual Studio 编译的 PHP 二进制，扩展齐全）；M1 锁定版本并校验哈希
 - APCu 扩展默认启用；worker 模式需 `apc.enable_cli=1`（官方镜像默认不带，是最易踩的坑）
 - `apc.shm_size` 默认预设 128M，控制面板可调
 - 自动 HTTPS（本地证书 + hosts 管理）
 
-### 6.2 MySQL / Redis
+### 6.2 MariaDB / Redis
 
-- 首次安装生成随机强密码，控制面板可查看 / 重置
+- 数据库默认 **MariaDB**（M 字母含义不变）；首次安装生成随机强密码，控制面板可查看 / 重置
+- Redis 采用社区 `redis-windows` 构建（随官方源码同步），固定版本 + SHA-256 校验，默认仅绑定 127.0.0.1 + 随机密码；备选 Memurai（Redis 官方 Windows 合作伙伴）
 - 端口冲突检测（3306 / 6379 / 443 等）
 - Redis 用途：缓存、队列、会话、Agent 审计日志缓冲
 
@@ -208,7 +221,8 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 
 ### 6.4 模板与生态
 
-- **API Platform starter**：与 FrankenPHP 同作者（Kévin Dunglas），官方 demo 即 Symfony + API Platform；v4.x 提供 Symfony / Laravel 适配。示例项目预配 worker 模式 + MySQL + Redis，装完即可演示完整 API（Swagger + Admin + 自动文档）
+- **API Platform starter**：与 FrankenPHP 同作者（Kévin Dunglas），官方 demo 即 Symfony + API Platform；v4.x 提供 Symfony / Laravel 适配。示例项目预配 worker 模式 + MariaDB + Redis，装完即可演示完整 API（Swagger + Admin + 自动文档）
+- 项目模板创建通过内置 Composer 完成（`frankenphp php-cli composer.phar create-project ...`）
 - Adminer：单文件数据库管理，由 FrankenPHP 直接提供
 
 ---
@@ -218,8 +232,8 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 - 默认安全：随机密码、localhost 绑定、最小权限、审计日志
 - 测试：单元测试（PHPUnit / Pest）、组件集成测试、安装器全流程测试（Windows VM）、CI（GitHub Actions）
 - 发布：GitHub Releases；代码签名列为里程碑（成本项）
-- 供应链：第三方二进制哈希校验
-- 许可证：项目本体 MIT；**注意第三方二进制再分发条款**（MySQL vs MariaDB 需确认；XAMPP 已改用 MariaDB 为先例）
+- 供应链：第三方二进制哈希校验（含 MariaDB、Redis Windows 构建、composer.phar、扩展 DLL）
+- 许可证：项目本体 MIT；**注意第三方二进制再分发条款**（已定：默认 MariaDB，再分发条款宽松，XAMPP 已改用 MariaDB 为先例；MySQL 仅作可选）
 
 ---
 
@@ -228,10 +242,10 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 | 里程碑 | 内容 | 完成标准 |
 | --- | --- | --- |
 | M0 仓库落地 | 独立目录 + GitHub 仓库、README、LICENSE、CI 骨架、蓝图入库 | 可 clone、可提交 |
-| M1 核心运行时 | FrankenPHP + MySQL + Redis + APCu 打包；控制面板 MVP（启停 / 状态 / 端口 / 日志） | 安装后一键启动三件套 |
-| M2 Agent v0.1 | MCP 服务器 + MySQL / Redis / 日志 / 环境工具 + 安全边界 | Claude Code / Cursor 可调用工具 |
+| M1 核心运行时 | FrankenPHP + MariaDB + Redis + APCu 打包；控制面板 MVP（启停 / 状态 / 端口 / 日志） | 安装后一键启动三件套 |
+| M2 Agent v0.1 | MCP 服务器 + MariaDB / Redis / 日志 / 环境工具 + 安全边界 | Claude Code / Cursor 可调用工具 |
 | M3 开发体验 | Adminer、本地域名 / HTTPS、API Platform starter、项目一键创建 | 新项目 5 分钟内可跑 API |
-| M4 生产模式 | Authelia 模块、安装器 / 升级流程、代码签名、多用户文档 | 可对外正式发布 |
+| M4 生产模式 | 安装器 / 升级流程、代码签名、多用户文档（Authelia 已移除：属应用开发范畴） | 可对外正式发布 |
 | M5 生态 | A2A 路线图、Linux / macOS / Docker 变体、社区贡献指南 | 多平台 CI 通过 |
 
 ---
@@ -239,8 +253,9 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 ## 9. 风险与开放问题
 
 - **PHP MCP SDK 生态年轻**：命名与“官方”归属有变动，选定后锁定维护活跃的版本
-- **MySQL 再分发许可**：若受阻，改用 MariaDB（M 字母不变）
-- **Windows 原生 Redis**：维护状态需评估，必要时用 Memurai / Valkey 兼容替代
+- **已定：默认 MariaDB**（再分发许可宽松），MySQL 仅作可选
+- **Windows 原生 Redis**：官方无原生构建，采用社区 `redis-windows` 发行（固定版本 + 哈希校验 + localhost + 随机密码），风险中低；若维护滞后切换 Memurai。Valkey 官方暂无 Windows 支持，仅用于 Linux / macOS 变体
+- **FrankenPHP Windows 构建扩展可用性**：M1 需验证官方 Windows 构建含 Composer 所需扩展（mbstring / openssl / xml）及 APCu
 - **包体积**：Python 与安装器体积控制，采用可选组件 + 按需下载
 - **代码签名**：Windows SmartScreen 信任成本，列为 M4
 - **Agent 安全边界**：工具调用权限是社区信任的关键，优先实现并文档化
@@ -251,4 +266,4 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 
 1. 在独立目录创建 Codex 项目（已确认），把本蓝图作为 `docs/blueprint.md` 入库
 2. M0：`git init`、README / LICENSE / CI 骨架
-3. M1：先做“可运行的最小闭环”——FrankenPHP + MySQL + Redis + 控制面板启停，验证打包链路后再进入 Agent 开发
+3. M1：先做“可运行的最小闭环”——FrankenPHP + MariaDB + Redis + 控制面板启停，验证打包链路后再进入 Agent 开发

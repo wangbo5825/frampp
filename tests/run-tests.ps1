@@ -75,7 +75,7 @@ Assert-True ($caddy -match '127\.0\.0\.1:8081') "Caddyfile exposes panel on 8081
 $setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer\setup.iss")
 Assert-True ($setupIss -match '\[UninstallRun\]') "setup.iss stops services on uninstall"
 Assert-True ($setupIss -match 'init\.ps1') "setup.iss runs init.ps1 on install"
-Assert-True ($setupIss -match 'OutputBaseFilename=frampp-setup-\{#Channel\}-{#MyAppVersion\}-{#Env\}') "setup.iss names artifacts by channel/version/env"
+Assert-True ($setupIss -match 'OutputBaseFilename=frampp-setup-\{#Channel\}-{#MyAppVersion\}-{#TargetEnv\}') "setup.iss names artifacts by channel/version/env"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\scripts\build-installer.ps1")) "build-installer.ps1 exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\scripts\release.ps1")) "release.ps1 exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\config\channels.json")) "channels.json exists"

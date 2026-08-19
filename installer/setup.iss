@@ -1,16 +1,9 @@
 ; FRAMPP 安装器（Inno Setup 6/7）
 ; 构建：installer/scripts/build-installer.ps1（会自动准备 dist/staging 并调用 ISCC）
 
+#include "..\dist\staging\release-defines.iss"
+
 #define MyAppName "FRAMPP"
-#ifndef MyAppVersion
-  #define MyAppVersion "0.1.0"
-#endif
-#ifndef Channel
-  #define Channel "8.5"
-#endif
-#ifndef Env
-  #define Env "windows-x64"
-#endif
 #define MyAppPublisher "FRAMPP contributors"
 #define MyAppURL "https://github.com/wangbo5825/frampp"
 
@@ -26,7 +19,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist\installer
-OutputBaseFilename=frampp-setup-{#Channel}-{#MyAppVersion}-{#Env}
+OutputBaseFilename=frampp-setup-{#Channel}-{#MyAppVersion}-{#TargetEnv}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

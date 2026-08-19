@@ -6,7 +6,7 @@
       "id": "8.5",
       "label": "PHP 8.5（默认稳定通道）",
       "default": true,
-      "envs": ["windows-x86_64"]
+      "envs": ["windows-x64"]
     }
   ]
 }

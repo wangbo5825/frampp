@@ -85,9 +85,15 @@ if (-not (Test-Path -LiteralPath $iscc)) {
 }
 
 # 4. 编译（产物命名：frampp-setup-<channel>-<version>-<env>.exe）
+#    ISPP 定义经 include 文件传入，避免 /D 命令行值（含连字符）被当作表达式解析
 $issFile = Join-Path $Root "installer\setup.iss"
 Write-Step "编译安装器 -> dist/installer/frampp-setup-$Channel-$AppVersion-$Env.exe"
-& $iscc "/DMyAppVersion=$AppVersion" "/DChannel=$Channel" "/DEnv=$Env" $issFile
+$definesFile = Join-Path $StagingDir "release-defines.iss"
+$defines = "#define MyAppVersion `"$AppVersion`"`r`n" +
+           "#define Channel `"$Channel`"`r`n" +
+           "#define TargetEnv `"$Env`"`r`n"
+[System.IO.File]::WriteAllText($definesFile, $defines, [System.Text.Encoding]::ASCII)
+& $iscc $issFile
 if ($LASTEXITCODE -ne 0) { throw "ISCC 编译失败（exit=$LASTEXITCODE）" }
 Get-ChildItem -LiteralPath (Join-Path $Root "dist\installer") | Select-Object Name,Length,LastWriteTime
 Write-Output "BUILD_OK"

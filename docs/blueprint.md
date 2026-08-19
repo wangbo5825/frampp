@@ -170,6 +170,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 - 首选 **PHP**（`php-mcp`，PHP 基金会合作维护），保持“PHP 为主”的定位
 - 备选 **Python**（官方 MCP SDK）；若 Agent 采用 Python 实现，则“最后一个 P = Python”的叙事更强——二选一时记录取舍，不混用
 - 框架无关：`php-mcp/server` 支持属性注解式声明工具，便于后续扩展
+- **M2 决策（2026-08-19）**：v0.1 采用**零外部依赖**的 PHP 实现（自研 MCP stdio 传输层 + RESP 只读客户端 + 工具 `#[AsTool]` 注解）；协议兼容 MCP（initialize / tools/list / tools/call），工具注解风格与 php-mcp 对齐，后续可平滑迁移官方 SDK；理由：本地开发工具包体小、无供应链风险、在受限网络下可完整测试
 
 ### 5.5 安全边界（必须项）
 

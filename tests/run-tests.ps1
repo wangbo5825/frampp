@@ -69,10 +69,10 @@ $caddy = Get-Content -Raw -LiteralPath (Join-Path $tpl "Caddyfile.template")
 Assert-True ($caddy -match 'php_server') "Caddyfile uses php_server"
 Assert-True ($caddy -match '127\.0\.0\.1:8081') "Caddyfile exposes panel on 8081"
 
-# 4. 控制面板 PHP lint + CLI 冒烟（需要 php；CI 中由 setup-php 提供）
+# 4. PHP lint（控制面板 + Agent）与 CLI 冒烟（需要 php；CI 中由 setup-php 提供）
 $php = Get-Command php -ErrorAction SilentlyContinue
 if ($php) {
-    $phpFiles = Get-ChildItem -Path (Join-Path $Root "control-panel") -Recurse -Filter *.php
+    $phpFiles = Get-ChildItem -Path (Join-Path $Root "control-panel"), (Join-Path $Root "agent") -Recurse -Filter *.php
     foreach ($f in $phpFiles) {
         & php -l $f.FullName | Out-Null
         Assert-True ($LASTEXITCODE -eq 0) "php -l $($f.Name)"
@@ -94,6 +94,22 @@ if ($php) {
     Assert-True (-not $json.frankenphp.running) "frankenphp reports stopped in empty runtime"
 
     Remove-Item -LiteralPath $tmp -Recurse -Force
+
+    # MCP 协议冒烟：initialize / tools/list / 只读 SQL 拦截（无需运行时即可验证）
+    $mcp = Join-Path $Root "agent\bin\frampp-mcp"
+    $messages = @(
+        '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","clientInfo":{"name":"ci"},"capabilities":{}}}',
+        '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}',
+        '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"mysql.query","arguments":{"sql":"DROP TABLE x"}}}'
+    ) -join "`n"
+    $mcpOut = $messages | & php $mcp 2>&1
+    $mcpJson = $mcpOut | Where-Object { $_ -match '^\{"jsonrpc"' } | ForEach-Object { $_ | ConvertFrom-Json }
+    $initResp = $mcpJson | Where-Object { $_.id -eq 1 } | Select-Object -First 1
+    $listResp = $mcpJson | Where-Object { $_.id -eq 2 } | Select-Object -First 1
+    $badResp = $mcpJson | Where-Object { $_.id -eq 3 } | Select-Object -First 1
+    Assert-True ($null -ne $initResp -and $initResp.result.serverInfo.name -eq "frampp-agent") "MCP initialize returns frampp-agent"
+    Assert-True ($null -ne $listResp -and @($listResp.result.tools).Count -ge 10) "MCP tools/list returns >=10 tools"
+    Assert-True ($null -ne $badResp -and $badResp.result.isError -eq $true) "MCP rejects non-readonly SQL"
 }
 
 if ($failures.Count -gt 0) {

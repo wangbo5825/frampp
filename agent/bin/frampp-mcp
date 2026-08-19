@@ -1,0 +1,45 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../src/autoload.php';
+
+use Frampp\Agent\AgentConfig;
+use Frampp\Agent\AuditLogger;
+use Frampp\Agent\Server;
+use Frampp\Agent\ToolRegistry;
+use Frampp\Agent\Tools\EnvTools;
+use Frampp\Agent\Tools\LogTools;
+use Frampp\Agent\Tools\MariaDbTools;
+use Frampp\Agent\Tools\RedisTools;
+
+$args = $_SERVER['argv'] ?? [];
+$home = null;
+$configFile = null;
+for ($i = 1, $n = count($args); $i < $n; $i++) {
+    if ($args[$i] === '--home' && isset($args[$i + 1])) {
+        $home = $args[++$i];
+    } elseif ($args[$i] === '--config' && isset($args[$i + 1])) {
+        $configFile = $args[++$i];
+    } elseif (in_array($args[$i], ['--help', '-h'], true)) {
+        fwrite(STDOUT, "FRAMPP Agent / MCP stdio server\n");
+        fwrite(STDOUT, "用法: php agent/bin/frampp-mcp [--home <runtime>] [--config <json>]\n");
+        exit(0);
+    }
+}
+
+try {
+    $config = AgentConfig::load($configFile, $home);
+    $audit = new AuditLogger($config);
+    $registry = new ToolRegistry($audit, $config);
+    $registry->register(new MariaDbTools($config));
+    $registry->register(new RedisTools($config));
+    $registry->register(new LogTools($config));
+    $registry->register(new EnvTools($config));
+    $server = new Server($config, $registry);
+    exit($server->run());
+} catch (\Throwable $e) {
+    fwrite(STDERR, 'frampp-mcp: ' . $e->getMessage() . PHP_EOL);
+    exit(1);
+}

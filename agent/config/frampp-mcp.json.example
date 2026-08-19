@@ -1,0 +1,11 @@
+{
+  "project": null,
+  "enabled": {
+    "mysql": true,
+    "redis": true,
+    "logs": true,
+    "env": true
+  },
+  "query_max_rows": 200,
+  "log_max_lines": 200
+}

@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    name: Validate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        php: ["8.3"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+
+      - name: Composer validate (if composer.json exists)
+        shell: pwsh
+        run: |
+          if (Test-Path composer.json) {
+            composer validate --strict
+          } else {
+            Write-Output "composer.json 尚未创建，跳过"
+          }
+
+      - name: PHP lint (src, agent, control-panel)
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path src, agent, control-panel -Recurse -Filter *.php -ErrorAction SilentlyContinue
+          if ($files) {
+            $files | ForEach-Object { php -l $_.FullName }
+          } else {
+            Write-Output "尚无 PHP 文件，跳过"
+          }

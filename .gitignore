@@ -1,0 +1,36 @@
+# 第三方二进制由脚本下载，不提交
+/dist/binaries/
+
+# 运行时数据与日志
+/logs/
+/data/
+*.log
+
+# PHP
+/vendor/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Node（控制面板如使用）
+node_modules/
+
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
+
+# 打包产物
+build/
+*.exe
+*.msi
+*.dmg
+
+# 编辑器与系统
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

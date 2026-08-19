@@ -54,6 +54,13 @@
 - **APCu / Adminer 保留**：均为轻量附赠（APCu 扩展 DLL、Adminer 单文件），不占字母，保留在默认发行中。
 - **Python 保留为嵌入式轻量方案**：默认勾选的可选组件，用 uv / 嵌入式发行版按需安装，控制包体积。
 
+### 2.5 发布模型决策（v1.2，2026-08-20）
+
+- **产品定位**：只解决普通用户"一键安装、开箱即用"问题，**不提供**高级用户的多 PHP 版本并存（Laragon / Herd 式切换）。
+- **发布形态**：类似 XAMPP——按 **FRAMPP 版本 × 组件通道 × 环境** 发布不同的一键安装包：`frampp-setup-<channel>-<version>-<env>.exe`。
+- **通道**：当前仅 `8.5`（FrankenPHP 1.12.7 / PHP 8.5.9 / MariaDB 12.3.2 / Redis 8.10.1）；新增通道需 FrankenPHP 提供对应 Windows 构建并在 `channels.json` / `versions-<channel>.json` 注册。
+- **发布管线**：`installer/scripts/release.ps1` 构建各通道、生成 SHA256SUMS、可选直发 GitHub Releases（tag `v<version>`）。流程见 [docs/releases.md](releases.md)。
+
 ---
 
 ## 3. 总体架构

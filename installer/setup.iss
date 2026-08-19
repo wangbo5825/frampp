@@ -5,6 +5,12 @@
 #ifndef MyAppVersion
   #define MyAppVersion "0.1.0"
 #endif
+#ifndef Channel
+  #define Channel "8.5"
+#endif
+#ifndef Env
+  #define Env "windows-x64"
+#endif
 #define MyAppPublisher "FRAMPP contributors"
 #define MyAppURL "https://github.com/wangbo5825/frampp"
 
@@ -20,7 +26,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist\installer
-OutputBaseFilename=frampp-setup-{#MyAppVersion}
+OutputBaseFilename=frampp-setup-{#Channel}-{#MyAppVersion}-{#Env}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

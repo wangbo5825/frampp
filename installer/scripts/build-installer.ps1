@@ -14,7 +14,9 @@ param(
     [string]$StagingDir,
     [string]$ToolsDir,
     [string]$InnoVersion = "7.1.0-x64",
-    [string]$AppVersion = "0.1.0"
+    [string]$AppVersion = "0.1.0",
+    [string]$Channel = "8.5",
+    [string]$Env = "windows-x64"
 )
 
 if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path }
@@ -82,10 +84,10 @@ if (-not (Test-Path -LiteralPath $iscc)) {
     if (-not (Test-Path -LiteralPath $iscc)) { throw "Inno Setup 安装后未找到 ISCC.exe" }
 }
 
-# 4. 编译
+# 4. 编译（产物命名：frampp-setup-<channel>-<version>-<env>.exe）
 $issFile = Join-Path $Root "installer\setup.iss"
-Write-Step "编译安装器 -> dist/installer/frampp-setup-$AppVersion.exe"
-& $iscc "/DMyAppVersion=$AppVersion" $issFile
+Write-Step "编译安装器 -> dist/installer/frampp-setup-$Channel-$AppVersion-$Env.exe"
+& $iscc "/DMyAppVersion=$AppVersion" "/DChannel=$Channel" "/DEnv=$Env" $issFile
 if ($LASTEXITCODE -ne 0) { throw "ISCC 编译失败（exit=$LASTEXITCODE）" }
 Get-ChildItem -LiteralPath (Join-Path $Root "dist\installer") | Select-Object Name,Length,LastWriteTime
 Write-Output "BUILD_OK"

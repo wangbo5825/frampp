@@ -25,6 +25,7 @@ function Assert-True([bool]$Condition, [string]$Message) {
 $versionsPath = Join-Path $Root "installer\config\versions.json"
 $config = Get-Content -Raw -LiteralPath $versionsPath | ConvertFrom-Json
 Assert-True ($config.schema -eq 1) "versions.json schema = 1"
+Assert-True ([string]$config.channel -ne "") "versions.json declares channel"
 
 $required = @("name", "version", "url", "sha256", "cacheFile", "kind", "installDir")
 foreach ($prop in $config.components.PSObject.Properties) {
@@ -74,8 +75,12 @@ Assert-True ($caddy -match '127\.0\.0\.1:8081') "Caddyfile exposes panel on 8081
 $setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer\setup.iss")
 Assert-True ($setupIss -match '\[UninstallRun\]') "setup.iss stops services on uninstall"
 Assert-True ($setupIss -match 'init\.ps1') "setup.iss runs init.ps1 on install"
+Assert-True ($setupIss -match 'OutputBaseFilename=frampp-setup-\{#Channel\}-{#MyAppVersion\}-{#Env\}') "setup.iss names artifacts by channel/version/env"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\scripts\build-installer.ps1")) "build-installer.ps1 exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\scripts\release.ps1")) "release.ps1 exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\config\channels.json")) "channels.json exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs\upgrade.md")) "docs/upgrade.md exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs\releases.md")) "docs/releases.md exists"
 
 # 4. PHP lint（控制面板 + Agent）与 CLI 冒烟（需要 php；CI 中由 setup-php 提供）
 $php = Get-Command php -ErrorAction SilentlyContinue

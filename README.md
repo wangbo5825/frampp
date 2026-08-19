@@ -43,6 +43,10 @@ php control-panel/bin/frampp stop all
 - 默认站点：http://127.0.0.1:8080/
 - 控制面板：http://127.0.0.1:8081/
 
+## 发布（一键安装包）
+
+类似 XAMPP，按 FRAMPP 版本 × 组件通道 × 环境发布安装包（`frampp-setup-8.5-0.1.0-windows-x64.exe`），下载与校验见 [GitHub Releases](https://github.com/wangbo5825/frampp/releases)，流程见 [docs/releases.md](docs/releases.md)。
+
 ## 许可证
 
 [MIT](LICENSE)

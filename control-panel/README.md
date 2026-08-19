@@ -23,7 +23,7 @@ php control-panel/bin/frampp ports --json
 php control-panel/bin/frampp new-project my-app minimal   # 一键创建项目
 php control-panel/bin/frampp new-project api minimal      # 别名：minimal 离线模板
 php control-panel/bin/frampp new-project app symfony      # composer create-project symfony/skeleton
-php control-panel/bin/frampp new-project app api-platform # composer create-project api-platform/api-platform
+php control-panel/bin/frampp new-project app api-platform # symfony/skeleton + composer require api-platform/core
 ```
 
 项目创建到 `htdocs/<name>`；`minimal` 为离线模板（无需网络），`symfony` / `api-platform` 依赖网络与内置 Composer。

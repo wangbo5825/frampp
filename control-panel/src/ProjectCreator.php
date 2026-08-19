@@ -29,8 +29,9 @@ final class ProjectCreator
         }
 
         return match ($type) {
-            'minimal' => $this->createMinimal($name, $target),
-            default   => $this->createFromComposer($name, $target, $type),
+            'minimal'     => $this->createMinimal($name, $target),
+            'symfony'     => $this->createFromComposer($name, $target, ['symfony/skeleton']),
+            'api-platform' => $this->createFromComposer($name, $target, ['symfony/skeleton', 'api-platform/core']),
         };
     }
 
@@ -56,7 +57,12 @@ final class ProjectCreator
         return ['name' => $name, 'type' => 'minimal', 'path' => $target];
     }
 
-    private function createFromComposer(string $name, string $target, string $type): array
+    /**
+     * 第一步 create-project 创建骨架，后续包在项目内 composer require（如 api-platform/core）。
+     *
+     * @param list<string> $steps
+     */
+    private function createFromComposer(string $name, string $target, array $steps): array
     {
         $php = $this->config->bin('frankenphp') . DIRECTORY_SEPARATOR . 'php.exe';
         $composer = $this->config->bin('bin') . DIRECTORY_SEPARATOR . 'composer.phar';
@@ -65,21 +71,82 @@ final class ProjectCreator
                 throw new \RuntimeException("缺少依赖文件: $file");
             }
         }
-        $package = $type === 'symfony' ? 'symfony/skeleton' : 'api-platform/api-platform';
+        $first = array_shift($steps);
         $cmd = sprintf(
-            '%s %s create-project %s %s --no-interaction --no-ansi 2>&1',
+            '%s -d memory_limit=1G %s create-project %s %s --no-interaction --no-ansi --no-progress --prefer-dist 2>&1',
             escapeshellarg($php),
             escapeshellarg($composer),
-            escapeshellarg($package),
+            escapeshellarg((string) $first),
             escapeshellarg($target)
         );
-        $output = [];
-        $code = 0;
-        exec($cmd, $output, $code);
+        $run = $this->runComposer($cmd);
+        $output = $run['output'];
+        $code = $run['code'];
         if ($code !== 0 || !is_dir($target)) {
-            throw new \RuntimeException("composer create-project 失败（exit=$code）：" . implode("\n", array_slice($output, -20)));
+            throw new \RuntimeException("composer create-project {$first} 失败（exit={$code}）：" . implode("\n", array_slice($output, -20)));
         }
-        return ['name' => $name, 'type' => $type, 'path' => $target, 'composer_exit' => $code];
+
+        $requires = [];
+        foreach ($steps as $package) {
+            $cmd = sprintf(
+                '%s -d memory_limit=1G %s require %s --no-interaction --no-ansi --no-progress --prefer-dist 2>&1',
+                escapeshellarg($php),
+                escapeshellarg($composer),
+                escapeshellarg($package)
+            );
+            $run = $this->runComposerIn($cmd, $target);
+            $output = $run['output'];
+            $code = $run['code'];
+            if ($code !== 0) {
+                throw new \RuntimeException("composer require {$package} 失败（exit={$code}）：" . implode("\n", array_slice($output, -20)));
+            }
+            $requires[] = $package;
+        }
+
+        return ['name' => $name, 'path' => $target, 'composer_steps' => array_merge([$first], $requires)];
+    }
+
+    /**
+     * 网络抖动时重试 composer 命令（最多 3 次，间隔 10s）。
+     *
+     * @return array{output:list<string>,code:int}
+     */
+    private function runComposer(string $cmd): array
+    {
+        $lastOutput = [];
+        $lastCode = 1;
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            $output = [];
+            $code = 0;
+            exec($cmd, $output, $code);
+            if ($code === 0) {
+                return ['output' => $output, 'code' => 0];
+            }
+            $lastOutput = $output;
+            $lastCode = $code;
+            if ($attempt < 3) {
+                sleep(10);
+            }
+        }
+        return ['output' => $lastOutput, 'code' => $lastCode];
+    }
+
+    /**
+     * 在指定目录内执行 composer（require 必须在项目目录中运行）。
+     *
+     * @return array{output:list<string>,code:int}
+     */
+    private function runComposerIn(string $cmd, string $cwd): array
+    {
+        $prev = getcwd();
+        chdir($cwd);
+        try {
+            return $this->runComposer($cmd);
+        } finally {
+            if ($prev !== false) {
+                chdir($prev);
+            }
+        }
     }
 
     private function copyTree(string $src, string $dst): void

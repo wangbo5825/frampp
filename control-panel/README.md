@@ -20,6 +20,7 @@ php control-panel/bin/frampp start all       # 启动全部
 php control-panel/bin/frampp stop mariadb    # 停止单个服务
 php control-panel/bin/frampp logs redis 100  # 最近 100 行日志
 php control-panel/bin/frampp ports --json
+php control-panel/bin/frampp version        # 版本与组件版本
 php control-panel/bin/frampp new-project my-app minimal   # 一键创建项目
 php control-panel/bin/frampp new-project api minimal      # 别名：minimal 离线模板
 php control-panel/bin/frampp new-project app symfony      # composer create-project symfony/skeleton

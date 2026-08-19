@@ -1,6 +1,10 @@
 # 第三方二进制由脚本下载，不提交
 /dist/binaries/
 /dist/runtime/
+/dist/staging/
+/dist/tools/
+/dist/installer/
+/dist/install-test/
 
 # 运行时数据与日志
 /logs/

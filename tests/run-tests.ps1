@@ -1,14 +1,15 @@
-<#
+﻿<#
 .SYNOPSIS
     FRAMPP M1 冒烟测试：版本清单、哈希缓存、配置模板、控制面板运行时。
     在 CI（ubuntu + windows）与本机均可执行。
 #>
 [CmdletBinding()]
 param(
-    [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+    [string]$Root
 )
 
 $ErrorActionPreference = "Stop"
+if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path }
 $failures = @()
 
 function Assert-True([bool]$Condition, [string]$Message) {
@@ -68,6 +69,13 @@ Assert-True ($redisConf -match 'requirepass \{\{REDIS_PASSWORD\}\}') "redis.conf
 $caddy = Get-Content -Raw -LiteralPath (Join-Path $tpl "Caddyfile.template")
 Assert-True ($caddy -match 'php_server') "Caddyfile uses php_server"
 Assert-True ($caddy -match '127\.0\.0\.1:8081') "Caddyfile exposes panel on 8081"
+
+# 5. 安装器资产
+$setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer\setup.iss")
+Assert-True ($setupIss -match '\[UninstallRun\]') "setup.iss stops services on uninstall"
+Assert-True ($setupIss -match 'init\.ps1') "setup.iss runs init.ps1 on install"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\scripts\build-installer.ps1")) "build-installer.ps1 exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs\upgrade.md")) "docs/upgrade.md exists"
 
 # 4. PHP lint（控制面板 + Agent）与 CLI 冒烟（需要 php；CI 中由 setup-php 提供）
 $php = Get-Command php -ErrorAction SilentlyContinue

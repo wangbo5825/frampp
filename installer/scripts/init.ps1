@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     FRAMPP 运行时初始化：创建安装布局、解压组件、生成配置与密钥、初始化 MariaDB。
 
@@ -21,11 +21,15 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
-    [string]$CacheDir = (Join-Path $Root "dist\binaries"),
-    [string]$RuntimeDir = (Join-Path $Root "dist\runtime"),
+    [string]$Root,
+    [string]$CacheDir,
+    [string]$RuntimeDir,
     [switch]$SkipDbInit
 )
+
+if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path }
+if (-not $CacheDir) { $CacheDir = Join-Path $Root "dist\binaries" }
+if (-not $RuntimeDir) { $RuntimeDir = Join-Path $Root "dist\runtime" }
 
 $ErrorActionPreference = "Stop"
 
@@ -37,6 +41,27 @@ function New-Secret([int]$Length = 24) {
     $bytes = New-Object byte[] $Length
     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
     return ($bytes | ForEach-Object { $_.ToString("x2") }) -join ""
+}
+
+function Invoke-Native {
+    # 原生程序（mysql.exe 等）的 stderr 在 PS 5.1 下会被当作错误记录；
+    # EAP=Stop 会误终止脚本，这里临时降级并返回退出码。
+    param([scriptblock]$ScriptBlock)
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & $ScriptBlock
+        return $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
+}
+
+function Write-JsonFile([string]$Path, $Object) {
+    # 必须无 BOM：PowerShell 5.1 的 Set-Content -Encoding UTF8 会写 BOM，
+    # 导致 PHP json_decode 报 "Syntax error"
+    $json = $Object | ConvertTo-Json
+    [System.IO.File]::WriteAllText($Path, $json, (New-Object System.Text.UTF8Encoding($false)))
 }
 
 function Convert-PathToForward([string]$Path) {
@@ -85,11 +110,32 @@ foreach ($d in $dirs) {
 }
 Write-Step "Runtime layout ready: $RuntimeDir"
 
-# 2. 确保组件缓存齐全（缺失时调用下载器）
+# 2. 确保组件就绪：已解压/已安装的跳过；缺失时才需要缓存（调用下载器补齐）
 foreach ($prop in $config.components.PSObject.Properties) {
+    $name = $prop.Name
     $c = $prop.Value
     $cacheFile = Join-Path $CacheDir $c.cacheFile
-    if (-not (Test-Path -LiteralPath $cacheFile)) {
+    $needsCache = $false
+    if ($c.kind -eq "zip") {
+        $targetDir = Join-Path $RuntimeDir $c.installDir
+        $marker = Join-Path $targetDir ".extracted-$($c.version)"
+        if (-not (Test-Path -LiteralPath $marker)) {
+            $needsCache = $true
+        }
+    } else {
+        # phar / 单文件组件：检查安装目标
+        if ($name -eq "composer") {
+            $dest = Join-Path $RuntimeDir "bin\composer.phar"
+        } elseif ($name -eq "adminer") {
+            $dest = Join-Path $RuntimeDir "htdocs\adminer.php"
+        } else {
+            $dest = $null
+        }
+        if ($dest -ne $null -and -not (Test-Path -LiteralPath $dest)) {
+            $needsCache = $true
+        }
+    }
+    if ($needsCache -and -not (Test-Path -LiteralPath $cacheFile)) {
         Write-Step "Missing cache file for $($prop.Name), running download.ps1"
         & (Join-Path $PSScriptRoot "download.ps1") -Root $Root -CacheDir $CacheDir
         break
@@ -148,20 +194,23 @@ if (-not (Test-Path -LiteralPath $secretsFile)) {
         redis_password          = New-Secret
         panel_token             = New-Secret 16
     }
-    $secrets | ConvertTo-Json | Set-Content -LiteralPath $secretsFile -Encoding UTF8
+    Write-JsonFile $secretsFile $secrets
     Write-Step "Secrets generated: $secretsFile"
 } else {
     $secrets = Get-Content -Raw -LiteralPath $secretsFile | ConvertFrom-Json
+    Write-JsonFile $secretsFile $secrets   # 规范化：去掉旧版可能存在的 BOM
     Write-Step "Secrets loaded (existing)"
 }
 
 # 6. 配置文件
 function Fill-Template([string]$TemplatePath, [hashtable]$Values, [string]$OutPath) {
-    $content = Get-Content -Raw -LiteralPath $TemplatePath
+    # 显式 UTF-8 读取：PS 5.1 的 Get-Content 对无 BOM 文件默认按 ANSI 解码，中文会乱码
+    $content = [System.IO.File]::ReadAllText($TemplatePath, [System.Text.Encoding]::UTF8)
     foreach ($k in $Values.Keys) {
         $content = $content.Replace("{{$k}}", [string]$Values[$k])
     }
-    Set-Content -LiteralPath $OutPath -Value $content -Encoding UTF8
+    # 无 BOM 写入（PS 5.1 Set-Content 会加 BOM，Caddy / Redis 无法解析）
+    [System.IO.File]::WriteAllText($OutPath, $content, (New-Object System.Text.UTF8Encoding($false)))
 }
 
 $templatesDir = Join-Path $Root "installer\templates"
@@ -190,11 +239,19 @@ if (-not (Test-Path -LiteralPath $htdocsIndex)) {
     Copy-Item -LiteralPath (Join-Path $templatesDir "htdocs\index.php") -Destination $htdocsIndex
 }
 
-# 复制控制面板 Web 目录到运行时
+# 复制控制面板到运行时（安装布局下 Root == RuntimeDir 时跳过，避免自我复制）
 $panelSrc = Join-Path $Root "control-panel\web"
-if (Test-Path -LiteralPath (Join-Path $panelSrc "index.php")) {
-    Copy-Item -Path (Join-Path $panelSrc "*") -Destination (Join-Path $RuntimeDir "control-panel\web") -Recurse -Force
+$panelDestDir = Join-Path $RuntimeDir "control-panel\web"
+$srcResolved = (Resolve-Path -LiteralPath $panelSrc -ErrorAction SilentlyContinue).Path
+$dstResolved = (Resolve-Path -LiteralPath $panelDestDir -ErrorAction SilentlyContinue).Path
+if ($srcResolved -and $dstResolved -and $srcResolved -eq $dstResolved) {
+    Write-Step "Control panel already in place (installed layout)"
+} elseif (Test-Path -LiteralPath (Join-Path $panelSrc "index.php")) {
+    New-Item -ItemType Directory -Force -Path $panelDestDir | Out-Null
+    Copy-Item -Path (Join-Path $panelSrc "*") -Destination $panelDestDir -Recurse -Force
     Copy-Item -LiteralPath (Join-Path $Root "control-panel\src") -Destination (Join-Path $RuntimeDir "control-panel\") -Recurse -Force
+    Copy-Item -LiteralPath (Join-Path $Root "control-panel\bin") -Destination (Join-Path $RuntimeDir "control-panel\") -Recurse -Force
+    Write-Step "Control panel copied to runtime"
 }
 
 # 7. MariaDB 数据目录初始化（install-db 直接设置 root 密码；随后临时启动创建只读账号）
@@ -209,9 +266,7 @@ if (-not $SkipDbInit -and (Test-Path -LiteralPath (Join-Path $mariadbBin "mariad
         $installDbLog = Join-Path $RuntimeDir "logs\mariadb-install-db.log"
         Push-Location $mariadbBin
         # 密码不在 install-db 阶段设置（避免其 --password 行为差异），改为启动后由 SQL 显式设置
-        & (Join-Path $mariadbBin "mariadb-install-db.exe") --datadir=$datadir *>&1 |
-            Tee-Object -FilePath $installDbLog
-        $code = $LASTEXITCODE
+        $code = Invoke-Native { & (Join-Path $mariadbBin "mariadb-install-db.exe") --datadir=$datadir *> $installDbLog }
         Pop-Location
         if ($code -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $datadir "mysql"))) {
             Write-Warning "mariadb-install-db failed (exit=$code), see $installDbLog"
@@ -222,18 +277,27 @@ if (-not $SkipDbInit -and (Test-Path -LiteralPath (Join-Path $mariadbBin "mariad
 
     if ($initialized) {
         # 临时启动 -> 创建只读账号 -> 优雅关闭
-        $serverLog = Join-Path $RuntimeDir "logs\mariadb.log"
+        # 注意：mariadbd 用 --log-error 自管日志，避免 Start-Process 重定向句柄在 PS 5.1 下的兼容问题
         $serverErr = Join-Path $RuntimeDir "logs\mariadb.err.log"
         $pidFile = Join-Path $RuntimeDir "data\mariadb.pid"
+        $mysql = Join-Path $mariadbBin "mysql.exe"
+        $mysqladmin = Join-Path $mariadbBin "mysqladmin.exe"
+        $rootPw = [string]$secrets.mariadb_root_password
+        $roPw = [string]$secrets.mariadb_readonly_password
+        $sql = "ALTER USER 'root'@'localhost' IDENTIFIED BY '$rootPw'; " +
+               "CREATE USER IF NOT EXISTS 'frampp_ro'@'127.0.0.1' IDENTIFIED BY '$roPw'; " +
+               "GRANT SELECT, SHOW VIEW ON *.* TO 'frampp_ro'@'127.0.0.1'; FLUSH PRIVILEGES;"
+        $bootstrapLog = Join-Path $RuntimeDir "logs\mariadb-init-user.log"
+
         $proc = Start-Process -FilePath (Join-Path $mariadbBin "mariadbd.exe") `
             -ArgumentList @(
                 "--datadir=$datadir",
                 "--port=$($ports.mysql)",
                 "--bind-address=127.0.0.1",
-                "--console"
+                "--log-error=$serverErr"
             ) `
             -WorkingDirectory $RuntimeDir `
-            -WindowStyle Hidden -RedirectStandardOutput $serverLog -RedirectStandardError $serverErr -PassThru
+            -WindowStyle Hidden -PassThru
         $proc.Id | Out-File -Encoding ascii $pidFile
 
         $portReady = $false
@@ -248,25 +312,14 @@ if (-not $SkipDbInit -and (Test-Path -LiteralPath (Join-Path $mariadbBin "mariad
         }
 
         if ($portReady) {
-            $mysql = Join-Path $mariadbBin "mysql.exe"
-            $rootPw = [string]$secrets.mariadb_root_password
-            $roPw = [string]$secrets.mariadb_readonly_password
-            $sql = "ALTER USER 'root'@'localhost' IDENTIFIED BY '$rootPw'; " +
-                   "CREATE USER IF NOT EXISTS 'frampp_ro'@'127.0.0.1' IDENTIFIED BY '$roPw'; " +
-                   "GRANT SELECT, SHOW VIEW ON *.* TO 'frampp_ro'@'127.0.0.1'; FLUSH PRIVILEGES;"
-            $bootstrapLog = Join-Path $RuntimeDir "logs\mariadb-init-user.log"
-
             # 尝试无密码（全新数据目录）；失败则回退到密码 / skip-grant-tables
-            & $mysql -h 127.0.0.1 -P $($ports.mysql) -u root -e $sql *>&1 | Out-File $bootstrapLog -Encoding UTF8
-            $bootstrapOk = ($LASTEXITCODE -eq 0)
+            $bootstrapOk = ((Invoke-Native { & $mysql --connect-timeout=5 -h 127.0.0.1 -P $($ports.mysql) -u root -e $sql *> $bootstrapLog }) -eq 0)
             if (-not $bootstrapOk) {
-                & $mysql -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" -e $sql *>&1 |
-                    Out-File $bootstrapLog -Encoding UTF8 -Append
-                $bootstrapOk = ($LASTEXITCODE -eq 0)
+                $bootstrapOk = ((Invoke-Native { & $mysql --connect-timeout=5 -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" -e $sql *>> $bootstrapLog }) -eq 0)
             }
             if (-not $bootstrapOk) {
                 Write-Warning "常规方式设置密码失败，改用 skip-grant-tables 重置（仅本机临时操作）"
-                Stop-Process -Id $proc.Id -Force
+                if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
                 Start-Sleep -Milliseconds 500
                 $proc = Start-Process -FilePath (Join-Path $mariadbBin "mariadbd.exe") `
                     -ArgumentList @(
@@ -274,23 +327,18 @@ if (-not $SkipDbInit -and (Test-Path -LiteralPath (Join-Path $mariadbBin "mariad
                         "--port=$($ports.mysql)",
                         "--bind-address=127.0.0.1",
                         "--skip-grant-tables",
-                        "--console"
+                        "--log-error=$serverErr"
                     ) `
                     -WorkingDirectory $RuntimeDir `
-                    -WindowStyle Hidden -RedirectStandardOutput $serverLog -RedirectStandardError $serverErr -PassThru
+                    -WindowStyle Hidden -PassThru
                 Start-Sleep -Seconds 3
-                & $mysql -h 127.0.0.1 -P $($ports.mysql) -u root -e "FLUSH PRIVILEGES; $sql" *>&1 |
-                    Out-File $bootstrapLog -Encoding UTF8 -Append
-                $bootstrapOk = ($LASTEXITCODE -eq 0)
+                $bootstrapOk = ((Invoke-Native { & $mysql --connect-timeout=5 -h 127.0.0.1 -P $($ports.mysql) -u root -e "FLUSH PRIVILEGES; $sql" *>> $bootstrapLog }) -eq 0)
             }
 
-            $mysqladmin = Join-Path $mariadbBin "mysqladmin.exe"
             if ($bootstrapOk) {
                 # 用新密码验证后优雅关闭
-                & $mysql -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" -e "SELECT 'init-ok' AS result;" *>&1 |
-                    Out-File $bootstrapLog -Encoding UTF8 -Append
-                $verifyOk = ($LASTEXITCODE -eq 0)
-                & $mysqladmin -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" shutdown *>&1 | Out-Null
+                $verifyOk = ((Invoke-Native { & $mysql --connect-timeout=5 -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" -e "SELECT 'init-ok' AS result;" *>> $bootstrapLog }) -eq 0)
+                Invoke-Native { & $mysqladmin --connect-timeout=5 -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" shutdown *>> $bootstrapLog } | Out-Null
                 $dbInitialized = $verifyOk
                 if (-not $verifyOk) {
                     Write-Warning "MariaDB 密码验证失败，数据目录可能损坏，请删除后重新 init"
@@ -321,7 +369,7 @@ $runtime = [ordered]@{
     }
     db_initialized = $dbInitialized
 }
-$runtime | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $RuntimeDir "data\runtime.json") -Encoding UTF8
+Write-JsonFile (Join-Path $RuntimeDir "data\runtime.json") $runtime
 
 Write-Step "Done. Runtime ready at $RuntimeDir"
 Write-Output "DB_INITIALIZED=$dbInitialized"

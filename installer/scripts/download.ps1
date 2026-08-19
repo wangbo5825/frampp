@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     FRAMPP 组件下载器：按 versions.json 下载第三方二进制到缓存目录并校验 SHA-256。
 
@@ -21,11 +21,15 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
-    [string]$ConfigPath = (Join-Path $Root "installer\config\versions.json"),
-    [string]$CacheDir = (Join-Path $Root "dist\binaries"),
+    [string]$Root,
+    [string]$ConfigPath,
+    [string]$CacheDir,
     [switch]$Force
 )
+
+if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path }
+if (-not $ConfigPath) { $ConfigPath = Join-Path $Root "installer\config\versions.json" }
+if (-not $CacheDir) { $CacheDir = Join-Path $Root "dist\binaries" }
 
 $ErrorActionPreference = "Stop"
 

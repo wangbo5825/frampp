@@ -205,7 +205,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 - 原生 Windows 支持自 v1.12 起（链接官方 Visual Studio 编译的 PHP 二进制，扩展齐全）；M1 锁定版本并校验哈希
 - APCu 扩展默认启用；worker 模式需 `apc.enable_cli=1`（官方镜像默认不带，是最易踩的坑）
 - `apc.shm_size` 默认预设 128M，控制面板可调
-- 自动 HTTPS（本地证书 + hosts 管理）
+- 自动 HTTPS（本地证书 + hosts 管理）：**暂缓（2026-08-20 决策）**——仅测试用途、对用户无实际价值；若后续测试必需再启用
 
 ### 6.2 MariaDB / Redis
 
@@ -245,7 +245,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 | M0 仓库落地 | 独立目录 + GitHub 仓库、README、LICENSE、CI 骨架、蓝图入库 | 可 clone、可提交 |
 | M1 核心运行时 | FrankenPHP + MariaDB + Redis + APCu 打包；控制面板 MVP（启停 / 状态 / 端口 / 日志） | 安装后一键启动三件套（2026-08-19 已实现并本地验证：download.ps1 / init.ps1 / 控制面板 CLI + Web） |
 | M2 Agent v0.1 | MCP 服务器 + MariaDB / Redis / 日志 / 环境工具 + 安全边界 | Claude Code / Cursor 可调用工具 |
-| M3 开发体验 | Adminer、本地域名 / HTTPS、API Platform starter、项目一键创建 | 新项目 5 分钟内可跑 API（2026-08-19 已增量实现：Adminer 随包安装 + `frampp new-project`（minimal/symfony/api-platform）；本地域名 / HTTPS 待办） |
+| M3 开发体验 | Adminer、本地域名 / HTTPS、API Platform starter、项目一键创建 | 新项目 5 分钟内可跑 API（2026-08-19 已增量实现：Adminer 随包安装 + `frampp new-project`（minimal/symfony/api-platform）；本地域名 / HTTPS 暂缓——仅测试用途、对用户无实际价值，测试必需时再加） |
 | M4 生产模式 | 安装器 / 升级流程、代码签名、多用户文档（Authelia 已移除：属应用开发范畴） | 可对外正式发布 |
 | M5 生态 | A2A 路线图、Linux / macOS / Docker 变体、社区贡献指南 | 多平台 CI 通过 |
 

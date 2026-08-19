@@ -47,6 +47,15 @@
       "cacheFile": "php_apcu-5.1.28-8.5-ts-vs17-x64.zip",
       "kind": "zip",
       "installDir": "frankenphp\\ext"
+    },
+    "adminer": {
+      "name": "Adminer",
+      "version": "6.0.1",
+      "url": "https://www.adminer.org/static/download/6.0.1/adminer-6.0.1.php",
+      "sha256": "1815C03F26E21D533E729C0B09BC69A59C902A6440409D013105EE679DFF006C",
+      "cacheFile": "adminer-6.0.1.php",
+      "kind": "phar",
+      "installDir": "htdocs"
     }
   }
 }

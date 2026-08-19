@@ -4,9 +4,11 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../src/Config.php';
+require __DIR__ . '/../src/ProjectCreator.php';
 require __DIR__ . '/../src/ServiceManager.php';
 
 use Frampp\ControlPanel\Config;
+use Frampp\ControlPanel\ProjectCreator;
 use Frampp\ControlPanel\ServiceManager;
 
 $argv = $_SERVER['argv'] ?? [];
@@ -34,8 +36,9 @@ try {
         'stop'   => self_stop($mgr, $args[1] ?? 'all'),
         'logs'   => $mgr->tailLog($args[1] ?? 'frankenphp', max(1, (int) ($args[2] ?? 50))),
         'ports'  => $mgr->ports(),
+        'new-project' => (new ProjectCreator($config))->create((string) ($args[1] ?? ''), (string) ($args[2] ?? 'minimal')),
         default  => throw new \InvalidArgumentException(
-            "未知命令: $cmd（支持 status|start|stop|logs|ports）"
+            "未知命令: $cmd（支持 status|start|stop|logs|ports|new-project）"
         ),
     };
 

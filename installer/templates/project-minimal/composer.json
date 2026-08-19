@@ -1,0 +1,13 @@
+{
+    "name": "frampp/hello",
+    "description": "FRAMPP minimal project",
+    "type": "project",
+    "require": {
+        "php": ">=8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}

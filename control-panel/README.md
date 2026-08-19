@@ -20,7 +20,14 @@ php control-panel/bin/frampp start all       # 启动全部
 php control-panel/bin/frampp stop mariadb    # 停止单个服务
 php control-panel/bin/frampp logs redis 100  # 最近 100 行日志
 php control-panel/bin/frampp ports --json
+php control-panel/bin/frampp new-project my-app minimal   # 一键创建项目
+php control-panel/bin/frampp new-project api minimal      # 别名：minimal 离线模板
+php control-panel/bin/frampp new-project app symfony      # composer create-project symfony/skeleton
+php control-panel/bin/frampp new-project app api-platform # composer create-project api-platform/api-platform
 ```
+
+项目创建到 `htdocs/<name>`；`minimal` 为离线模板（无需网络），`symfony` / `api-platform` 依赖网络与内置 Composer。
+数据库管理：`http://127.0.0.1:8080/adminer.php`（Adminer，由 `init.ps1` 随包安装）。
 
 ## 安全
 

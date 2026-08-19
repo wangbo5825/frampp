@@ -93,6 +93,13 @@ if ($php) {
     Assert-True ($null -ne $json.frankenphp -and $null -ne $json.mariadb -and $null -ne $json.redis) "frampp status lists three services"
     Assert-True (-not $json.frankenphp.running) "frankenphp reports stopped in empty runtime"
 
+    # new-project minimal（模板回退到仓库 installer/templates/project-minimal）
+    $npOut = (& php $cli new-project demo minimal --json --home $tmp 2>&1 | Out-String)
+    Assert-True ($LASTEXITCODE -eq 0) "frampp new-project exits 0"
+    $np = $npOut | ConvertFrom-Json
+    Assert-True ($np.name -eq "demo") "new-project returns project name"
+    Assert-True (Test-Path -LiteralPath (Join-Path $tmp "htdocs\demo\public\index.php")) "new-project creates public/index.php"
+
     Remove-Item -LiteralPath $tmp -Recurse -Force
 
     # MCP 协议冒烟：initialize / tools/list / 只读 SQL 拦截（无需运行时即可验证）

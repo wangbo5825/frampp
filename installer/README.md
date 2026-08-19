@@ -13,6 +13,8 @@
 | MariaDB | 12.3.2 LTS | archive.mariadb.org |
 | Redis | 8.10.1 | redis-windows 社区构建（msys2） |
 | Composer | 2.10.2 | getcomposer.org |
+| APCu | 5.1.28 | PECL（PHP 8.5 TS x64） |
+| Adminer | 6.0.1 | adminer.org（单文件，随包安装到 htdocs） |
 
 ## 使用
 

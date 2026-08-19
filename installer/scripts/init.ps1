@@ -121,6 +121,24 @@ if (-not (Test-Path -LiteralPath $composerTarget)) {
     Write-Step "Composer installed: $composerTarget"
 }
 
+# Adminer（单文件，放入 htdocs 由 FrankenPHP 直接提供）
+$adminerTarget = Join-Path $RuntimeDir "htdocs\adminer.php"
+if (-not (Test-Path -LiteralPath $adminerTarget)) {
+    Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination $adminerTarget
+    Write-Step "Adminer installed: $adminerTarget"
+}
+
+# 项目模板（控制面板 new-project 使用）
+$templatesCopy = Join-Path $RuntimeDir "templates\project-minimal"
+if (-not (Test-Path -LiteralPath $templatesCopy)) {
+    $srcTpl = Join-Path $Root "installer\templates\project-minimal"
+    if (Test-Path -LiteralPath $srcTpl) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $RuntimeDir "templates") | Out-Null
+        Copy-Item -LiteralPath $srcTpl -Destination $templatesCopy -Recurse
+        Write-Step "Project templates installed"
+    }
+}
+
 # 5. 密钥（仅在首次生成）
 $secretsFile = Join-Path $RuntimeDir "data\secrets.json"
 if (-not (Test-Path -LiteralPath $secretsFile)) {

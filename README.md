@@ -4,7 +4,7 @@
 
 面向现代 PHP 开发者的“一键安装、开箱即用”运行环境与开发平台，延续 LAMPP / XAMPP / NMPP 的产品形态，内置 AI Agent 接入层（MCP）。
 
-> 当前里程碑：M0（仓库落地）。完整设计见 [docs/blueprint.md](docs/blueprint.md)。
+> 当前里程碑：**M1 核心运行时（已实现并可本地运行）**。完整设计见 [docs/blueprint.md](docs/blueprint.md)。
 
 ## 组件
 
@@ -22,6 +22,26 @@
 - 平台：Windows 优先，Linux / macOS / Docker 为后续里程碑
 - 开发约定见 [AGENTS.md](AGENTS.md)
 - 里程碑 M0–M5 见 [docs/blueprint.md](docs/blueprint.md)
+
+## 快速开始（开发预览）
+
+```powershell
+# 1. 下载并校验组件（FrankenPHP / MariaDB / Redis / Composer / APCu，版本与哈希锁定）
+powershell -ExecutionPolicy Bypass -File installer/scripts/download.ps1
+
+# 2. 初始化运行时（解压、生成配置与随机密钥、初始化 MariaDB 数据目录）
+powershell -ExecutionPolicy Bypass -File installer/scripts/init.ps1
+
+# 3. 启动全部服务（或用控制面板 CLI 管理单个服务）
+php control-panel/bin/frampp start all
+php control-panel/bin/frampp status
+php control-panel/bin/frampp stop all
+```
+
+启动后访问：
+
+- 默认站点：http://127.0.0.1:8080/
+- 控制面板：http://127.0.0.1:8081/
 
 ## 许可证
 

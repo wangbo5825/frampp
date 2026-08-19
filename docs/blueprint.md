@@ -242,7 +242,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 | 里程碑 | 内容 | 完成标准 |
 | --- | --- | --- |
 | M0 仓库落地 | 独立目录 + GitHub 仓库、README、LICENSE、CI 骨架、蓝图入库 | 可 clone、可提交 |
-| M1 核心运行时 | FrankenPHP + MariaDB + Redis + APCu 打包；控制面板 MVP（启停 / 状态 / 端口 / 日志） | 安装后一键启动三件套 |
+| M1 核心运行时 | FrankenPHP + MariaDB + Redis + APCu 打包；控制面板 MVP（启停 / 状态 / 端口 / 日志） | 安装后一键启动三件套（2026-08-19 已实现并本地验证：download.ps1 / init.ps1 / 控制面板 CLI + Web） |
 | M2 Agent v0.1 | MCP 服务器 + MariaDB / Redis / 日志 / 环境工具 + 安全边界 | Claude Code / Cursor 可调用工具 |
 | M3 开发体验 | Adminer、本地域名 / HTTPS、API Platform starter、项目一键创建 | 新项目 5 分钟内可跑 API |
 | M4 生产模式 | 安装器 / 升级流程、代码签名、多用户文档（Authelia 已移除：属应用开发范畴） | 可对外正式发布 |
@@ -264,6 +264,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 
 ## 10. 下一步
 
-1. 在独立目录创建 Codex 项目（已确认），把本蓝图作为 `docs/blueprint.md` 入库
-2. M0：`git init`、README / LICENSE / CI 骨架
-3. M1：先做“可运行的最小闭环”——FrankenPHP + MariaDB + Redis + 控制面板启停，验证打包链路后再进入 Agent 开发
+1. ✅ 在独立目录创建 Codex 项目，把本蓝图作为 `docs/blueprint.md` 入库
+2. ✅ M0：`git init`、README / LICENSE / CI 骨架、GitHub 仓库（wangbo5825/frampp）
+3. ✅ M1：FrankenPHP + MariaDB + Redis + APCu 打包（download.ps1 / init.ps1）+ 控制面板 MVP（启停 / 状态 / 端口 / 日志），本机端到端验证通过
+4. 下一步：**M2 Agent v0.1**——MCP 服务器 + MariaDB / Redis / 日志 / 环境工具 + 安全边界

@@ -57,7 +57,7 @@ final class ServiceManager
     public function start(string $name): array
     {
         if (!isset(self::SERVICES[$name])) {
-            throw new \InvalidArgumentException("未知服务: $name（可选：" . implode('|', self::services()) . '）');
+            throw new \InvalidArgumentException("未知服务: {$name}（可选：" . implode('|', self::services()) . '）');
         }
         $status = $this->status($name)[$name];
         if ($status['running']) {
@@ -157,7 +157,7 @@ final class ServiceManager
             '--bind-address=127.0.0.1',
             '--console',
         ];
-        return $this->startDetached($exe, $args, $this->config->root, 'mariadb', $log);
+        return $this->startDetached($exe, $args, $this->config->root, 'mariadb');
     }
 
     private function startRedis(): ?int
@@ -166,45 +166,40 @@ final class ServiceManager
         if (!is_file($exe)) {
             throw new \RuntimeException("缺少 Redis 可执行文件: $exe");
         }
-        $conf = $this->config->bin('redis') . DIRECTORY_SEPARATOR . 'redis.conf';
-        return $this->startDetached($exe, [$conf], $this->config->root, 'redis');
+        // msys2 构建会按 POSIX 路径解析绝对路径参数；必须在其目录内用相对路径启动
+        $redisDir = $this->config->bin('redis');
+        if (!is_dir($this->config->dataDir('redis'))) {
+            mkdir($this->config->dataDir('redis'), 0777, true);
+        }
+        return $this->startDetached($exe, ['redis.conf'], $redisDir, 'redis');
     }
 
     /**
-     * 通过 PowerShell Start-Process 以隐藏窗口方式拉起进程并记录 PID。
+     * 通过 proc_open 直接拉起进程（Windows 下 bypass_shell 绕开 cmd.exe），
+     * 输出重定向到日志文件，进程脱离父进程独立运行；PID 交由调用方落盘。
      */
     private function startDetached(string $exe, array $args, string $cwd, string $name, ?string $stderrLog = null): ?int
     {
         $stdout = $this->config->logsDir() . DIRECTORY_SEPARATOR . self::SERVICES[$name]['log'];
         $stderr = $stderrLog ?? $this->config->logsDir() . DIRECTORY_SEPARATOR . $name . '.err.log';
-        $pidFile = $this->config->dataDir($name . '.pid');
 
-        $payload = [
-            'file'   => $exe,
-            'args'   => $args,
-            'cwd'    => $cwd,
-            'stdout' => $stdout,
-            'stderr' => $stderr,
-            'pidFile'=> $pidFile,
+        $descriptors = [
+            0 => ['file', 'NUL', 'r'],
+            1 => ['file', $stdout, 'a'],
+            2 => ['file', $stderr, 'a'],
         ];
-        $tmp = tempnam(sys_get_temp_dir(), 'frampp-') . '.json';
-        file_put_contents($tmp, json_encode($payload, JSON_UNESCAPED_SLASHES));
-
-        $helper = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'start-service.ps1';
-        $cmd = sprintf(
-            'powershell -NoProfile -ExecutionPolicy Bypass -File "%s" -JsonArgs "%s"',
-            $helper,
-            $tmp
-        );
-        $output = [];
-        $exit = 0;
-        exec($cmd . ' 2>NUL', $output, $exit);
-        @unlink($tmp);
-
-        $pid = $this->readPid($name);
-        if ($pid === null) {
-            throw new \RuntimeException("启动 $name 失败（未取得 PID），日志见 " . $stdout);
+        $options = [];
+        if (PHP_OS_FAMILY === 'Windows') {
+            $options['bypass_shell'] = true;
         }
+
+        $proc = proc_open(array_merge([$exe], $args), $descriptors, $pipes, $cwd, null, $options);
+        if (!is_resource($proc)) {
+            throw new \RuntimeException("启动 {$name} 失败：无法创建进程（{$exe}）");
+        }
+        $status = proc_get_status($proc);
+        $pid = $status['pid'] ?? null;
+        // 注意：不调用 proc_close()，否则会等待子进程退出
         return $pid;
     }
 

@@ -58,7 +58,7 @@ final class Config
         $secretsFile = $root . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'secrets.json';
 
         if (!is_file($runtimeFile)) {
-            throw new \RuntimeException("缺少运行时清单: $runtimeFile（请先运行 init.ps1）");
+            throw new \RuntimeException("缺少运行时清单: {$runtimeFile}（请先运行 init.ps1）");
         }
         $runtime = json_decode((string) file_get_contents($runtimeFile), true, 512, JSON_THROW_ON_ERROR);
 

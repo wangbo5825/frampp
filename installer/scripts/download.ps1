@@ -94,7 +94,7 @@ foreach ($prop in $config.components.PSObject.Properties) {
         if ($actual -ne $c.sha256) {
             Remove-Item -LiteralPath $target -Force
             $failed += $name
-            Write-Error "SHA-256 verification failed for $name: expected $($c.sha256), got $actual"
+            Write-Error "SHA-256 verification failed for ${name}: expected $($c.sha256), got $actual"
             continue
         }
     }

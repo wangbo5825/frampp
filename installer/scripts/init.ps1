@@ -175,7 +175,7 @@ if (-not (Test-Path -LiteralPath $htdocsIndex)) {
 # 复制控制面板 Web 目录到运行时
 $panelSrc = Join-Path $Root "control-panel\web"
 if (Test-Path -LiteralPath (Join-Path $panelSrc "index.php")) {
-    Copy-Item -LiteralPath (Join-Path $panelSrc "*") -Destination (Join-Path $RuntimeDir "control-panel\web") -Recurse -Force
+    Copy-Item -Path (Join-Path $panelSrc "*") -Destination (Join-Path $RuntimeDir "control-panel\web") -Recurse -Force
     Copy-Item -LiteralPath (Join-Path $Root "control-panel\src") -Destination (Join-Path $RuntimeDir "control-panel\") -Recurse -Force
 }
 
@@ -187,10 +187,11 @@ if (-not $SkipDbInit -and (Test-Path -LiteralPath (Join-Path $mariadbBin "mariad
     $datadir = Join-Path $RuntimeDir "data\mariadb"
     $initialized = Test-Path -LiteralPath (Join-Path $datadir "mysql")
     if (-not $initialized) {
-        Write-Step "Initializing MariaDB data directory (root password set)..."
+        Write-Step "Initializing MariaDB data directory ..."
         $installDbLog = Join-Path $RuntimeDir "logs\mariadb-install-db.log"
         Push-Location $mariadbBin
-        & (Join-Path $mariadbBin "mariadb-install-db.exe") --datadir=$datadir --password=$secrets.mariadb_root_password *>&1 |
+        # 密码不在 install-db 阶段设置（避免其 --password 行为差异），改为启动后由 SQL 显式设置
+        & (Join-Path $mariadbBin "mariadb-install-db.exe") --datadir=$datadir *>&1 |
             Tee-Object -FilePath $installDbLog
         $code = $LASTEXITCODE
         Pop-Location
@@ -230,13 +231,57 @@ if (-not $SkipDbInit -and (Test-Path -LiteralPath (Join-Path $mariadbBin "mariad
 
         if ($portReady) {
             $mysql = Join-Path $mariadbBin "mysql.exe"
-            $sql = "CREATE USER IF NOT EXISTS 'frampp_ro'@'127.0.0.1' IDENTIFIED BY '$($secrets.mariadb_readonly_password)'; " +
+            $rootPw = [string]$secrets.mariadb_root_password
+            $roPw = [string]$secrets.mariadb_readonly_password
+            $sql = "ALTER USER 'root'@'localhost' IDENTIFIED BY '$rootPw'; " +
+                   "CREATE USER IF NOT EXISTS 'frampp_ro'@'127.0.0.1' IDENTIFIED BY '$roPw'; " +
                    "GRANT SELECT, SHOW VIEW ON *.* TO 'frampp_ro'@'127.0.0.1'; FLUSH PRIVILEGES;"
-            & $mysql -h 127.0.0.1 -P $($ports.mysql) -u root -p"$($secrets.mariadb_root_password)" -e $sql *>&1 |
-                Out-File -FilePath (Join-Path $RuntimeDir "logs\mariadb-init-user.log") -Encoding UTF8
+            $bootstrapLog = Join-Path $RuntimeDir "logs\mariadb-init-user.log"
+
+            # 尝试无密码（全新数据目录）；失败则回退到密码 / skip-grant-tables
+            & $mysql -h 127.0.0.1 -P $($ports.mysql) -u root -e $sql *>&1 | Out-File $bootstrapLog -Encoding UTF8
+            $bootstrapOk = ($LASTEXITCODE -eq 0)
+            if (-not $bootstrapOk) {
+                & $mysql -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" -e $sql *>&1 |
+                    Out-File $bootstrapLog -Encoding UTF8 -Append
+                $bootstrapOk = ($LASTEXITCODE -eq 0)
+            }
+            if (-not $bootstrapOk) {
+                Write-Warning "常规方式设置密码失败，改用 skip-grant-tables 重置（仅本机临时操作）"
+                Stop-Process -Id $proc.Id -Force
+                Start-Sleep -Milliseconds 500
+                $proc = Start-Process -FilePath (Join-Path $mariadbBin "mariadbd.exe") `
+                    -ArgumentList @(
+                        "--datadir=$datadir",
+                        "--port=$($ports.mysql)",
+                        "--bind-address=127.0.0.1",
+                        "--skip-grant-tables",
+                        "--console"
+                    ) `
+                    -WorkingDirectory $RuntimeDir `
+                    -WindowStyle Hidden -RedirectStandardOutput $serverLog -RedirectStandardError $serverErr -PassThru
+                Start-Sleep -Seconds 3
+                & $mysql -h 127.0.0.1 -P $($ports.mysql) -u root -e "FLUSH PRIVILEGES; $sql" *>&1 |
+                    Out-File $bootstrapLog -Encoding UTF8 -Append
+                $bootstrapOk = ($LASTEXITCODE -eq 0)
+            }
+
             $mysqladmin = Join-Path $mariadbBin "mysqladmin.exe"
-            & $mysqladmin -h 127.0.0.1 -P $($ports.mysql) -u root -p"$($secrets.mariadb_root_password)" shutdown *>&1 | Out-Null
-            $dbInitialized = $true
+            if ($bootstrapOk) {
+                # 用新密码验证后优雅关闭
+                & $mysql -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" -e "SELECT 'init-ok' AS result;" *>&1 |
+                    Out-File $bootstrapLog -Encoding UTF8 -Append
+                $verifyOk = ($LASTEXITCODE -eq 0)
+                & $mysqladmin -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" shutdown *>&1 | Out-Null
+                $dbInitialized = $verifyOk
+                if (-not $verifyOk) {
+                    Write-Warning "MariaDB 密码验证失败，数据目录可能损坏，请删除后重新 init"
+                    if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+                }
+            } else {
+                Write-Warning "MariaDB 账号初始化失败，见 $bootstrapLog"
+                if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+            }
         } else {
             Write-Warning "MariaDB 未能监听端口，跳过只读账号创建；日志见 $serverErr"
             if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }

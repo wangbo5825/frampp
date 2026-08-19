@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        php: ["8.3"]
+        php: ["8.4", "8.5"]
     steps:
       - uses: actions/checkout@v4
 
@@ -39,3 +39,22 @@ jobs:
           } else {
             Write-Output "尚无 PHP 文件，跳过"
           }
+
+  installer:
+    name: Installer tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+
+      - name: Run installer smoke tests
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File tests/run-tests.ps1

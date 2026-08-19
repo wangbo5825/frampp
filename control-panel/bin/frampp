@@ -1,0 +1,105 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../src/Config.php';
+require __DIR__ . '/../src/ServiceManager.php';
+
+use Frampp\ControlPanel\Config;
+use Frampp\ControlPanel\ServiceManager;
+
+$argv = $_SERVER['argv'] ?? [];
+$args = array_slice($argv, 1);
+
+$jsonMode = in_array('--json', $args, true);
+$args = array_values(array_filter($args, static fn (string $a): bool => $a !== '--json'));
+
+$home = null;
+$homeIdx = array_search('--home', $args, true);
+if ($homeIdx !== false && isset($args[$homeIdx + 1])) {
+    $home = $args[$homeIdx + 1];
+    array_splice($args, $homeIdx, 2);
+}
+
+$cmd = $args[0] ?? 'status';
+
+try {
+    $config = Config::discover($home);
+    $mgr = new ServiceManager($config);
+
+    $data = match ($cmd) {
+        'status' => $mgr->status(),
+        'start'  => self_start($mgr, $args[1] ?? 'all'),
+        'stop'   => self_stop($mgr, $args[1] ?? 'all'),
+        'logs'   => $mgr->tailLog($args[1] ?? 'frankenphp', max(1, (int) ($args[2] ?? 50))),
+        'ports'  => $mgr->ports(),
+        default  => throw new \InvalidArgumentException(
+            "未知命令: $cmd（支持 status|start|stop|logs|ports）"
+        ),
+    };
+
+    if ($jsonMode) {
+        echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), PHP_EOL;
+    } else {
+        renderText($cmd, $data);
+    }
+} catch (\Throwable $e) {
+    fwrite(STDERR, 'ERROR: ' . $e->getMessage() . PHP_EOL);
+    exit(1);
+}
+
+function self_start(ServiceManager $mgr, string $target): array
+{
+    $result = [];
+    foreach (ServiceManager::services() as $name) {
+        if ($target === 'all' || $target === $name) {
+            $result[$name] = $mgr->start($name);
+        }
+    }
+    return $result;
+}
+
+function self_stop(ServiceManager $mgr, string $target): array
+{
+    $result = [];
+    foreach (array_reverse(ServiceManager::services()) as $name) {
+        if ($target === 'all' || $target === $name) {
+            $result[$name] = $mgr->stop($name);
+        }
+    }
+    return $result;
+}
+
+function renderText(string $cmd, array $data): void
+{
+    if ($cmd === 'ports') {
+        foreach ($data as $name => $info) {
+            printf("%-10s %-6d %s%s", $name, $info['port'], $info['open'] ? 'OPEN' : 'closed', PHP_EOL);
+        }
+        return;
+    }
+    if ($cmd === 'logs') {
+        echo $data['file'], PHP_EOL;
+        foreach ($data['lines'] as $line) {
+            echo $line, PHP_EOL;
+        }
+        return;
+    }
+    foreach ($data as $name => $info) {
+        if (isset($info['running'])) {
+            printf(
+                "%-10s %-8s pid=%-6s port=%s(%s)%s",
+                $name,
+                $info['running'] ? 'RUNNING' : 'STOPPED',
+                (string) ($info['pid'] ?? '-'),
+                (string) ($info['port'] ?? '-'),
+                ($info['port_open'] ?? false) ? 'OPEN' : 'closed',
+                PHP_EOL
+            );
+        } else {
+            // start/stop 结果
+            printf("%-10s %s%s", $name, json_encode($info, JSON_UNESCAPED_UNICODE), PHP_EOL);
+        }
+    }
+}

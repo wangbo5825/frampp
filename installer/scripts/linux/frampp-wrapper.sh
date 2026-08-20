@@ -17,6 +17,7 @@ done
 
 FRAMPP_HOME=$(cd "$(dirname "$PRG")/.." && pwd)
 export FRAMPP_HOME
+export PATH="$FRAMPP_HOME/python/bin:$PATH"
 
 PHP_INI="$FRAMPP_HOME/frankenphp/php.ini"
 export PHPRC="$PHP_INI"

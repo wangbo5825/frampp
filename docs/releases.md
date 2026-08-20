@@ -71,6 +71,24 @@ pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.2
 - Gitee 附件单文件上限 **100MB**；Linux `.run` 安装包（超过 100MB）仅在 GitHub 提供。
 - 脚本幂等：Release 不存在时创建，附件重复上传不会产生重复文件。
 
+## 0.3.0 Slim Build / 0.3.0 精简构建
+
+FRAMPP 0.3.0 slims the Linux x86_64 package without changing functionality:
+
+- **MariaDB** is now compiled from source (`installer/scripts/linux/build-mariadb.sh`): heavy storage engines and plugins (RocksDB / Mroonga / Connect / Spider / Sphinx / S3 / OQGraph / TokuDB / Archive / Blackhole) are disabled, binaries are stripped, and `mysql-test/ sql-bench/ man/ include/ lib/*.a` are removed. Target size: 30–50 MB, keeping mysqld / mysql / mysqladmin / mysqldump / mysql_install_db.
+- **FrankenPHP** is built from source (`installer/scripts/linux/build-frankenphp.sh`): the default PHP extensions drop `intl / soap / gmp / bcmath / exif / imagick`; Caddy modules drop Mercure / Vulcain and add **Souin** (HTTP cache); built with `SPC_LIBC=glibc` (mostly static) and UPX compression (`-w -s` symbols stripped).
+- **Python 3.13** is bundled as a slim self-contained runtime (`python-build-standalone` install_only_stripped, ~30 MB) and added to `PATH` via the `bin/frampp` wrapper.
+
+Build time on CI is expected to grow to roughly 1.5–2 hours per Linux package job.
+
+FRAMPP 0.3.0 对 Linux x86_64 安装包做精简，功能保持不变：
+
+- **MariaDB** 改为源码编译（`installer/scripts/linux/build-mariadb.sh`）：禁用 RocksDB / Mroonga / Connect / Spider / Sphinx / S3 / OQGraph / TokuDB / Archive / Blackhole 等重型引擎与插件，二进制 strip，删除 `mysql-test/ sql-bench/ man/ include/ lib/*.a`；目标体积 30~50 MB，保留 mysqld / mysql / mysqladmin / mysqldump / mysql_install_db。
+- **FrankenPHP** 改为源码定制构建（`installer/scripts/linux/build-frankenphp.sh`）：PHP 扩展去掉 `intl / soap / gmp / bcmath / exif / imagick`；Caddy 模块去掉 Mercure / Vulcain，加入 **Souin**（HTTP 缓存）；`SPC_LIBC=glibc`（mostly static）+ UPX 压缩（`-w -s` 去符号）。
+- **Python 3.13** 内置精简独立运行时（python-build-standalone install_only_stripped，约 30 MB），`bin/frampp` 包装器自动将其加入 PATH。
+
+CI 构建时间预计增加到每个 Linux 打包作业约 1.5~2 小时。
+
 产物位于 / Artifacts in `dist/installer/`：
 
 - `frampp-setup-<channel>-<version>-<env>.exe`：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)

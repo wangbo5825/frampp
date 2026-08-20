@@ -6,21 +6,21 @@
   "channelLabel": "PHP 8.5（默认稳定通道）",
   "components": {
     "frankenphp": {
-      "name": "FrankenPHP (static musl, 内置 APCu/Redis/mysqli 扩展)",
+      "name": "FrankenPHP (定制构建: 精简扩展 + Souin + UPX, glibc mostly static)",
       "version": "1.12.7",
-      "url": "https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64",
-      "sha256": "1E862146636113B258C6C37DBBF6104BB450EE1BFC2572573FF4FEBD78192200",
-      "cacheFile": "frankenphp-linux-x86_64",
-      "kind": "binary",
+      "url": "https://github.com/php/frankenphp/archive/refs/tags/v1.12.7.tar.gz",
+      "sha256": "4F8636315CC3748DF02A27F36B3456B96EAEBF505029E26DBD5FB473896D94C5",
+      "cacheFile": "frankenphp-v1.12.7.tar.gz",
+      "kind": "src",
       "installDir": "frankenphp"
     },
     "mariadb": {
-      "name": "MariaDB (bintar-linux-systemd)",
+      "name": "MariaDB (源码编译精简: 去重型引擎 + strip + 去测试/开发文件)",
       "version": "12.3.2",
-      "url": "https://archive.mariadb.org/mariadb-12.3.2/bintar-linux-systemd-x86_64/mariadb-12.3.2-linux-systemd-x86_64.tar.gz",
-      "sha256": "4A18365541D7280BBE947762E341BAB94BC49F3ED31E6B5CAF4E21F26246E458",
-      "cacheFile": "mariadb-12.3.2-linux-systemd-x86_64.tar.gz",
-      "kind": "tar.gz",
+      "url": "https://archive.mariadb.org/mariadb-12.3.2/source/mariadb-12.3.2.tar.gz",
+      "sha256": "PENDING",
+      "cacheFile": "mariadb-12.3.2.tar.gz",
+      "kind": "src",
       "installDir": "mariadb"
     },
     "redis": {
@@ -49,6 +49,15 @@
       "cacheFile": "adminer-6.0.1.php",
       "kind": "phar",
       "installDir": "htdocs"
+    },
+    "python": {
+      "name": "Python 3.13 (独立精简运行时, install_only_stripped)",
+      "version": "3.13.15",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260814/cpython-3.13.15%2B20260814-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "AACA2AF2AB4D7B68A712660D1334C0CFD5EC13C0312CCD30C29122D8D0342320",
+      "cacheFile": "cpython-3.13.15-linux-x86_64-install_only_stripped.tar.gz",
+      "kind": "tar.gz",
+      "installDir": "python"
     }
   }
 }

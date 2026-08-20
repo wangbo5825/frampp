@@ -90,6 +90,17 @@ jobs:
         run: |
           pwsh -NoProfile -File tests/run-tests.ps1
 
+      - name: Install Linux build dependencies (MariaDB / spc / UPX)
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake bison pkg-config \
+            libssl-dev libpcre2-dev zlib1g-dev libncurses-dev libcurl4-openssl-dev \
+            libxml2-dev libonig-dev libreadline-dev libargon2-dev libsodium-dev \
+            libsqlite3-dev libbz2-dev libzip-dev libyaml-dev libffi-dev \
+            xz-utils unzip upx-ucl autoconf
+
       - name: Build Linux package (versions-linux-x86_64.json)
         shell: pwsh
         run: |

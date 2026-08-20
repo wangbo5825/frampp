@@ -57,7 +57,8 @@ $required = @(
     $config.components.mariadb.cacheFile,
     $config.components.redis.cacheFile,
     $config.components.composer.cacheFile,
-    $config.components.adminer.cacheFile
+    $config.components.adminer.cacheFile,
+    $config.components.python.cacheFile
 )
 $missing = @($required | Where-Object { -not (Test-Path -LiteralPath (Join-Path $CacheDir $_)) })
 if ($missing.Count -gt 0) {
@@ -73,6 +74,7 @@ $layout = @(
     (Join-Path $StagingDir "frankenphp"),
     (Join-Path $StagingDir "mariadb"),
     (Join-Path $StagingDir "redis"),
+    (Join-Path $StagingDir "python"),
     (Join-Path $StagingDir "bin"),
     (Join-Path $StagingDir "htdocs"),
     (Join-Path $StagingDir "logs"),
@@ -90,23 +92,38 @@ foreach ($d in $layout) { New-Item -ItemType Directory -Force -Path $d | Out-Nul
 Write-Step "暂存目录就绪: $StagingDir"
 
 # 3. 组件
-# FrankenPHP：单文件静态二进制
-Write-Step "安装 FrankenPHP $($config.components.frankenphp.version)"
-Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.frankenphp.cacheFile) -Destination (Join-Path $StagingDir "frankenphp/frankenphp")
+# FrankenPHP：定制源码构建（精简扩展 + Souin + UPX + glibc mostly static）
+$fpBinDir = Join-Path $ToolsDir "frankenphp-linux-x86_64"
+$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)"
+if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (Test-Path -LiteralPath $fpMarker)) {
+    Write-Step "编译 FrankenPHP $($config.components.frankenphp.version)（定制: 精简扩展 + Souin + UPX）"
+    & bash (Join-Path $PSScriptRoot "linux/build-frankenphp.sh") `
+        (Join-Path $CacheDir $config.components.frankenphp.cacheFile) `
+        $fpBinDir `
+        $config.components.frankenphp.version
+    New-Item -ItemType File -Path $fpMarker -Force | Out-Null
+} else {
+    Write-Step "复用已编译 FrankenPHP（$fpBinDir）"
+}
+Copy-Item -LiteralPath (Join-Path $fpBinDir "frankenphp") -Destination (Join-Path $StagingDir "frankenphp/frankenphp")
 & chmod +x (Join-Path $StagingDir "frankenphp/frankenphp")
 
-# MariaDB：bintar tarball
-Write-Step "解压 MariaDB $($config.components.mariadb.version)"
-$mariaTar = Join-Path $CacheDir $config.components.mariadb.cacheFile
-& tar -xzf $mariaTar -C (Join-Path $StagingDir "mariadb")
-$top = Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb") -Force
-if ($top.Count -eq 1 -and $top[0].PSIsContainer) {
-    $nested = $top[0].FullName
-    Get-ChildItem -LiteralPath $nested -Force | Move-Item -Destination (Join-Path $StagingDir "mariadb") -Force
-    Remove-Item -LiteralPath $nested -Recurse -Force
+# MariaDB：源码编译精简版（去重型插件 + strip + 去测试/开发文件）
+$mariaBinDir = Join-Path $ToolsDir "mariadb-linux-x86_64"
+$mariaMarker = Join-Path $mariaBinDir ".built-$($config.components.mariadb.version)"
+if (-not (Test-Path -LiteralPath (Join-Path $mariaBinDir "bin/mariadbd")) -or -not (Test-Path -LiteralPath $mariaMarker)) {
+    Write-Step "编译 MariaDB $($config.components.mariadb.version)（精简版）"
+    & bash (Join-Path $PSScriptRoot "linux/build-mariadb.sh") `
+        (Join-Path $CacheDir $config.components.mariadb.cacheFile) `
+        $mariaBinDir `
+        $config.components.mariadb.version
+    New-Item -ItemType File -Path $mariaMarker -Force | Out-Null
+} else {
+    Write-Step "复用已编译 MariaDB（$mariaBinDir）"
 }
+Copy-Item -Path (Join-Path $mariaBinDir "*") -Destination (Join-Path $StagingDir "mariadb") -Recurse -Force
 Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb/bin") -File | ForEach-Object { & chmod +x $_.FullName }
-Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb/scripts") -File -ErrorAction SilentlyContinue | ForEach-Object { & chmod +x $_.FullName }
+Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb/lib/plugin") -File -ErrorAction SilentlyContinue | ForEach-Object { & chmod +x $_.FullName }
 
 # Redis：官方源码静态编译（复用 dist/tools 下的构建产物，避免重复编译）
 $redisBinDir = Join-Path $ToolsDir "redis-linux-x86_64"
@@ -125,6 +142,22 @@ foreach ($redisBin in @("redis-server", "redis-cli")) {
     Copy-Item -LiteralPath (Join-Path $redisBinDir $redisBin) -Destination (Join-Path $StagingDir "redis")
     & chmod +x (Join-Path (Join-Path $StagingDir "redis") $redisBin)
 }
+
+# Python：独立精简运行时
+$pyBinDir = Join-Path $ToolsDir "python-linux-x86_64"
+$pyMarker = Join-Path $pyBinDir ".built-$($config.components.python.version)"
+if (-not (Test-Path -LiteralPath (Join-Path $pyBinDir "bin/python3")) -or -not (Test-Path -LiteralPath $pyMarker)) {
+    Write-Step "准备 Python $($config.components.python.version)（精简独立运行时）"
+    & bash (Join-Path $PSScriptRoot "linux/build-python.sh") `
+        (Join-Path $CacheDir $config.components.python.cacheFile) `
+        $pyBinDir `
+        $config.components.python.version
+    New-Item -ItemType File -Path $pyMarker -Force | Out-Null
+} else {
+    Write-Step "复用已准备 Python（$pyBinDir）"
+}
+Copy-Item -Path (Join-Path $pyBinDir "*") -Destination (Join-Path $StagingDir "python") -Recurse -Force
+Get-ChildItem -LiteralPath (Join-Path $StagingDir "python/bin") -File | ForEach-Object { & chmod +x $_.FullName }
 
 # Composer / Adminer
 Write-Step "安装 Composer / Adminer"

@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.3（2026-08-20，M1 组件定版 + Linux x86_64 变体定版）
+> 状态：设计稿 v1.4（2026-08-20，M1 组件定版 + Linux x86_64 变体定版 + 0.3.0 组件精简决策）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -72,6 +72,25 @@
   - Composer / Adminer：与 Windows 同一文件（跨平台 phar/php），复用同一缓存。
 - **运行模型**：php.ini 由 `php.ini.linux.template` 生成（静态扩展无 `extension=` 指令）；CLI 与服务器统一通过 `bin/frampp` 包装器启动（`frankenphp php-cli -c <php.ini>` + `PHPRC` 环境变量），控制面板 `ServiceManager` 已跨平台（`kill`/`/dev/null`、去 `.exe`）。
 - **安全基线不变**：127.0.0.1 绑定、随机密码、只读账号 `frampp_ro`、审计日志。
+
+### 2.7 0.3.0 组件精简决策（v1.4，2026-08-20）
+
+面向 0.3.0 的 Linux x86_64 安装包瘦身（目标：安装包体积显著下降，功能不变）：
+
+- **MariaDB 精简（目标 30~50 MB）**：由官方 bintar 改为**源码编译**（`installer/scripts/linux/build-mariadb.sh`）：
+  - CMake Release + `BUILD_CONFIG=mysql_release`；禁用 PHP 场景几乎不用的插件：RocksDB / Mroonga / Connect / Spider / Sphinx / S3 / OQGraph / TokuDB / Feedback / Archive / Blackhole / Example。
+  - 对 `bin/` 与 `lib/plugin/` 全部可执行文件执行 `strip --strip-unneeded`。
+  - 删除 `mysql-test/`、`sql-bench/`、`man/`、`include/`、`lib/*.a` 及开发工具（`mysql_config` 等）。
+  - 保留 `mariadbd`/`mysqld`、`mysql`/`mariadb`、`mysqladmin`、`mysqldump`、`mariadb-install-db` 等核心工具与 `share/`（errmsg/charset 运行时必需）。
+  - 取舍：仍依赖系统 glibc 与 OpenSSL（与 bintar 基线一致），换取体积大幅下降。
+- **FrankenPHP 定制构建**（`installer/scripts/linux/build-frankenphp.sh`，基于官方 `build-static.sh` + static-php-cli / spc）：
+  - PHP 扩展：官方默认集去掉 **intl / soap / gmp / bcmath / exif / imagick**（xdebug 不在默认集，天然不包含）；保留 APCu / redis / mysqli / mbstring / openssl / xml 等核心扩展。
+  - Caddy 模块：去掉 **Mercure / Vulcain**，加入 **Souin**（HTTP 缓存，锁定兼容 commit `65cb2411…`）与 `caddy-cbrotli`。
+  - `SPC_LIBC=glibc`：glibc mostly static（除 libc 外静态链接），兼容主流发行版。
+  - `COMPRESS=1`：UPX 压缩最终二进制；Go 链接器 `-w -s` 去符号（spc 默认）。
+  - 风险：源码构建耗时显著增长（CI 单作业约 1.5~2 h）；UPX 可能触发杀软误报（文档提示）。
+- **Python 3.13 内置（精简）**：采用 `python-build-standalone` 的 `install_only_stripped` 构建（自包含、去头文件/测试/符号），二次删除 `test/ tkinter/ idlelib/ turtledemo/ __pycache__`，保留 pip/ensurepip；目标体积约 30 MB。`bin/frampp` 包装器自动把 `python/bin` 加入 PATH，`runtime.json` 记录版本。
+- **影响面**：仅 Linux x86_64 变体（0.3.0）；Windows 变体保持官方预编译组件，后续里程碑再做对等精简。
 
 ---
 

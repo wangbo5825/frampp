@@ -97,6 +97,7 @@ mkdir -p \
     "$RUNTIME_DIR/frankenphp" \
     "$RUNTIME_DIR/mariadb" \
     "$RUNTIME_DIR/redis" \
+    "$RUNTIME_DIR/python" \
     "$RUNTIME_DIR/bin" \
     "$RUNTIME_DIR/htdocs" \
     "$RUNTIME_DIR/logs" \
@@ -109,6 +110,7 @@ FRANKENPHP_VERSION="$(json_version "$VERSIONS_FILE" frankenphp)"
 MARIADB_VERSION="$(json_version "$VERSIONS_FILE" mariadb)"
 REDIS_VERSION="$(json_version "$VERSIONS_FILE" redis)"
 COMPOSER_VERSION="$(json_version "$VERSIONS_FILE" composer)"
+PYTHON_VERSION="$(json_version "$VERSIONS_FILE" python)"
 
 extract_nested() { # 提升顶层单目录，保持扁平布局
     local dir="$1"
@@ -122,18 +124,22 @@ extract_nested() { # 提升顶层单目录，保持扁平布局
 }
 
 if [[ -d "$CACHE_DIR" ]]; then
-    # FrankenPHP：单文件静态二进制
+    # FrankenPHP：源码 -> 定制编译（精简扩展 + Souin + UPX；已有二进制则跳过）
     if [[ ! -x "$RUNTIME_DIR/frankenphp/frankenphp" ]]; then
-        step "安装 FrankenPHP $FRANKENPHP_VERSION ..."
-        cp "$CACHE_DIR/frankenphp-linux-x86_64" "$RUNTIME_DIR/frankenphp/frankenphp"
-        chmod +x "$RUNTIME_DIR/frankenphp/frankenphp"
+        step "编译 FrankenPHP $FRANKENPHP_VERSION（定制: 精简扩展 + Souin + UPX）..."
+        bash "$SCRIPT_DIR/build-frankenphp.sh" \
+            "$CACHE_DIR/frankenphp-v1.12.7.tar.gz" \
+            "$RUNTIME_DIR/frankenphp" \
+            "$FRANKENPHP_VERSION"
     fi
 
-    # MariaDB：bintar tarball
+    # MariaDB：源码 -> 精简编译（已有 mariadbd 则跳过）
     if [[ ! -x "$RUNTIME_DIR/mariadb/bin/mariadbd" ]]; then
-        step "解压 MariaDB $MARIADB_VERSION ..."
-        tar -xzf "$CACHE_DIR/mariadb-12.3.2-linux-systemd-x86_64.tar.gz" -C "$RUNTIME_DIR/mariadb"
-        extract_nested "$RUNTIME_DIR/mariadb"
+        step "编译 MariaDB $MARIADB_VERSION（精简版）..."
+        bash "$SCRIPT_DIR/build-mariadb.sh" \
+            "$CACHE_DIR/mariadb-12.3.2.tar.gz" \
+            "$RUNTIME_DIR/mariadb" \
+            "$MARIADB_VERSION"
     fi
 
     # Redis：官方源码 -> 静态编译（已有二进制则跳过）
@@ -144,6 +150,15 @@ if [[ -d "$CACHE_DIR" ]]; then
             "$CACHE_DIR/redis-8.10.1.tar.gz" \
             "$RUNTIME_DIR/redis" \
             "$REDIS_VERSION"
+    fi
+
+    # Python：独立精简运行时（install_only_stripped + 二次精简）
+    if [[ ! -x "$RUNTIME_DIR/python/bin/python3" ]]; then
+        step "准备 Python $PYTHON_VERSION（精简独立运行时）..."
+        bash "$SCRIPT_DIR/build-python.sh" \
+            "$CACHE_DIR/cpython-3.13.15-linux-x86_64-install_only_stripped.tar.gz" \
+            "$RUNTIME_DIR/python" \
+            "$PYTHON_VERSION"
     fi
 fi
 
@@ -215,6 +230,9 @@ if [[ -d "$RUNTIME_DIR/mariadb/bin" ]]; then
 fi
 if [[ -d "$RUNTIME_DIR/mariadb/scripts" ]]; then
     chmod +x "$RUNTIME_DIR/mariadb/scripts"/* 2>/dev/null || true
+fi
+if [[ -d "$RUNTIME_DIR/python/bin" ]]; then
+    chmod +x "$RUNTIME_DIR/python/bin"/* 2>/dev/null || true
 fi
 
 # 7. MariaDB 数据目录初始化
@@ -303,7 +321,8 @@ cat > "$RUNTIME_DIR/data/runtime.json" <<EOF
         "frankenphp": "$FRANKENPHP_VERSION",
         "mariadb": "$MARIADB_VERSION",
         "redis": "$REDIS_VERSION",
-        "composer": "$COMPOSER_VERSION"
+        "composer": "$COMPOSER_VERSION",
+        "python": "$PYTHON_VERSION"
     },
     "db_initialized": $DB_INITIALIZED
 }

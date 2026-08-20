@@ -2,6 +2,16 @@
 {
 	frankenphp
 	auto_https off
+	# Souin HTTP 缓存（FrankenPHP 定制构建已内置该模块）。
+	# 生产站点可取消注释启用；开发模式建议保持注释，避免缓存干扰调试。
+	# order cache before rewrite
+	# cache {
+	# 	ttl 300s
+	# 	default_cache_control public,max-age=300
+	# 	redis {
+	# 		url redis://127.0.0.1:6379
+	# 	}
+	# }
 }
 
 http://127.0.0.1:8080 {

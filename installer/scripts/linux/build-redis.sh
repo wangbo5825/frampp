@@ -23,7 +23,11 @@ mkdir -p "$OUT_DIR"
 
 DWORK=""
 HWORK=""
-cleanup() { rm -rf "$DWORK" "$HWORK"; }
+cleanup() {
+    # Docker 构建产物归 root，清理前先放开写权限；失败不阻断
+    chmod -R u+w "$DWORK" "$HWORK" 2>/dev/null || true
+    rm -rf "$DWORK" "$HWORK" 2>/dev/null || true
+}
 trap cleanup EXIT
 
 src_name() { # src_name <tar> <workdir> -> 顶层目录名
@@ -57,7 +61,7 @@ SCRIPT
     else
         echo "Docker 静态编译失败，回退宿主编译" >&2
     fi
-    rm -rf "$DWORK"
+    rm -rf "$DWORK" 2>/dev/null || true
     DWORK=""
 fi
 
@@ -85,7 +89,7 @@ if [[ "$built" -eq 0 ]]; then
             built=1
         fi
     fi
-    rm -rf "$HWORK"
+    rm -rf "$HWORK" 2>/dev/null || true
     HWORK=""
 fi
 

@@ -26,10 +26,10 @@ param(
     [string]$Env = "linux-x86_64"
 )
 
-if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path }
-if (-not $CacheDir) { $CacheDir = Join-Path $Root "dist\binaries" }
-if (-not $StagingDir) { $StagingDir = Join-Path $Root "dist\staging-linux" }
-if (-not $ToolsDir) { $ToolsDir = Join-Path $Root "dist\tools" }
+if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path }
+if (-not $CacheDir) { $CacheDir = Join-Path $Root "dist/binaries" }
+if (-not $StagingDir) { $StagingDir = Join-Path $Root "dist/staging-linux" }
+if (-not $ToolsDir) { $ToolsDir = Join-Path $Root "dist/tools" }
 if (-not $AppVersion) { $AppVersion = (Get-Content -LiteralPath (Join-Path $Root "VERSION") -Raw).Trim() }
 
 $ErrorActionPreference = "Stop"
@@ -40,13 +40,13 @@ if ($Env -ne "linux-x86_64") {
     throw "本脚本仅用于 linux-x86_64（当前: $Env）"
 }
 
-$versionsFile = Join-Path $Root "installer\config\versions-linux-x86_64.json"
+$versionsFile = Join-Path $Root "installer/config/versions-linux-x86_64.json"
 $config = Get-Content -Raw -LiteralPath $versionsFile | ConvertFrom-Json
 if ($config.platform -ne "linux-x86_64") {
     throw "versions 文件平台不匹配: $versionsFile"
 }
 
-$installerDir = Join-Path $Root "dist\installer"
+$installerDir = Join-Path $Root "dist/installer"
 New-Item -ItemType Directory -Force -Path $installerDir | Out-Null
 New-Item -ItemType Directory -Force -Path $ToolsDir | Out-Null
 
@@ -78,9 +78,9 @@ $layout = @(
     (Join-Path $StagingDir "data"),
     (Join-Path $StagingDir "control-panel"),
     (Join-Path $StagingDir "agent"),
-    (Join-Path $StagingDir "installer\scripts"),
-    (Join-Path $StagingDir "installer\config"),
-    (Join-Path $StagingDir "installer\templates"),
+    (Join-Path $StagingDir "installer/scripts"),
+    (Join-Path $StagingDir "installer/config"),
+    (Join-Path $StagingDir "installer/templates"),
     (Join-Path $StagingDir "docs"),
     (Join-Path $StagingDir "templates")
 )
@@ -90,8 +90,8 @@ Write-Step "暂存目录就绪: $StagingDir"
 # 3. 组件
 # FrankenPHP：单文件静态二进制
 Write-Step "安装 FrankenPHP $($config.components.frankenphp.version)"
-Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.frankenphp.cacheFile) -Destination (Join-Path $StagingDir "frankenphp\frankenphp")
-& chmod +x (Join-Path $StagingDir "frankenphp\frankenphp")
+Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.frankenphp.cacheFile) -Destination (Join-Path $StagingDir "frankenphp/frankenphp")
+& chmod +x (Join-Path $StagingDir "frankenphp/frankenphp")
 
 # MariaDB：bintar tarball
 Write-Step "解压 MariaDB $($config.components.mariadb.version)"
@@ -103,14 +103,14 @@ if ($top.Count -eq 1 -and $top[0].PSIsContainer) {
     Get-ChildItem -LiteralPath $nested -Force | Move-Item -Destination (Join-Path $StagingDir "mariadb") -Force
     Remove-Item -LiteralPath $nested -Recurse -Force
 }
-Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb\bin") -File | ForEach-Object { & chmod +x $_.FullName }
+Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb/bin") -File | ForEach-Object { & chmod +x $_.FullName }
 
 # Redis：官方源码静态编译（复用 dist/tools 下的构建产物，避免重复编译）
 $redisBinDir = Join-Path $ToolsDir "redis-linux-x86_64"
 $redisMarker = Join-Path $redisBinDir ".built-$($config.components.redis.version)"
 if (-not (Test-Path -LiteralPath (Join-Path $redisBinDir "redis-server")) -or -not (Test-Path -LiteralPath $redisMarker)) {
     Write-Step "编译 Redis $($config.components.redis.version)（静态）"
-    & bash (Join-Path $PSScriptRoot "linux\build-redis.sh") `
+    & bash (Join-Path $PSScriptRoot "linux/build-redis.sh") `
         (Join-Path $CacheDir $config.components.redis.cacheFile) `
         $redisBinDir `
         $config.components.redis.version
@@ -118,37 +118,41 @@ if (-not (Test-Path -LiteralPath (Join-Path $redisBinDir "redis-server")) -or -n
 } else {
     Write-Step "复用已编译 Redis（$redisBinDir）"
 }
-Copy-Item -LiteralPath (Join-Path $redisBinDir "redis-server"), (Join-Path $redisBinDir "redis-cli") -Destination (Join-Path $StagingDir "redis")
-& chmod +x (Join-Path $StagingDir "redis\redis-server"), (Join-Path $StagingDir "redis\redis-cli")
+foreach ($redisBin in @("redis-server", "redis-cli")) {
+    Copy-Item -LiteralPath (Join-Path $redisBinDir $redisBin) -Destination (Join-Path $StagingDir "redis")
+    & chmod +x (Join-Path (Join-Path $StagingDir "redis") $redisBin)
+}
 
 # Composer / Adminer
 Write-Step "安装 Composer / Adminer"
-Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.composer.cacheFile) -Destination (Join-Path $StagingDir "bin\composer.phar")
-Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination (Join-Path $StagingDir "htdocs\adminer.php")
+Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.composer.cacheFile) -Destination (Join-Path $StagingDir "bin/composer.phar")
+Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination (Join-Path $StagingDir "htdocs/adminer.php")
 
 # 4. 仓库内容（控制面板 / Agent / 模板 / 文档 / 安装脚本）
 Write-Step "复制控制面板 / Agent / 模板 / 文档"
-Copy-Item -Path (Join-Path $Root "control-panel\web\*") -Destination (Join-Path $StagingDir "control-panel\web") -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $Root "control-panel\src") -Destination (Join-Path $StagingDir "control-panel\") -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $Root "control-panel\bin") -Destination (Join-Path $StagingDir "control-panel\") -Recurse -Force
+Copy-Item -Path (Join-Path $Root "control-panel/web/*") -Destination (Join-Path $StagingDir "control-panel/web") -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $Root "control-panel/src") -Destination (Join-Path $StagingDir "control-panel") -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $Root "control-panel/bin") -Destination (Join-Path $StagingDir "control-panel") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "agent") -Destination (Join-Path $StagingDir "agent") -Recurse -Force
-Copy-Item -Path (Join-Path $Root "installer\scripts\*") -Destination (Join-Path $StagingDir "installer\scripts") -Recurse -Force
-Copy-Item -Path (Join-Path $Root "installer\config\*") -Destination (Join-Path $StagingDir "installer\config") -Recurse -Force
-Copy-Item -Path (Join-Path $Root "installer\templates\*") -Destination (Join-Path $StagingDir "installer\templates") -Recurse -Force
-Copy-Item -Path (Join-Path $Root "docs\*") -Destination (Join-Path $StagingDir "docs") -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $Root "templates\project-minimal") -Destination (Join-Path $StagingDir "templates\project-minimal") -Recurse -Force
+Copy-Item -Path (Join-Path $Root "installer/scripts/*") -Destination (Join-Path $StagingDir "installer/scripts") -Recurse -Force
+Copy-Item -Path (Join-Path $Root "installer/config/*") -Destination (Join-Path $StagingDir "installer/config") -Recurse -Force
+Copy-Item -Path (Join-Path $Root "installer/templates/*") -Destination (Join-Path $StagingDir "installer/templates") -Recurse -Force
+Copy-Item -Path (Join-Path $Root "docs/*") -Destination (Join-Path $StagingDir "docs") -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $Root "installer/templates/project-minimal") -Destination (Join-Path $StagingDir "templates/project-minimal") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "README.md") -Destination (Join-Path $StagingDir "README.md")
 Copy-Item -LiteralPath (Join-Path $Root "LICENSE") -Destination (Join-Path $StagingDir "LICENSE")
 Copy-Item -LiteralPath (Join-Path $Root "VERSION") -Destination (Join-Path $StagingDir "VERSION")
 
 # 默认站点首页
-Copy-Item -LiteralPath (Join-Path $Root "installer\templates\htdocs\index.php") -Destination (Join-Path $StagingDir "htdocs\index.php")
+Copy-Item -LiteralPath (Join-Path $Root "installer/templates/htdocs/index.php") -Destination (Join-Path $StagingDir "htdocs/index.php")
 
 # 一键安装/卸载脚本与 CLI 包装器（包根目录）
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux\install.sh") -Destination (Join-Path $StagingDir "install.sh")
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux\uninstall.sh") -Destination (Join-Path $StagingDir "uninstall.sh")
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux\frampp-wrapper.sh") -Destination (Join-Path $StagingDir "bin\frampp")
-& chmod +x (Join-Path $StagingDir "install.sh"), (Join-Path $StagingDir "uninstall.sh"), (Join-Path $StagingDir "bin\frampp")
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/install.sh") -Destination (Join-Path $StagingDir "install.sh")
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/uninstall.sh") -Destination (Join-Path $StagingDir "uninstall.sh")
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/frampp-wrapper.sh") -Destination (Join-Path $StagingDir "bin/frampp")
+foreach ($bin in @("install.sh", "uninstall.sh", "bin/frampp")) {
+    & chmod +x (Join-Path $StagingDir $bin)
+}
 
 # 5. 打包（顶层目录 frampp/，owner/group 归一化以便复现）
 $outName = "frampp-setup-$Channel-$AppVersion-$Env.tar.gz"

@@ -49,6 +49,11 @@ jobs:
             Write-Output "尚无 PHP 文件，跳过"
           }
 
+      - name: Site render check (bilingual toggle)
+        shell: bash
+        run: |
+          node tests/site-render-check.mjs
+
   installer:
     name: Installer tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

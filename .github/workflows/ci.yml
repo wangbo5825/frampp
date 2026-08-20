@@ -90,9 +90,9 @@ jobs:
           PKG="$(ls frampp-setup-*-linux-x86_64.tar.gz | head -n1)"
           tar -xzf "$PKG"
           cd frampp
+          ./install.sh
           echo "=== Caddyfile ==="
           cat Caddyfile
-          ./install.sh
           echo "=== status ==="
           ./bin/frampp status --json
           echo "=== version ==="

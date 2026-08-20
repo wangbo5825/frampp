@@ -77,6 +77,7 @@ $layout = @(
     (Join-Path $StagingDir "logs"),
     (Join-Path $StagingDir "data"),
     (Join-Path $StagingDir "control-panel"),
+    (Join-Path $StagingDir "control-panel/web"),
     (Join-Path $StagingDir "agent"),
     (Join-Path $StagingDir "installer/scripts"),
     (Join-Path $StagingDir "installer/config"),

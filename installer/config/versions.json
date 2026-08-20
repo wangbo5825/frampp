@@ -9,7 +9,7 @@
       "name": "FrankenPHP",
       "version": "1.12.7",
       "url": "https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-windows-x86_64.zip",
-      "sha256": "7D5D3D9AF613AF1C5335231B865BE0DD2A542FC374F0A16B3C03A28653F99AC6",
+      "sha256": "4CDFC5F9B9B10E9657CE3BB47260D6A59A8F6789A885A0FA65061522B6C5981C",
       "cacheFile": "frankenphp-windows-x86_64.zip",
       "kind": "zip",
       "installDir": "frankenphp"

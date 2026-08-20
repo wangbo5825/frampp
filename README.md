@@ -74,6 +74,7 @@ The Linux package bundles FrankenPHP (static build with APCu/Redis/mysqli built 
 
 ## 文档 / Documentation
 
+- 项目主页 / Project site: <https://wangbo5825.github.io/frampp/>
 - 开发指南 / Dev guide: [AGENTS.md](AGENTS.md)
 - 蓝图与里程碑 / Blueprint & milestones: [docs/blueprint.md](docs/blueprint.md)
 - 版本发布 / Releases: [docs/releases.md](docs/releases.md)

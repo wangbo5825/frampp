@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FRAMPP — 一键安装的开箱即用 PHP 开发平台 / One-click PHP Dev Platform</title>
+    <meta name="description" content="FRAMPP = FrankenPHP + Redis + Agent + MySQL + PHP + Python。面向全球 PHP 开发者的一键安装运行环境。/ One-click, out-of-the-box runtime & dev platform for modern PHP developers.">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --bg-soft: #1e293b;
+            --card: #ffffff;
+            --ink: #0f172a;
+            --muted: #64748b;
+            --accent: #22d3ee;
+            --accent-2: #818cf8;
+            --ok: #22c55e;
+            --border: #e2e8f0;
+            --code-bg: #0b1220;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif; color: var(--ink); line-height: 1.65; }
+        a { color: inherit; text-decoration: none; }
+
+        .hero {
+            background: radial-gradient(1200px 600px at 20% -10%, #1e3a5f 0%, var(--bg) 55%);
+            color: #f8fafc;
+            padding: 72px 24px 56px;
+            text-align: center;
+        }
+        .hero .logo { font-size: 52px; font-weight: 800; letter-spacing: 1px; }
+        .hero .logo span { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero .tagline { margin-top: 14px; font-size: 19px; color: #cbd5e1; }
+        .hero .tagline-en { margin-top: 4px; font-size: 15px; color: #94a3b8; }
+        .hero .badges { margin-top: 18px; font-size: 13px; color: #94a3b8; }
+        .hero .badges code { background: rgba(255,255,255,.08); padding: 2px 8px; border-radius: 6px; margin: 0 3px; }
+
+        .downloads { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
+        .btn {
+            display: inline-block; padding: 13px 26px; border-radius: 10px; font-weight: 600; font-size: 15px;
+            transition: transform .12s ease, box-shadow .12s ease;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #0b1220; box-shadow: 0 8px 24px rgba(34,211,238,.25); }
+        .btn-ghost { border: 1px solid rgba(255,255,255,.25); color: #e2e8f0; background: rgba(255,255,255,.04); }
+        .btn .os { display: block; font-size: 12px; font-weight: 500; opacity: .75; }
+
+        .container { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+        section { padding: 56px 0; }
+        section.alt { background: #f8fafc; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        h2 { font-size: 26px; margin-bottom: 6px; }
+        .sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+        .card h3 { font-size: 17px; margin-bottom: 6px; }
+        .card p { font-size: 14px; color: var(--muted); }
+        .card code { background: #f1f5f9; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+
+        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        th, td { text-align: left; padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; font-weight: 600; }
+        tr:last-child td { border-bottom: none; }
+        td code { background: #f1f5f9; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+
+        pre { background: var(--code-bg); color: #e2e8f0; border-radius: 12px; padding: 18px 20px; overflow-x: auto; font-size: 13.5px; line-height: 1.6; }
+        pre .c { color: #64748b; }
+        .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+        .lang-tag { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent-2); margin-bottom: 8px; letter-spacing: .5px; }
+        .muted { color: var(--muted); font-size: 14px; }
+
+        footer { background: var(--bg); color: #94a3b8; text-align: center; padding: 32px 24px; font-size: 13px; }
+        footer a { color: var(--accent); }
+        .ok { color: var(--ok); font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="logo">FRAMPP<span>.</span></div>
+    <p class="tagline">一键安装、开箱即用的现代 PHP 开发平台</p>
+    <p class="tagline-en">One-click, out-of-the-box runtime &amp; dev platform for modern PHP developers</p>
+    <p class="badges">
+        FrankenPHP <code>·</code> Redis <code>·</code> Agent (MCP) <code>·</code> MySQL <code>·</code> PHP <code>·</code> Python
+    </p>
+    <div class="downloads">
+        <a class="btn btn-primary" href="https://github.com/wangbo5825/frampp/releases/latest/download/frampp-setup-8.5-0.2.0-linux-x86_64.run">
+            下载 Linux 安装包 / Download Linux
+            <span class="os">.run · 单文件自解压 / single-file self-extracting</span>
+        </a>
+        <a class="btn btn-primary" href="https://github.com/wangbo5825/frampp/releases/latest/download/frampp-setup-8.5-0.2.0-windows-x64.exe">
+            下载 Windows 安装包 / Download Windows
+            <span class="os">.exe · Inno Setup 一键安装 / one-click installer</span>
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/wangbo5825/frampp/releases">查看所有版本 / All Releases</a>
+    </div>
+</header>
+
+<section>
+    <div class="container">
+        <h2>为什么选 FRAMPP？/ Why FRAMPP?</h2>
+        <p class="sub">延续 LAMPP / XAMPP 的产品形态，把 Web 开发三件套打包成自包含安装包 / The LAMPP/XAMPP tradition, bundled into self-contained installers.</p>
+        <div class="grid">
+            <div class="card">
+                <h3>⚡ 一键安装 / One-click</h3>
+                <p>下载 → 运行 → 开始开发。自动初始化（随机密钥、MariaDB 数据目录）并启动全部服务 / Download, run, and start coding. Automatic init and service start.</p>
+            </div>
+            <div class="card">
+                <h3>📦 自包含 / Self-contained</h3>
+                <p>无需 root / 管理员权限，不依赖系统包管理器，目录可整体移动 / No root/admin, no system package dependencies, relocatable directory.</p>
+            </div>
+            <div class="card">
+                <h3>🤖 内置 Agent / AI-ready</h3>
+                <p>内置 MCP 服务器，为 AI Agent 提供数据库与运行时工具接入层 / Built-in MCP server as the tool layer for AI agents.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="alt">
+    <div class="container">
+        <h2>组件 / Components</h2>
+        <p class="sub">默认通道 <code>8.5</code>：FrankenPHP 1.12.7（PHP 8.5.9）· MariaDB 12.3.2 · Redis 8.10.1 · Composer 2.10.2 · Adminer 6.0.1 / Default channel 8.5</p>
+        <table>
+            <thead>
+            <tr><th>字母 / Letter</th><th>组件 / Component</th><th>角色 / Role</th></tr>
+            </thead>
+            <tbody>
+            <tr><td><b>F</b></td><td>FrankenPHP</td><td>应用服务器（内置 Caddy、自动 HTTPS、worker 模式）/ App server (embedded Caddy, auto HTTPS, workers)</td></tr>
+            <tr><td><b>R</b></td><td>Redis</td><td>分布式缓存 / 队列 / 会话 / Cache, queue, sessions</td></tr>
+            <tr><td><b>A</b></td><td>Agent</td><td>MCP 服务器：AI Agent 工具接入层 / MCP server: tool layer for AI agents</td></tr>
+            <tr><td><b>M</b></td><td>MySQL / MariaDB</td><td>关系数据库（默认发行 MariaDB）/ Relational database (MariaDB by default)</td></tr>
+            <tr><td><b>P</b></td><td>PHP</td><td>主要开发语言 / Primary language</td></tr>
+            <tr><td><b>P</b></td><td>Python</td><td>自动化 / AI 负载支撑（可选）/ Automation &amp; AI workloads (optional)</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section>
+    <div class="container">
+        <h2>快速开始 / Quick Start</h2>
+        <p class="sub">安装后访问：默认站点 <code>http://127.0.0.1:8080/</code> · 控制面板 <code>http://127.0.0.1:8081/</code> / After install, visit the default site and control panel.</p>
+        <div class="cols">
+            <div>
+                <div class="lang-tag">LINUX · .run</div>
+                <pre><span class="c"># 下载后 / after download</span>
+chmod +x frampp-setup-8.5-0.2.0-linux-x86_64.run
+./frampp-setup-8.5-0.2.0-linux-x86_64.run
+
+<span class="c"># 指定目录 / custom directory</span>
+./frampp-setup-8.5-0.2.0-linux-x86_64.run \
+  --prefix /opt/frampp
+
+<span class="c"># 管理 / manage</span>
+~/frampp/bin/frampp status</pre>
+            </div>
+            <div>
+                <div class="lang-tag">WINDOWS · .exe</div>
+                <pre><span class="c"># 双击安装，自动初始化并启动 / double-click to install</span>
+<span class="c"># 或从源码运行 / or run from source</span>
+powershell -ExecutionPolicy Bypass -File installer/scripts/download.ps1
+powershell -ExecutionPolicy Bypass -File installer/scripts/init.ps1
+php control-panel/bin/frampp start all
+php control-panel/bin/frampp status</pre>
+            </div>
+        </div>
+        <p class="muted" style="margin-top:18px">
+            <span class="ok">✓</span> 默认站点 / Default site: <code>http://127.0.0.1:8080/</code> &nbsp;&nbsp;
+            <span class="ok">✓</span> 控制面板 / Control panel: <code>http://127.0.0.1:8081/</code> &nbsp;&nbsp;
+            <span class="ok">✓</span> 目录可整体移动 / relocatable
+        </p>
+    </div>
+</section>
+
+<section class="alt">
+    <div class="container">
+        <h2>文档 / Documentation</h2>
+        <p class="sub">安装、升级、卸载、发布与开发指南（中英双语）/ Install, upgrade, release &amp; dev guides (bilingual).</p>
+        <div class="grid">
+            <div class="card"><h3>📖 README</h3><p><a href="https://github.com/wangbo5825/frampp/blob/main/README.md" style="color:var(--accent-2)">项目总览 / Project overview</a></p></div>
+            <div class="card"><h3>🔄 升级与卸载 / Upgrade &amp; Uninstall</h3><p><a href="https://github.com/wangbo5825/frampp/blob/main/docs/upgrade.md" style="color:var(--accent-2)">docs/upgrade.md</a></p></div>
+            <div class="card"><h3>📦 发布说明 / Release Notes</h3><p><a href="https://github.com/wangbo5825/frampp/releases" style="color:var(--accent-2)">GitHub Releases</a></p></div>
+            <div class="card"><h3>🔧 开发指南 / Dev Guide</h3><p><a href="https://github.com/wangbo5825/frampp/blob/main/docs/blueprint.md" style="color:var(--accent-2)">docs/blueprint.md</a></p></div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <p>FRAMPP — 面向全球 PHP 开发者的一键安装开发平台 / One-click dev platform for PHP developers worldwide</p>
+    <p style="margin-top:8px"><a href="https://github.com/wangbo5825/frampp">GitHub</a> · <a href="https://github.com/wangbo5825/frampp/blob/main/LICENSE">MIT License</a> · <a href="https://github.com/wangbo5825/frampp/releases">Releases</a></p>
+</footer>
+
+</body>
+</html>

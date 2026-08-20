@@ -38,7 +38,8 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 tar -xzf "$SRC_TAR" -C "$WORK"
-SRC_NAME="$(tar -tzf "$SRC_TAR" | head -n1 | cut -d/ -f1)"
+tar -tzf "$SRC_TAR" > "$WORK/list.txt"
+SRC_NAME="$(head -n1 "$WORK/list.txt" | cut -d/ -f1)"
 cd "$WORK/$SRC_NAME"
 
 echo "==> CMake 配置 MariaDB $MDB_VERSION（Release，禁用重型插件）..."

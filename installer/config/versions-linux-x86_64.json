@@ -18,7 +18,7 @@
       "name": "MariaDB (源码编译精简: 去重型引擎 + strip + 去测试/开发文件)",
       "version": "12.3.2",
       "url": "https://archive.mariadb.org/mariadb-12.3.2/source/mariadb-12.3.2.tar.gz",
-      "sha256": "PENDING",
+      "sha256": "82798714BAF2F3456ED2F311FC803DC120F2BF3B82358E773847D628CDB4B670",
       "cacheFile": "mariadb-12.3.2.tar.gz",
       "kind": "src",
       "installDir": "mariadb"

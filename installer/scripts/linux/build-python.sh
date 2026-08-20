@@ -27,7 +27,8 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 tar -xzf "$PY_TAR" -C "$WORK"
-SRC_NAME="$(tar -tzf "$PY_TAR" | head -n1 | cut -d/ -f1)"
+tar -tzf "$PY_TAR" > "$WORK/list.txt"
+SRC_NAME="$(head -n1 "$WORK/list.txt" | cut -d/ -f1)"
 cp -a "$WORK/$SRC_NAME/." "$OUT_DIR/"
 
 echo "==> 二次精简 Python $PY_VERSION ..."

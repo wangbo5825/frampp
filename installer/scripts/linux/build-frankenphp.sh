@@ -45,7 +45,8 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 tar -xzf "$SRC_TAR" -C "$WORK"
-SRC_NAME="$(tar -tzf "$SRC_TAR" | head -n1 | cut -d/ -f1)"
+tar -tzf "$SRC_TAR" > "$WORK/list.txt"
+SRC_NAME="$(head -n1 "$WORK/list.txt" | cut -d/ -f1)"
 cd "$WORK/$SRC_NAME"
 
 # PHP 版本与精简扩展集（默认集去掉 intl/soap/gmp/bcmath/exif/imagick）

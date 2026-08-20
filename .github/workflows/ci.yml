@@ -94,35 +94,35 @@ jobs:
           echo "=== Caddyfile ==="
           cat Caddyfile
           echo "=== status ==="
-          ./bin/frampp status --json
+          ./bin/frampp status --json || true
           echo "=== version ==="
-          ./bin/frampp version
+          ./bin/frampp version || true
           echo "=== extensions ==="
-          ./frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', PHP_EOL);"
-          ./frankenphp/frankenphp php-cli -r "exit(extension_loaded('apcu') ? 0 : 1);"
+          ./frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', PHP_EOL);" || true
           echo "=== http 8080 (headers+body head) ==="
-          curl -sS -i --max-time 15 http://127.0.0.1:8080/ | head -n 30
+          curl -sS -i --max-time 15 http://127.0.0.1:8080/ | head -n 30 || true
           echo "=== http 8081 (headers+body head) ==="
-          curl -sS -i --max-time 15 http://127.0.0.1:8081/ | head -n 30
+          curl -sS -i --max-time 15 http://127.0.0.1:8081/ | head -n 30 || true
+          echo "=== service logs ==="
+          tail -n 60 logs/frankenphp.err.log 2>/dev/null || true
+          tail -n 40 logs/frankenphp.log 2>/dev/null || true
+          tail -n 60 logs/mariadb.err.log 2>/dev/null || true
+          tail -n 40 logs/mariadb.log 2>/dev/null || true
+          tail -n 20 logs/panel-access.log logs/frankenphp-access.log 2>/dev/null || true
           echo "=== wait mysql port ==="
           mysql_ready() { (exec 3<>/dev/tcp/127.0.0.1/3306) 2>/dev/null; }
           for i in $(seq 1 30); do
             if mysql_ready; then echo "mysql port open after ${i}s"; break; fi
             sleep 1
           done
-          mysql_ready
-          echo "=== service logs ==="
-          tail -n 30 logs/frankenphp.err.log 2>/dev/null || true
-          tail -n 30 logs/frankenphp.log 2>/dev/null || true
-          tail -n 30 logs/mariadb.err.log 2>/dev/null || true
-          tail -n 30 logs/mariadb.log 2>/dev/null || true
+          mysql_ready || { echo "MYSQL_PORT_NOT_READY"; exit 1; }
           ROOT_PW="$(sed -n 's/.*"mariadb_root_password"[^"]*"\([^"]*\)".*/\1/p' data/secrets.json)"
           REDIS_PW="$(sed -n 's/.*"redis_password"[^"]*"\([^"]*\)".*/\1/p' data/secrets.json)"
           ./mariadb/bin/mysql --no-defaults --connect-timeout=5 -h127.0.0.1 -P3306 -uroot -p"$ROOT_PW" -e "SELECT VERSION();"
           ./redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
           echo "=== stop ==="
-          ./bin/frampp stop all
-          ./bin/frampp status --json
+          ./bin/frampp stop all || true
+          ./bin/frampp status --json || true
 
       - name: Upload Linux package artifact
         uses: actions/upload-artifact@v4

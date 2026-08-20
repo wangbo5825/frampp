@@ -309,5 +309,5 @@ cat > "$RUNTIME_DIR/data/runtime.json" <<EOF
 }
 EOF
 
-step "完成。运行时就绪: $RUNTIME_DIR"
+step "完成 / done. 运行时就绪 / runtime ready: $RUNTIME_DIR"
 echo "DB_INITIALIZED=$DB_INITIALIZED"

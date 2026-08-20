@@ -64,7 +64,7 @@
 ### 2.6 Linux x86_64 变体决策（v1.3，2026-08-20）
 
 - **目标**：与 XAMPP Linux 形态一致的**自包含一键安装包**，避开系统包管理器依赖；本机无 Linux 时由 CI（ubuntu）构建与冒烟验证。
-- **发布形态**：`frampp-setup-<channel>-<version>-linux-x86_64.tar.gz`，顶层目录 `frampp/`，解压后 `./install.sh` 就地初始化并启动（目录可整体移动，卸载用 `./uninstall.sh`）。
+- **发布形态**：`frampp-setup-<channel>-<version>-linux-x86_64.run`（XAMPP 风格单文件自解压安装器；内部载荷为暂存目录内容的 tar.gz，运行时自动校验、解压到目标目录并执行 `./install.sh` 就地初始化与启动；目录可整体移动，卸载用 `./uninstall.sh`）。
 - **组件矩阵（环境级版本清单 `installer/config/versions-linux-x86_64.json`）**：
   - **FrankenPHP**：官方静态构建 `frankenphp-linux-x86_64`（musl，无 glibc 依赖）；官方默认扩展集**内置 APCu / redis / mysqli / pdo_mysql / mbstring / openssl / xml / zip / intl** 等，Linux 无需单独 APCu 扩展。
   - **MariaDB**：官方 bintar `mariadb-12.3.2-linux-systemd-x86_64.tar.gz`（自包含目录树；安装/运行均加 `--no-defaults` 隔离系统 `/etc/my.cnf`）。

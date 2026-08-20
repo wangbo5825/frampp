@@ -95,9 +95,11 @@ jobs:
         run: |
           set -euxo pipefail
           cd dist/installer
-          PKG="$(ls frampp-setup-*-linux-x86_64.tar.gz | head -n1)"
-          tar -xzf "$PKG"
+          PKG="$(ls frampp-setup-*-linux-x86_64.run | head -n1)"
+          chmod +x "$PKG"
+          ./"$PKG" --prefix "$PWD/frampp"
           cd frampp
+          echo "=== install.sh already ran inside .run; verify state ==="
           ./install.sh
           echo "=== Caddyfile ==="
           cat Caddyfile
@@ -154,7 +156,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frampp-linux-x86_64
-          path: dist/installer/frampp-setup-*-linux-x86_64.tar.gz
+          path: dist/installer/frampp-setup-*-linux-x86_64.run
           retention-days: 14
 
       - name: Upload to GitHub Release (manual)
@@ -165,6 +167,6 @@ jobs:
         run: |
           set -euo pipefail
           cd dist/installer
-          PKG="$(ls frampp-setup-*-linux-x86_64.tar.gz | head -n1)"
+          PKG="$(ls frampp-setup-*-linux-x86_64.run | head -n1)"
           echo "Uploading $PKG to ${{ github.event.inputs.release_tag }}"
           gh release upload "${{ github.event.inputs.release_tag }}" "$PKG" --clobber

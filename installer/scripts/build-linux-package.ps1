@@ -1,12 +1,13 @@
 <#
 .SYNOPSIS
     FRAMPP Linux 安装包构建：准备干净的暂存目录（dist/staging-linux），
-    下载/编译组件并打包为 tar.gz（XAMPP 风格一键安装包）。
+    下载/编译组件并打包为 XAMPP 风格单文件 .run（自解压安装器）。
 
 .DESCRIPTION
     - 组件矩阵：installer/config/versions-linux-x86_64.json（哈希锁定）
     - Redis 由官方源码静态编译（installer/scripts/linux/build-redis.sh）
-    - 产物：dist/installer/frampp-setup-<channel>-<version>-linux-x86_64.tar.gz
+    - 产物：dist/installer/frampp-setup-<channel>-<version>-linux-x86_64.run
+    - .run = 自解压脚本头 + tar.gz 载荷；运行后自动校验、解压并执行 install.sh
     - 运行环境：Linux + pwsh 7 + tar（CI ubuntu 与本地 Linux 均可）
 
 .PARAMETER Root
@@ -156,20 +157,58 @@ foreach ($bin in @("install.sh", "uninstall.sh", "bin/frampp")) {
     & chmod +x (Join-Path $StagingDir $bin)
 }
 
-# 5. 打包（顶层目录 frampp/，owner/group 归一化以便复现）
-$outName = "frampp-setup-$Channel-$AppVersion-$Env.tar.gz"
+# 5. 打包为 XAMPP 风格单文件 .run（自解压安装器）
+#    Payload = 暂存目录内容（无顶层目录）的 tar.gz；Header = 自解压脚本。
+#    Package as an XAMPP-style single-file .run (self-extracting installer).
+$outName = "frampp-setup-$Channel-$AppVersion-$Env.run"
 $out = Join-Path $installerDir $outName
+$payload = Join-Path $installerDir "frampp-linux-payload.tar.gz"
 if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Force }
-$parent = Split-Path $StagingDir -Parent
-$base = Split-Path $StagingDir -Leaf
-Push-Location $parent
+if (Test-Path -LiteralPath $payload) { Remove-Item -LiteralPath $payload -Force }
+
+Push-Location $StagingDir
 try {
-    Write-Step "打包 -> $out"
-    & tar -czf $out --transform "s,^$base,frampp," --owner=0 --group=0 --numeric-owner $base
-    if ($LASTEXITCODE -ne 0) { throw "tar 打包失败" }
+    Write-Step "打包载荷 -> $payload"
+    & tar -czf $payload --owner=0 --group=0 --numeric-owner .
+    if ($LASTEXITCODE -ne 0) { throw "tar 载荷打包失败" }
 } finally {
     Pop-Location
 }
+
+# 生成自解压头（先替换固定字段，再按最终字节长度计算载荷偏移）
+$template = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "linux/frampp-installer.sh")
+$template = $template -replace "`r`n", "`n"
+$template = $template.Replace("__APP_VERSION__", $AppVersion).Replace("__CHANNEL__", $Channel)
+$headerUtf8 = New-Object System.Text.UTF8Encoding($false)
+$headerBytes = $headerUtf8.GetBytes($template)
+$payloadOffset = $headerBytes.Length + 1
+$payloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $payload).Hash.ToLower()
+
+$template = $template.Replace(
+    'PAYLOAD_OFFSET="0000000000000000"',
+    'PAYLOAD_OFFSET="' + $payloadOffset.ToString().PadLeft(16, '0') + '"'
+)
+$template = $template.Replace(
+    'PAYLOAD_SHA256="0000000000000000000000000000000000000000000000000000000000000000"',
+    'PAYLOAD_SHA256="' + $payloadHash + '"'
+)
+$headerBytes = $headerUtf8.GetBytes($template)
+
+Write-Step "组装自解压安装器 -> $out"
+$fs = [System.IO.File]::Open($out, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write)
+try {
+    $fs.Write($headerBytes, 0, $headerBytes.Length)
+    $payloadStream = [System.IO.File]::OpenRead($payload)
+    try {
+        $payloadStream.CopyTo($fs)
+    } finally {
+        $payloadStream.Dispose()
+    }
+} finally {
+    $fs.Dispose()
+}
+& chmod +x $out
+Remove-Item -LiteralPath $payload -Force
 
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $out).Hash.ToLower()
 Write-Step "产物: $out ($([math]::Round((Get-Item -LiteralPath $out).Length / 1MB, 1)) MB)"

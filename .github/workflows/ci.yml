@@ -103,6 +103,24 @@ jobs:
           curl -sS -i --max-time 15 http://127.0.0.1:8080/ | head -n 30 || true
           echo "=== http 8081 (headers+body head) ==="
           curl -sS -i --max-time 15 http://127.0.0.1:8081/ | head -n 30 || true
+          echo "=== http 8081 direct /index.php (diagnostic) ==="
+          curl -sS -i --max-time 15 http://127.0.0.1:8081/index.php | head -n 20 || true
+          echo "=== http 8081 direct /action.php (diagnostic) ==="
+          curl -sS -i --max-time 15 http://127.0.0.1:8081/action.php | head -n 20 || true
+          echo "=== panel must render (assert) ==="
+          PANEL_BODY="$(curl -sS --max-time 15 http://127.0.0.1:8081/ || true)"
+          if printf '%s' "$PANEL_BODY" | grep -q '<?php'; then
+            echo "PANEL_SERVED_RAW_PHP"; exit 1
+          fi
+          if ! printf '%s' "$PANEL_BODY" | grep -q 'FRAMPP 控制面板'; then
+            echo "PANEL_NOT_RENDERED"; exit 1
+          fi
+          echo "PANEL_OK"
+          echo "=== adapted config (routes per server) ==="
+          ./frankenphp/frankenphp adapt --config Caddyfile --adapter caddyfile 2>/dev/null \
+            | grep -o '"handler":"[a-z_]*"' | sort | uniq -c || true
+          echo "=== control-panel/web listing ==="
+          ls -la control-panel/web || true
           echo "=== service logs ==="
           tail -n 60 logs/frankenphp.err.log 2>/dev/null || true
           tail -n 40 logs/frankenphp.log 2>/dev/null || true

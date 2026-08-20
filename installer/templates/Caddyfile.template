@@ -1,4 +1,4 @@
-# FRAMPP Caddyfile（由 init.ps1 生成）
+# FRAMPP Caddyfile（由 init.sh / init.ps1 生成）
 {
 	frankenphp
 	auto_https off
@@ -7,7 +7,11 @@
 http://127.0.0.1:8080 {
 	root * {{HTDOCS}}
 	encode zstd gzip
-	php_server
+	route {
+		try_files {path} {path}/index.php index.php
+		php
+		file_server
+	}
 	log {
 		output file {{LOGS_DIR}}/frankenphp-access.log
 	}
@@ -16,7 +20,11 @@ http://127.0.0.1:8080 {
 http://127.0.0.1:8081 {
 	root * {{PANEL_ROOT}}
 	encode zstd gzip
-	php_server
+	route {
+		try_files {path} {path}/index.php index.php
+		php
+		file_server
+	}
 	log {
 		output file {{LOGS_DIR}}/panel-access.log
 	}

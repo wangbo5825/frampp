@@ -94,7 +94,9 @@ Assert-True ($redisConf -match 'bind 127\.0\.0\.1') "redis.conf binds loopback o
 Assert-True ($redisConf -match 'requirepass \{\{REDIS_PASSWORD\}\}') "redis.conf has password placeholder"
 
 $caddy = Get-Content -Raw -LiteralPath (Join-Path $tpl "Caddyfile.template")
-Assert-True ($caddy -match 'php_server') "Caddyfile uses php_server"
+Assert-True ($caddy -match 'try_files \{path\} \{path\}/index\.php index\.php') "Caddyfile has try_files index rewrite"
+Assert-True ($caddy -match '\n\s*php\s*\n') "Caddyfile uses php handler"
+Assert-True ($caddy -match '\n\s*file_server\s*\n') "Caddyfile uses file_server"
 Assert-True ($caddy -match '127\.0\.0\.1:8081') "Caddyfile exposes panel on 8081"
 
 # 4. 安装器资产（Windows + Linux）

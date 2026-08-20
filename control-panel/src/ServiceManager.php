@@ -162,6 +162,7 @@ final class ServiceManager
         $datadir = $this->config->dataDir('mariadb');
         $log = $this->config->logsDir() . DIRECTORY_SEPARATOR . 'mariadb.log';
         $args = [
+            '--no-defaults',
             '--datadir=' . $datadir,
             '--port=' . $this->config->port('mysql'),
             '--bind-address=127.0.0.1',

@@ -90,17 +90,37 @@ jobs:
           PKG="$(ls frampp-setup-*-linux-x86_64.tar.gz | head -n1)"
           tar -xzf "$PKG"
           cd frampp
+          echo "=== Caddyfile ==="
+          cat Caddyfile
           ./install.sh
+          echo "=== status ==="
           ./bin/frampp status --json
+          echo "=== version ==="
           ./bin/frampp version
+          echo "=== extensions ==="
           ./frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', PHP_EOL);"
           ./frankenphp/frankenphp php-cli -r "exit(extension_loaded('apcu') ? 0 : 1);"
-          curl -fsS http://127.0.0.1:8080/ | grep -i frampp
-          curl -fsS http://127.0.0.1:8081/ | grep -i "frampp\|控制面板"
+          echo "=== http 8080 (headers+body head) ==="
+          curl -sS -i --max-time 15 http://127.0.0.1:8080/ | head -n 30
+          echo "=== http 8081 (headers+body head) ==="
+          curl -sS -i --max-time 15 http://127.0.0.1:8081/ | head -n 30
+          echo "=== wait mysql port ==="
+          mysql_ready() { (exec 3<>/dev/tcp/127.0.0.1/3306) 2>/dev/null; }
+          for i in $(seq 1 30); do
+            if mysql_ready; then echo "mysql port open after ${i}s"; break; fi
+            sleep 1
+          done
+          mysql_ready
+          echo "=== service logs ==="
+          tail -n 30 logs/frankenphp.err.log 2>/dev/null || true
+          tail -n 30 logs/frankenphp.log 2>/dev/null || true
+          tail -n 30 logs/mariadb.err.log 2>/dev/null || true
+          tail -n 30 logs/mariadb.log 2>/dev/null || true
           ROOT_PW="$(sed -n 's/.*"mariadb_root_password"[^"]*"\([^"]*\)".*/\1/p' data/secrets.json)"
           REDIS_PW="$(sed -n 's/.*"redis_password"[^"]*"\([^"]*\)".*/\1/p' data/secrets.json)"
           ./mariadb/bin/mysql --no-defaults --connect-timeout=5 -h127.0.0.1 -P3306 -uroot -p"$ROOT_PW" -e "SELECT VERSION();"
           ./redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
+          echo "=== stop ==="
           ./bin/frampp stop all
           ./bin/frampp status --json
 

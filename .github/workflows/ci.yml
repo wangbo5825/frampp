@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "上传 Linux 安装包到指定 Release tag（如 v0.2.0）"
+        required: false
+        default: ""
 
 jobs:
   validate:
@@ -148,3 +153,15 @@ jobs:
           name: frampp-linux-x86_64
           path: dist/installer/frampp-setup-*-linux-x86_64.tar.gz
           retention-days: 14
+
+      - name: Upload to GitHub Release (manual)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd dist/installer
+          PKG="$(ls frampp-setup-*-linux-x86_64.tar.gz | head -n1)"
+          echo "Uploading $PKG to ${{ github.event.inputs.release_tag }}"
+          gh release upload "${{ github.event.inputs.release_tag }}" "$PKG" --clobber

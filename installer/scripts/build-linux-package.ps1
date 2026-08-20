@@ -101,6 +101,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (T
         (Join-Path $CacheDir $config.components.frankenphp.cacheFile) `
         $fpBinDir `
         $config.components.frankenphp.version
+    if ($LASTEXITCODE -ne 0) { throw "FrankenPHP 构建失败 (exit $LASTEXITCODE)" }
     New-Item -ItemType File -Path $fpMarker -Force | Out-Null
 } else {
     Write-Step "复用已编译 FrankenPHP（$fpBinDir）"
@@ -117,6 +118,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $mariaBinDir "bin/mariadbd")) -or -n
         (Join-Path $CacheDir $config.components.mariadb.cacheFile) `
         $mariaBinDir `
         $config.components.mariadb.version
+    if ($LASTEXITCODE -ne 0) { throw "MariaDB 构建失败 (exit $LASTEXITCODE)" }
     New-Item -ItemType File -Path $mariaMarker -Force | Out-Null
 } else {
     Write-Step "复用已编译 MariaDB（$mariaBinDir）"
@@ -134,6 +136,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $redisBinDir "redis-server")) -or -n
         (Join-Path $CacheDir $config.components.redis.cacheFile) `
         $redisBinDir `
         $config.components.redis.version
+    if ($LASTEXITCODE -ne 0) { throw "Redis 构建失败 (exit $LASTEXITCODE)" }
     New-Item -ItemType File -Path $redisMarker -Force | Out-Null
 } else {
     Write-Step "复用已编译 Redis（$redisBinDir）"
@@ -152,6 +155,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $pyBinDir "bin/python3")) -or -not (
         (Join-Path $CacheDir $config.components.python.cacheFile) `
         $pyBinDir `
         $config.components.python.version
+    if ($LASTEXITCODE -ne 0) { throw "Python 构建失败 (exit $LASTEXITCODE)" }
     New-Item -ItemType File -Path $pyMarker -Force | Out-Null
 } else {
     Write-Step "复用已准备 Python（$pyBinDir）"

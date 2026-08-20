@@ -41,29 +41,33 @@ CI alternative: after the Linux package is built by GitHub Actions, pass `releas
 
 ## Publish to Gitee / 发布到 Gitee
 
-The GitHub release is authoritative; mirror it to Gitee for users in China. Push the tags first, then run the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
+GitHub is the single source of truth. Gitee mirrors the repository automatically through its GitHub mirror sync (configured in Gitee: 管理 → 仓库设置 → 镜像仓库管理), so **do not push to Gitee manually** — code, branches and tags all arrive via the mirror.
+
+Gitee mirror sync does **not** copy GitHub Releases, so a Gitee 发行版 (with installer attachments) is optional. If you also publish Gitee releases, use the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
 
 ```powershell
-git push gitee --tags
 pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.2.0 `
   -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.2.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 Notes:
 
+- Push only to GitHub (`git push`); the Gitee mirror syncs on its own schedule or when manually triggered in the mirror settings.
 - Gitee attachment limit is **100 MB per file**; the Linux `.run` installer (over 100 MB) stays GitHub-only.
 - The script is idempotent: it creates the release when missing and uploads assets without duplicating them.
 
-GitHub 上的 Release 为主，发布后镜像到 Gitee 供国内用户下载。先推送标签，再运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
+GitHub 是唯一推送源。Gitee 通过其 GitHub 镜像同步自动更新仓库（Gitee 侧配置：管理 → 仓库设置 → 镜像仓库管理），**无需再手动推送到 Gitee**——代码、分支与标签都会经镜像同步到达。
+
+镜像同步**不会**复制 GitHub Releases，因此 Gitee 发行版（含安装包附件）为可选项。如仍需发布 Gitee 发行版，运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
 
 ```powershell
-git push gitee --tags
 pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.2.0 `
   -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.2.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 说明：
 
+- 只推 GitHub（`git push`）；Gitee 镜像按设定的周期或手动触发同步。
 - Gitee 附件单文件上限 **100MB**；Linux `.run` 安装包（超过 100MB）仅在 GitHub 提供。
 - 脚本幂等：Release 不存在时创建，附件重复上传不会产生重复文件。
 

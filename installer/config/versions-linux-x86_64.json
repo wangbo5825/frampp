@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "platform": "linux-x86_64",
-  "lockedAt": "2026-08-20",
+  "lockedAt": "2026-08-20T03:00:00Z",
   "channel": "8.5",
   "channelLabel": "PHP 8.5（默认稳定通道）",
   "components": {
@@ -9,7 +9,7 @@
       "name": "FrankenPHP (static musl, 内置 APCu/Redis/mysqli 扩展)",
       "version": "1.12.7",
       "url": "https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64",
-      "sha256": "E73DAFCF99D03374848B2D41DCE12418F963F088A56995C69D8F2AEB9869AD40",
+      "sha256": "1E862146636113B258C6C37DBBF6104BB450EE1BFC2572573FF4FEBD78192200",
       "cacheFile": "frankenphp-linux-x86_64",
       "kind": "binary",
       "installDir": "frankenphp"

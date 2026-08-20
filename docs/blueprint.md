@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.1（2026-08-19，M1 组件定版）
+> 状态：设计稿 v1.3（2026-08-20，M1 组件定版 + Linux x86_64 变体定版）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -60,6 +60,18 @@
 - **发布形态**：类似 XAMPP——按 **FRAMPP 版本 × 组件通道 × 环境** 发布不同的一键安装包：`frampp-setup-<channel>-<version>-<env>.exe`。
 - **通道**：当前仅 `8.5`（FrankenPHP 1.12.7 / PHP 8.5.9 / MariaDB 12.3.2 / Redis 8.10.1）；新增通道需 FrankenPHP 提供对应 Windows 构建并在 `channels.json` / `versions-<channel>.json` 注册。
 - **发布管线**：`installer/scripts/release.ps1` 构建各通道、生成 SHA256SUMS、可选直发 GitHub Releases（tag `v<version>`）。流程见 [docs/releases.md](releases.md)。
+
+### 2.6 Linux x86_64 变体决策（v1.3，2026-08-20）
+
+- **目标**：与 XAMPP Linux 形态一致的**自包含一键安装包**，避开系统包管理器依赖；本机无 Linux 时由 CI（ubuntu）构建与冒烟验证。
+- **发布形态**：`frampp-setup-<channel>-<version>-linux-x86_64.tar.gz`，顶层目录 `frampp/`，解压后 `./install.sh` 就地初始化并启动（目录可整体移动，卸载用 `./uninstall.sh`）。
+- **组件矩阵（环境级版本清单 `installer/config/versions-linux-x86_64.json`）**：
+  - **FrankenPHP**：官方静态构建 `frankenphp-linux-x86_64`（musl，无 glibc 依赖）；官方默认扩展集**内置 APCu / redis / mysqli / pdo_mysql / mbstring / openssl / xml / zip / intl** 等，Linux 无需单独 APCu 扩展。
+  - **MariaDB**：官方 bintar `mariadb-12.3.2-linux-systemd-x86_64.tar.gz`（自包含目录树；安装/运行均加 `--no-defaults` 隔离系统 `/etc/my.cnf`）。
+  - **Redis**：**官方源码 8.10.1 静态编译**（首选 Alpine musl 静态，Docker 不可用时回退宿主编译），保证与 Windows 版本一致、品牌一致且无 glibc 依赖；不用 Valkey 预编译包（品牌不一致且将 glibc 基线抬到 2.35）。
+  - Composer / Adminer：与 Windows 同一文件（跨平台 phar/php），复用同一缓存。
+- **运行模型**：php.ini 由 `php.ini.linux.template` 生成（静态扩展无 `extension=` 指令）；CLI 与服务器统一通过 `bin/frampp` 包装器启动（`frankenphp php-cli -c <php.ini>` + `PHPRC` 环境变量），控制面板 `ServiceManager` 已跨平台（`kill`/`/dev/null`、去 `.exe`）。
+- **安全基线不变**：127.0.0.1 绑定、随机密码、只读账号 `frampp_ro`、审计日志。
 
 ---
 
@@ -254,7 +266,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 | M2 Agent v0.1 | MCP 服务器 + MariaDB / Redis / 日志 / 环境工具 + 安全边界 | Claude Code / Cursor 可调用工具 |
 | M3 开发体验 | Adminer、本地域名 / HTTPS、API Platform starter、项目一键创建 | ✅ 2026-08-20 完成并验证：Adminer 随包安装；`frampp new-project`（minimal 离线模板 / symfony / api-platform = symfony/skeleton + api-platform/core），api-demo 实测 `/api` 返回 Entrypoint JSON-LD；本地域名 / HTTPS 暂缓（仅测试用途、无用户价值，必要时再加） |
 | M4 生产模式 | 安装器 / 升级流程、代码签名、多用户文档（Authelia 已移除：属应用开发范畴） | 可对外正式发布（2026-08-20 已实现：Inno Setup 安装器 + 自动初始化/自启 + 卸载清理 + 升级文档；代码签名待证书采购，属成本项） |
-| M5 生态 | A2A 路线图、Linux / macOS / Docker 变体、社区贡献指南 | 多平台 CI 通过 |
+| M5 生态 | A2A 路线图、Linux / macOS / Docker 变体、社区贡献指南 | ✅ Linux x86_64 变体已实现（2026-08-20：版本清单 / init.sh / install.sh / build-linux-package.ps1 / CI 冒烟）；macOS / Docker 变体待做 |
 
 ---
 
@@ -262,7 +274,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 
 - **PHP MCP SDK 生态年轻**：命名与“官方”归属有变动，选定后锁定维护活跃的版本
 - **已定：默认 MariaDB**（再分发许可宽松），MySQL 仅作可选
-- **Windows 原生 Redis**：官方无原生构建，采用社区 `redis-windows` 发行（固定版本 + 哈希校验 + localhost + 随机密码），风险中低；若维护滞后切换 Memurai。Valkey 官方暂无 Windows 支持，仅用于 Linux / macOS 变体
+- **Windows 原生 Redis**：官方无原生构建，采用社区 `redis-windows` 发行（固定版本 + 哈希校验 + localhost + 随机密码），风险中低；若维护滞后切换 Memurai。Valkey 官方暂无 Windows 支持；Linux 变体采用**官方 Redis 源码静态编译**（版本与 Windows 一致），不引入 Valkey
 - **FrankenPHP Windows 构建扩展可用性**：M1 需验证官方 Windows 构建含 Composer 所需扩展（mbstring / openssl / xml）及 APCu
 - **包体积**：Python 与安装器体积控制，采用可选组件 + 按需下载
 - **代码签名**：Windows SmartScreen 信任成本，列为 M4

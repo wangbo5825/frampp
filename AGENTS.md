@@ -8,8 +8,9 @@ FRAMPP = FrankenPHP + Redis + Agent(MCP) + MySQL + PHP + Python：面向现代 P
 
 ## 当前状态
 
-- 当前里程碑：**M0（仓库落地）**
-- 下一步：**M1 核心运行时**——FrankenPHP + MySQL + Redis + APCu 打包，控制面板 MVP（启停 / 状态 / 端口 / 日志）
+- 当前里程碑：**M4 生产模式（已实现）**——Inno Setup 安装器、发布管线（channels / releases）、升级文档
+- Linux 变体（M5 部分）：**linux-x86_64 一键安装包**已实现——`versions-linux-x86_64.json` + `installer/scripts/linux/*`（init/install/uninstall/build-redis）+ `build-linux-package.ps1`，CI 冒烟验证；macOS / Docker 待做
+- 下一步：发布 v0.2.0（Windows .exe + Linux .tar.gz），或 A2A / Docker 变体
 
 ## 目录约定
 

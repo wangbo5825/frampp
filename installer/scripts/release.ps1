@@ -10,7 +10,7 @@
 [CmdletBinding()]
 param(
     [string]$Root,
-    [string]$Version = "0.1.0",
+    [string]$Version,
     [string[]]$Channels,
     [string]$Env = "windows-x64",
     [switch]$Publish
@@ -18,6 +18,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path }
+if (-not $Version) { $Version = (Get-Content -LiteralPath (Join-Path $Root "VERSION") -Raw).Trim() }
 
 function Write-Step([string]$Message) { Write-Host "==> $Message" -ForegroundColor Cyan }
 
@@ -44,12 +45,19 @@ New-Item -ItemType Directory -Force -Path $installerDir | Out-Null
 $artifacts = @()
 foreach ($ch in $Channels) {
     Write-Step "构建通道 $ch ($Env) ..."
-    & (Join-Path $PSScriptRoot "build-installer.ps1") -Root $Root -AppVersion $Version -Channel $ch -Env $Env
-    $exe = Join-Path $installerDir "frampp-setup-$ch-$Version-$Env.exe"
-    if (-not (Test-Path -LiteralPath $exe)) {
-        throw "构建产物缺失: $exe"
+    if ($Env -eq "windows-x64") {
+        & (Join-Path $PSScriptRoot "build-installer.ps1") -Root $Root -AppVersion $Version -Channel $ch -Env $Env
+        $artifact = Join-Path $installerDir "frampp-setup-$ch-$Version-$Env.exe"
+    } elseif ($Env -eq "linux-x86_64") {
+        & (Join-Path $PSScriptRoot "build-linux-package.ps1") -Root $Root -AppVersion $Version -Channel $ch -Env $Env
+        $artifact = Join-Path $installerDir "frampp-setup-$ch-$Version-$Env.tar.gz"
+    } else {
+        throw "未支持的环境: $Env（支持 windows-x64 / linux-x86_64）"
     }
-    $artifacts += $exe
+    if (-not (Test-Path -LiteralPath $artifact)) {
+        throw "构建产物缺失: $artifact"
+    }
+    $artifacts += $artifact
 }
 
 # 3. 哈希清单
@@ -63,7 +71,10 @@ Write-Step "哈希清单: $sumsFile"
 
 # 4. 可选：发布 GitHub Release
 if ($Publish) {
-    $gh = "C:\Users\silen\AppData\Local\Programs\gh\bin\gh.exe"
+    $gh = (Get-Command gh -ErrorAction SilentlyContinue).Source
+    if (-not $gh) {
+        $gh = "C:\Users\silen\AppData\Local\Programs\gh\bin\gh.exe"
+    }
     if (-not (Test-Path -LiteralPath $gh)) { throw "未找到 gh CLI: $gh" }
     $tag = "v$Version"
     $notes = @"
@@ -73,12 +84,17 @@ FRAMPP $Version
 
 - 通道：$($Channels -join ', ')（环境：$Env）
 - 校验：安装后请核对 SHA256SUMS.txt
+$(if ($Env -eq "linux-x86_64") {
+    "- Linux：\`frampp-setup-$($Channels -join ',')-$Version-linux-x86_64.tar.gz\`（解压后运行 ./install.sh）"
+} else {
+    "- Windows：\`frampp-setup-$($Channels -join ',')-$Version-windows-x64.exe\`（Inno Setup 一键安装）"
+})
 
 ## 说明
 
-- 一键安装（Inno Setup），安装时自动初始化（MariaDB 数据目录、随机密钥、配置）并启动三件套
+- 一键安装，安装时自动初始化（MariaDB 数据目录、随机密钥、配置）并启动三件套
 - 卸载自动停止服务并清理数据
-- 组件版本见 installer/config/versions.json
+- 组件版本见 installer/config/versions*.json
 "@
     Write-Step "发布 GitHub Release $tag ..."
     $existing = & $gh release view $tag --json tagName 2>$null

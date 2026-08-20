@@ -21,47 +21,73 @@ function Assert-True([bool]$Condition, [string]$Message) {
     }
 }
 
-# 1. versions.json 结构
-$versionsPath = Join-Path $Root "installer\config\versions.json"
-$config = Get-Content -Raw -LiteralPath $versionsPath | ConvertFrom-Json
-Assert-True ($config.schema -eq 1) "versions.json schema = 1"
-Assert-True ([string]$config.channel -ne "") "versions.json declares channel"
-
-$required = @("name", "version", "url", "sha256", "cacheFile", "kind", "installDir")
-foreach ($prop in $config.components.PSObject.Properties) {
-    foreach ($field in $required) {
-        Assert-True ($null -ne $prop.Value.$field -and [string]$prop.Value.$field -ne "") "component '$($prop.Name)' has field '$field'"
-    }
-    $sha = [string]$prop.Value.sha256
-    if ($sha -ne "PENDING") {
-        Assert-True ($sha -match '^[0-9A-Fa-f]{64}$') "component '$($prop.Name)' sha256 is 64 hex chars"
-    }
-    Assert-True ($prop.Value.kind -in @("zip", "phar")) "component '$($prop.Name)' kind valid"
+function Write-JsonNoBom([string]$Path, $Object) {
+    [System.IO.File]::WriteAllText(
+        $Path,
+        ($Object | ConvertTo-Json),
+        (New-Object System.Text.UTF8Encoding($false))
+    )
 }
-Assert-True (($config.components.PSObject.Properties.Name | Sort-Object) -contains "frankenphp" -and
-             ($config.components.PSObject.Properties.Name | Sort-Object) -contains "mariadb" -and
-             ($config.components.PSObject.Properties.Name | Sort-Object) -contains "redis" -and
-             ($config.components.PSObject.Properties.Name | Sort-Object) -contains "composer") "all four core components declared"
 
-# 2. 缓存哈希（本地已下载时校验）
-$cacheDir = Join-Path $Root "dist\binaries"
-if (Test-Path -LiteralPath $cacheDir) {
+function Test-VersionsFile([string]$Path, [string]$Platform) {
+    $label = $Platform
+    Assert-True (Test-Path -LiteralPath $Path) "versions file exists: $label"
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+
+    $config = Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json
+    Assert-True ($config.schema -eq 1) "$label schema = 1"
+    Assert-True ($config.platform -eq $Platform) "$label declares platform"
+    Assert-True ([string]$config.channel -ne "") "$label declares channel"
+
+    $required = @("name", "version", "url", "sha256", "cacheFile", "kind", "installDir")
     foreach ($prop in $config.components.PSObject.Properties) {
-        $c = $prop.Value
-        if ($c.sha256 -eq "PENDING") { continue }
-        $file = Join-Path $cacheDir $c.cacheFile
-        if (Test-Path -LiteralPath $file) {
-            $actual = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
-            Assert-True ($actual -eq $c.sha256) "cached $($c.cacheFile) sha256 matches"
+        foreach ($field in $required) {
+            Assert-True ($null -ne $prop.Value.$field -and [string]$prop.Value.$field -ne "") "$label component '$($prop.Name)' has field '$field'"
+        }
+        $sha = [string]$prop.Value.sha256
+        if ($sha -ne "PENDING") {
+            Assert-True ($sha -match '^[0-9A-Fa-f]{64}$') "$label component '$($prop.Name)' sha256 is 64 hex chars"
+        }
+        Assert-True ($prop.Value.kind -in @("zip", "phar", "binary", "tar.gz", "src")) "$label component '$($prop.Name)' kind valid"
+    }
+    $names = @($config.components.PSObject.Properties.Name | Sort-Object)
+    Assert-True ($names -contains "frankenphp" -and $names -contains "mariadb" -and
+                 $names -contains "redis" -and $names -contains "composer") "$label declares four core components"
+
+    # 本地已缓存时校验哈希
+    $cacheDir = Join-Path $Root "dist/binaries"
+    if (Test-Path -LiteralPath $cacheDir) {
+        foreach ($prop in $config.components.PSObject.Properties) {
+            $c = $prop.Value
+            if ($c.sha256 -eq "PENDING") { continue }
+            $file = Join-Path $cacheDir $c.cacheFile
+            if (Test-Path -LiteralPath $file) {
+                $actual = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+                Assert-True ($actual -eq $c.sha256) "$label cached $($c.cacheFile) sha256 matches"
+            }
         }
     }
 }
 
+# 1. 版本清单（Windows + Linux）
+Test-VersionsFile (Join-Path $Root "installer/config/versions.json") "windows-x64"
+Test-VersionsFile (Join-Path $Root "installer/config/versions-linux-x86_64.json") "linux-x86_64"
+
+# 2. 通道注册
+$channels = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/config/channels.json") | ConvertFrom-Json
+$envs = @($channels.channels | Where-Object { $_.id -eq "8.5" } | ForEach-Object { $_.envs })
+Assert-True ($envs -contains "windows-x64") "channel 8.5 supports windows-x64"
+Assert-True ($envs -contains "linux-x86_64") "channel 8.5 supports linux-x86_64"
+
 # 3. 配置模板
-$tpl = Join-Path $Root "installer\templates"
+$tpl = Join-Path $Root "installer/templates"
 $phpIni = Get-Content -Raw -LiteralPath (Join-Path $tpl "php.ini.template")
 Assert-True ($phpIni -match 'apc\.enable_cli\s*=\s*1') "php.ini template enables APCu CLI"
 Assert-True ($phpIni -match 'extension\s*=\s*apcu') "php.ini template loads apcu extension"
+
+$phpIniLinux = Get-Content -Raw -LiteralPath (Join-Path $tpl "php.ini.linux.template")
+Assert-True ($phpIniLinux -match 'apc\.enable_cli\s*=\s*1') "php.ini.linux template enables APCu CLI"
+Assert-True ($phpIniLinux -notmatch '(?m)^\s*extension\s*=') "php.ini.linux template has no dynamic extension lines"
 
 $redisConf = Get-Content -Raw -LiteralPath (Join-Path $tpl "redis.conf.template")
 Assert-True ($redisConf -match 'bind 127\.0\.0\.1') "redis.conf binds loopback only"
@@ -71,18 +97,30 @@ $caddy = Get-Content -Raw -LiteralPath (Join-Path $tpl "Caddyfile.template")
 Assert-True ($caddy -match 'php_server') "Caddyfile uses php_server"
 Assert-True ($caddy -match '127\.0\.0\.1:8081') "Caddyfile exposes panel on 8081"
 
-# 5. 安装器资产
-$setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer\setup.iss")
+# 4. 安装器资产（Windows + Linux）
+$setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/setup.iss")
 Assert-True ($setupIss -match '\[UninstallRun\]') "setup.iss stops services on uninstall"
 Assert-True ($setupIss -match 'init\.ps1') "setup.iss runs init.ps1 on install"
 Assert-True ($setupIss -match 'OutputBaseFilename=frampp-setup-\{#Channel\}-{#MyAppVersion\}-{#TargetEnv\}') "setup.iss names artifacts by channel/version/env"
-Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\scripts\build-installer.ps1")) "build-installer.ps1 exists"
-Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\scripts\release.ps1")) "release.ps1 exists"
-Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer\config\channels.json")) "channels.json exists"
-Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs\upgrade.md")) "docs/upgrade.md exists"
-Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs\releases.md")) "docs/releases.md exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/build-installer.ps1")) "build-installer.ps1 exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/build-linux-package.ps1")) "build-linux-package.ps1 exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/release.ps1")) "release.ps1 exists"
+foreach ($linuxScript in @(
+    "installer/scripts/linux/init.sh",
+    "installer/scripts/linux/install.sh",
+    "installer/scripts/linux/uninstall.sh",
+    "installer/scripts/linux/build-redis.sh",
+    "installer/scripts/linux/frampp-wrapper.sh"
+)) {
+    Assert-True (Test-Path -LiteralPath (Join-Path $Root $linuxScript)) "$linuxScript exists"
+}
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/config/channels.json")) "channels.json exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/upgrade.md")) "docs/upgrade.md exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/releases.md")) "docs/releases.md exists"
+$versionFile = Get-Content -Raw -LiteralPath (Join-Path $Root "VERSION")
+Assert-True ($versionFile -match '^\d+\.\d+\.\d+\s*$') "VERSION file is a semver"
 
-# 4. PHP lint（控制面板 + Agent）与 CLI 冒烟（需要 php；CI 中由 setup-php 提供）
+# 5. PHP lint（控制面板 + Agent）与 CLI 冒烟（需要 php；CI 中由 setup-php 提供）
 $php = Get-Command php -ErrorAction SilentlyContinue
 if ($php) {
     $phpFiles = Get-ChildItem -Path (Join-Path $Root "control-panel"), (Join-Path $Root "agent") -Recurse -Filter *.php
@@ -94,12 +132,18 @@ if ($php) {
     # 构造一个假的运行时目录验证 CLI status 输出
     $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("frampp-test-" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force -Path (Join-Path $tmp "data"), (Join-Path $tmp "logs") | Out-Null
-    @{ created_at = (Get-Date -Format o); root = $tmp; ports = @{ http = 8080; panel = 8081; mysql = 3306; redis = 6379 } } |
-        ConvertTo-Json | Set-Content -LiteralPath (Join-Path $tmp "data\runtime.json") -Encoding UTF8
-    @{ panel_token = "test-token"; mariadb_root_password = "x"; redis_password = "y" } |
-        ConvertTo-Json | Set-Content -LiteralPath (Join-Path $tmp "data\secrets.json") -Encoding UTF8
+    Write-JsonNoBom (Join-Path $tmp "data/runtime.json") @{
+        created_at = (Get-Date -Format o)
+        root = $tmp
+        ports = @{ http = 8080; panel = 8081; mysql = 3306; redis = 6379 }
+    }
+    Write-JsonNoBom (Join-Path $tmp "data/secrets.json") @{
+        panel_token = "test-token"
+        mariadb_root_password = "x"
+        redis_password = "y"
+    }
 
-    $cli = Join-Path $Root "control-panel\bin\frampp"
+    $cli = Join-Path $Root "control-panel/bin/frampp"
     $out = & php $cli status --json --home $tmp 2>&1 | Out-String
     Assert-True ($LASTEXITCODE -eq 0) "frampp status exits 0"
     $json = $out | ConvertFrom-Json
@@ -111,12 +155,12 @@ if ($php) {
     Assert-True ($LASTEXITCODE -eq 0) "frampp new-project exits 0"
     $np = $npOut | ConvertFrom-Json
     Assert-True ($np.name -eq "demo") "new-project returns project name"
-    Assert-True (Test-Path -LiteralPath (Join-Path $tmp "htdocs\demo\public\index.php")) "new-project creates public/index.php"
+    Assert-True (Test-Path -LiteralPath (Join-Path $tmp "htdocs/demo/public/index.php")) "new-project creates public/index.php"
 
     Remove-Item -LiteralPath $tmp -Recurse -Force
 
     # MCP 协议冒烟：initialize / tools/list / 只读 SQL 拦截（无需运行时即可验证）
-    $mcp = Join-Path $Root "agent\bin\frampp-mcp"
+    $mcp = Join-Path $Root "agent/bin/frampp-mcp"
     $messages = @(
         '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","clientInfo":{"name":"ci"},"capabilities":{}}}',
         '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}',

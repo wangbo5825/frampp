@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "platform": "linux-x86_64",
+  "lockedAt": "2026-08-20",
+  "channel": "8.5",
+  "channelLabel": "PHP 8.5（默认稳定通道）",
+  "components": {
+    "frankenphp": {
+      "name": "FrankenPHP (static musl, 内置 APCu/Redis/mysqli 扩展)",
+      "version": "1.12.7",
+      "url": "https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-linux-x86_64",
+      "sha256": "E73DAFCF99D03374848B2D41DCE12418F963F088A56995C69D8F2AEB9869AD40",
+      "cacheFile": "frankenphp-linux-x86_64",
+      "kind": "binary",
+      "installDir": "frankenphp"
+    },
+    "mariadb": {
+      "name": "MariaDB (bintar-linux-systemd)",
+      "version": "12.3.2",
+      "url": "https://archive.mariadb.org/mariadb-12.3.2/bintar-linux-systemd-x86_64/mariadb-12.3.2-linux-systemd-x86_64.tar.gz",
+      "sha256": "4A18365541D7280BBE947762E341BAB94BC49F3ED31E6B5CAF4E21F26246E458",
+      "cacheFile": "mariadb-12.3.2-linux-systemd-x86_64.tar.gz",
+      "kind": "tar.gz",
+      "installDir": "mariadb"
+    },
+    "redis": {
+      "name": "Redis (官方源码，Linux 静态编译)",
+      "version": "8.10.1",
+      "url": "https://download.redis.io/releases/redis-8.10.1.tar.gz",
+      "sha256": "60166C95AB7AEDAA9DFE516DE685BE0A4DD87BE95DED59BA429DF14C13F1B663",
+      "cacheFile": "redis-8.10.1.tar.gz",
+      "kind": "src",
+      "installDir": "redis"
+    },
+    "composer": {
+      "name": "Composer",
+      "version": "2.10.2",
+      "url": "https://getcomposer.org/download/2.10.2/composer.phar",
+      "sha256": "5EE7125F8A30A34D246CEFDC0BC85B8A783B28F2AEC968994118512350D28027",
+      "cacheFile": "composer.phar",
+      "kind": "phar",
+      "installDir": "bin"
+    },
+    "adminer": {
+      "name": "Adminer",
+      "version": "6.0.1",
+      "url": "https://www.adminer.org/static/download/6.0.1/adminer-6.0.1.php",
+      "sha256": "1815C03F26E21D533E729C0B09BC69A59C902A6440409D013105EE679DFF006C",
+      "cacheFile": "adminer-6.0.1.php",
+      "kind": "phar",
+      "installDir": "htdocs"
+    }
+  }
+}

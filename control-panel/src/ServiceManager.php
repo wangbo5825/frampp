@@ -20,6 +20,8 @@ final class ServiceManager
         'redis'      => ['port' => 'redis',  'log' => 'redis.log'],
     ];
 
+    private const WINDOWS = PHP_OS_FAMILY === 'Windows';
+
     public function __construct(private readonly Config $config)
     {
     }
@@ -96,7 +98,11 @@ final class ServiceManager
         }
 
         // 先优雅终止，超时再强杀
-        exec('taskkill /PID ' . (int) $pid . ' /T 2>NUL');
+        if (self::WINDOWS) {
+            exec('taskkill /PID ' . (int) $pid . ' /T 2>NUL');
+        } else {
+            exec('kill ' . (int) $pid . ' 2>/dev/null');
+        }
         for ($i = 0; $i < 20; $i++) {
             if (!$this->isProcessAlive($pid)) {
                 break;
@@ -104,7 +110,11 @@ final class ServiceManager
             usleep(250_000);
         }
         if ($this->isProcessAlive($pid)) {
-            exec('taskkill /PID ' . (int) $pid . ' /T /F 2>NUL');
+            if (self::WINDOWS) {
+                exec('taskkill /PID ' . (int) $pid . ' /T /F 2>NUL');
+            } else {
+                exec('kill -9 ' . (int) $pid . ' 2>/dev/null');
+            }
         }
         $this->removePid($name);
         return ['name' => $name, 'stopped' => true];
@@ -135,7 +145,7 @@ final class ServiceManager
 
     private function startFrankenphp(): ?int
     {
-        $exe = $this->config->bin('frankenphp') . DIRECTORY_SEPARATOR . 'frankenphp.exe';
+        $exe = $this->config->bin('frankenphp') . DIRECTORY_SEPARATOR . $this->exeName('frankenphp');
         if (!is_file($exe)) {
             throw new \RuntimeException("缺少 FrankenPHP 可执行文件: $exe");
         }
@@ -145,7 +155,7 @@ final class ServiceManager
 
     private function startMariadb(): ?int
     {
-        $exe = $this->config->bin('mariadb') . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mariadbd.exe';
+        $exe = $this->config->bin('mariadb') . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . $this->exeName('mariadbd');
         if (!is_file($exe)) {
             throw new \RuntimeException("缺少 MariaDB 可执行文件: $exe");
         }
@@ -155,18 +165,28 @@ final class ServiceManager
             '--datadir=' . $datadir,
             '--port=' . $this->config->port('mysql'),
             '--bind-address=127.0.0.1',
-            '--console',
         ];
+        if (self::WINDOWS) {
+            $args[] = '--console';
+        } else {
+            $args[] = '--log-error=' . $this->config->logsDir() . DIRECTORY_SEPARATOR . 'mariadb.err.log';
+            // 以 root 运行时 mariadbd 拒绝启动，需显式 --user
+            $user = trim((string) shell_exec('id -un 2>/dev/null'));
+            if ($user !== '') {
+                $args[] = '--user=' . $user;
+            }
+        }
         return $this->startDetached($exe, $args, $this->config->root, 'mariadb');
     }
 
     private function startRedis(): ?int
     {
-        $exe = $this->config->bin('redis') . DIRECTORY_SEPARATOR . 'redis-server.exe';
+        $exe = $this->config->bin('redis') . DIRECTORY_SEPARATOR . $this->exeName('redis-server');
         if (!is_file($exe)) {
             throw new \RuntimeException("缺少 Redis 可执行文件: $exe");
         }
         // msys2 构建会按 POSIX 路径解析绝对路径参数；必须在其目录内用相对路径启动
+        // Linux 静态构建行为一致：相对路径启动 redis.conf 最稳妥
         $redisDir = $this->config->bin('redis');
         if (!is_dir($this->config->dataDir('redis'))) {
             mkdir($this->config->dataDir('redis'), 0777, true);
@@ -184,12 +204,12 @@ final class ServiceManager
         $stderr = $stderrLog ?? $this->config->logsDir() . DIRECTORY_SEPARATOR . $name . '.err.log';
 
         $descriptors = [
-            0 => ['file', 'NUL', 'r'],
+            0 => ['file', self::WINDOWS ? 'NUL' : '/dev/null', 'r'],
             1 => ['file', $stdout, 'a'],
             2 => ['file', $stderr, 'a'],
         ];
         $options = [];
-        if (PHP_OS_FAMILY === 'Windows') {
+        if (self::WINDOWS) {
             $options['bypass_shell'] = true;
         }
 
@@ -228,13 +248,23 @@ final class ServiceManager
 
     private function isProcessAlive(int $pid): bool
     {
-        exec('tasklist /FI "PID eq ' . $pid . '" /NH 2>NUL', $out, $exit);
-        foreach ($out as $line) {
-            if (str_contains($line, (string) $pid)) {
-                return true;
+        if (self::WINDOWS) {
+            exec('tasklist /FI "PID eq ' . $pid . '" /NH 2>NUL', $out, $exit);
+            foreach ($out as $line) {
+                if (str_contains($line, (string) $pid)) {
+                    return true;
+                }
             }
+            return false;
         }
-        return false;
+        // POSIX：kill -0 不发送信号，仅探测进程是否存在
+        exec('kill -0 ' . $pid . ' 2>/dev/null', $out, $exit);
+        return $exit === 0;
+    }
+
+    private function exeName(string $base): string
+    {
+        return self::WINDOWS ? $base . '.exe' : $base;
     }
 
     private function isPortOpen(string $host, int $port): bool

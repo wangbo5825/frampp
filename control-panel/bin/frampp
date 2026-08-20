@@ -37,7 +37,7 @@ try {
         'logs'   => $mgr->tailLog($args[1] ?? 'frankenphp', max(1, (int) ($args[2] ?? 50))),
         'ports'  => $mgr->ports(),
         'version' => [
-            'frampp' => '0.1.0',
+            'frampp' => self_version($config),
             'components' => $config->runtime['components'] ?? [],
         ],
         'new-project' => (new ProjectCreator($config))->create((string) ($args[1] ?? ''), (string) ($args[2] ?? 'minimal')),
@@ -109,4 +109,16 @@ function renderText(string $cmd, array $data): void
             printf("%-10s %s%s", $name, json_encode($info, JSON_UNESCAPED_UNICODE), PHP_EOL);
         }
     }
+}
+
+function self_version(Config $config): string
+{
+    $versionFile = $config->root . DIRECTORY_SEPARATOR . 'VERSION';
+    if (is_file($versionFile)) {
+        $version = trim((string) file_get_contents($versionFile));
+        if ($version !== '') {
+            return $version;
+        }
+    }
+    return '0.2.0';
 }

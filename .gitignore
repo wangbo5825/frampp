@@ -2,6 +2,7 @@
 /dist/binaries/
 /dist/runtime/
 /dist/staging/
+/dist/staging-linux/
 /dist/tools/
 /dist/installer/
 /dist/install-test/

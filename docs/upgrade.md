@@ -10,6 +10,17 @@
 2. 运行 `installer/scripts/init.ps1`：生成配置（php.ini / redis.conf / Caddyfile）、随机密钥（`data/secrets.json`）、初始化 MariaDB 数据目录与只读账号
 3. 启动三件套并打开控制面板（`http://127.0.0.1:8081/`）
 
+### Linux（x86_64）
+
+```bash
+tar -xzf frampp-setup-8.5-0.2.0-linux-x86_64.tar.gz
+cd frampp
+./install.sh
+```
+
+安装为就地模式（解压目录即安装目录，可整体移动）；`install.sh` 自动执行 `installer/scripts/linux/init.sh`
+（生成配置、随机密钥、初始化 MariaDB 数据目录与只读账号）并启动三件套。
+
 ## 升级
 
 组件版本锁定在 `installer/config/versions.json`，FRAMPP 版本号随 Release 递增。
@@ -26,15 +37,19 @@
 
 ## 卸载
 
-使用开始菜单的“卸载 FRAMPP”或运行 `unins000.exe`。卸载器会：
+Windows：使用开始菜单的“卸载 FRAMPP”或运行 `unins000.exe`。卸载器会：
 
 1. 先停止三件套服务（`frampp stop all` + 兜底 taskkill）
 2. 删除安装目录、`data/`、`logs/` 及 init 生成的 Caddyfile / php.ini / redis.conf
 
 > 卸载会**删除 MariaDB 数据**，卸载前请确认已备份需要保留的项目与数据。
 
+Linux：运行 `./uninstall.sh`，先停止服务，再选择是否删除 `data/` 与 `logs/`；完全移除时删除整个目录。
+
 ## 版本查看
 
 ```powershell
 php control-panel/bin/frampp version
 ```
+
+Linux 下使用 `./bin/frampp version`。

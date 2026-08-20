@@ -19,7 +19,7 @@
 
 ## 开发
 
-- 平台：Windows 优先，Linux / macOS / Docker 为后续里程碑
+- 平台：Windows x64 与 Linux x86_64（自包含一键包）；macOS / Docker 为后续里程碑
 - 开发约定见 [AGENTS.md](AGENTS.md)
 - 里程碑 M0–M5 见 [docs/blueprint.md](docs/blueprint.md)
 
@@ -43,9 +43,26 @@ php control-panel/bin/frampp stop all
 - 默认站点：http://127.0.0.1:8080/
 - 控制面板：http://127.0.0.1:8081/
 
+## Linux 快速开始（一键安装包）
+
+```bash
+tar -xzf frampp-setup-8.5-0.2.0-linux-x86_64.tar.gz
+cd frampp
+./install.sh        # 自动初始化（随机密钥 / MariaDB 数据目录）并启动三件套
+./bin/frampp status # 管理命令：status / start / stop / logs / new-project
+```
+
+Linux 包自包含 FrankenPHP（静态构建，内置 APCu/Redis/mysqli 扩展）、MariaDB、Redis（官方源码静态编译），
+不依赖系统包管理器；目录可整体移动。
+
 ## 发布（一键安装包）
 
-类似 XAMPP，按 FRAMPP 版本 × 组件通道 × 环境发布安装包（`frampp-setup-8.5-0.1.0-windows-x64.exe`），下载与校验见 [GitHub Releases](https://github.com/wangbo5825/frampp/releases)，流程见 [docs/releases.md](docs/releases.md)。
+类似 XAMPP，按 FRAMPP 版本 × 组件通道 × 环境发布安装包：
+
+- Windows：`frampp-setup-8.5-0.2.0-windows-x64.exe`
+- Linux：`frampp-setup-8.5-0.2.0-linux-x86_64.tar.gz`
+
+下载与校验见 [GitHub Releases](https://github.com/wangbo5825/frampp/releases)，流程见 [docs/releases.md](docs/releases.md)。
 
 ## 许可证
 

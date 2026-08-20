@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   validate:
@@ -58,3 +59,54 @@ jobs:
         shell: pwsh
         run: |
           pwsh -NoProfile -File tests/run-tests.ps1
+
+  linux-package:
+    name: Linux package (build + smoke)
+    runs-on: ubuntu-latest
+    # 大体积下载/编译任务仅在 main 推送或手动触发时执行，PR 只跑轻量校验
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+
+      - name: Run installer smoke tests (linux)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File tests/run-tests.ps1
+
+      - name: Build Linux package (versions-linux-x86_64.json)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
+
+      - name: Smoke test (extract + install + HTTP / MySQL / Redis)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd dist/installer
+          PKG="$(ls frampp-setup-*-linux-x86_64.tar.gz | head -n1)"
+          tar -xzf "$PKG"
+          cd frampp
+          ./install.sh
+          ./bin/frampp status --json
+          ./bin/frampp version
+          ./frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', PHP_EOL);"
+          ./frankenphp/frankenphp php-cli -r "exit(extension_loaded('apcu') ? 0 : 1);"
+          curl -fsS http://127.0.0.1:8080/ | grep -i frampp
+          curl -fsS http://127.0.0.1:8081/ | grep -i "frampp\|控制面板"
+          ROOT_PW="$(sed -n 's/.*"mariadb_root_password"[^"]*"\([^"]*\)".*/\1/p' data/secrets.json)"
+          REDIS_PW="$(sed -n 's/.*"redis_password"[^"]*"\([^"]*\)".*/\1/p' data/secrets.json)"
+          ./mariadb/bin/mysql --no-defaults --connect-timeout=5 -h127.0.0.1 -P3306 -uroot -p"$ROOT_PW" -e "SELECT VERSION();"
+          ./redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
+          ./bin/frampp stop all
+          ./bin/frampp status --json
+
+      - name: Upload Linux package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frampp-linux-x86_64
+          path: dist/installer/frampp-setup-*-linux-x86_64.tar.gz
+          retention-days: 14

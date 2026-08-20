@@ -72,6 +72,11 @@ echo "==> 复制产物到 $OUT_DIR ..."
 cp "dist/frankenphp-linux-x86_64" "$OUT_DIR/frankenphp"
 chmod +x "$OUT_DIR/frankenphp"
 
+# sudo 重执行时产物归 root，交还属主给原用户，便于后续脚本读写
+if [[ -n "${SUDO_USER:-}" ]]; then
+    chown -R "$SUDO_USER":"$SUDO_USER" "$OUT_DIR"
+fi
+
 echo "==> 验证:"
 "$OUT_DIR/frankenphp" version
 "$OUT_DIR/frankenphp" build-info || true

@@ -22,7 +22,9 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 tar -xzf "$SRC_TAR" -C "$WORK"
-SRC_NAME="$(tar -tzf "$SRC_TAR" | head -n1 | cut -d/ -f1)"
+# 先落盘再取首行，避免 tar | head 在 pipefail 下触发 SIGPIPE
+tar -tzf "$SRC_TAR" > "$WORK/list.txt"
+SRC_NAME="$(head -n1 "$WORK/list.txt" | cut -d/ -f1)"
 SRC_DIR="$WORK/$SRC_NAME"
 
 BUILD_ARGS=(BUILD_TLS=no MALLOC=libc)
@@ -38,7 +40,7 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
 set -e
 apk add --no-cache build-base linux-headers >/dev/null
 cd "/work/$1"
-make BUILD_TLS=no MALLOC=libc LDFLAGS="-static" -j"$(nproc)" redis-server redis-cli
+make BUILD_TLS=no MALLOC=libc LDFLAGS="-static" -j4 redis-server redis-cli
 SCRIPT
     if docker run --rm -v "$WORK":/work -w /work alpine:3.20 sh build.sh "$SRC_NAME"; then
         built=1

@@ -39,6 +39,34 @@ pwsh -File installer/scripts/release.ps1 -Env linux-x86_64 -Publish
 CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.2.0`）。
 CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.2.0`).
 
+## Publish to Gitee / 发布到 Gitee
+
+The GitHub release is authoritative; mirror it to Gitee for users in China. Push the tags first, then run the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
+
+```powershell
+git push gitee --tags
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.2.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.2.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+```
+
+Notes:
+
+- Gitee attachment limit is **100 MB per file**; the Linux `.run` installer (over 100 MB) stays GitHub-only.
+- The script is idempotent: it creates the release when missing and uploads assets without duplicating them.
+
+GitHub 上的 Release 为主，发布后镜像到 Gitee 供国内用户下载。先推送标签，再运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
+
+```powershell
+git push gitee --tags
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.2.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.2.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+```
+
+说明：
+
+- Gitee 附件单文件上限 **100MB**；Linux `.run` 安装包（超过 100MB）仅在 GitHub 提供。
+- 脚本幂等：Release 不存在时创建，附件重复上传不会产生重复文件。
+
 产物位于 / Artifacts in `dist/installer/`：
 
 - `frampp-setup-<channel>-<version>-<env>.exe`：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)

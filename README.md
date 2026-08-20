@@ -7,6 +7,10 @@
 > Current milestone: **M1 Core Runtime (implemented and runs locally)** — FrankenPHP + MySQL + Redis + APCu, plus a control-panel MVP (start / stop / status / ports / logs).
 > Full design & decision records: [docs/blueprint.md](docs/blueprint.md).
 
+[![GitHub](https://img.shields.io/badge/GitHub-wangbo5825%2Fframpp-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/wangbo5825/frampp)
+[![Gitee](https://img.shields.io/badge/Gitee-wang_bo_wang_bo%2Fframpp-C71D23?style=flat-square)](https://gitee.com/wang_bo_wang_bo/frampp)
+[![License](https://img.shields.io/badge/License-MIT-22d3ee?style=flat-square)](LICENSE)
+
 ---
 
 ## English (Primary)
@@ -85,6 +89,8 @@ Download & verify: [GitHub Releases](https://github.com/wangbo5825/frampp/releas
 ### Documentation
 
 - Project site (EN/ZH toggle): <https://wangbo5825.github.io/frampp/>
+- GitHub (primary): <https://github.com/wangbo5825/frampp>
+- Gitee (mirror for China): <https://gitee.com/wang_bo_wang_bo/frampp>
 - Dev guide: [AGENTS.md](AGENTS.md)
 - Blueprint & milestones: [docs/blueprint.md](docs/blueprint.md)
 - Releases: [docs/releases.md](docs/releases.md)
@@ -171,6 +177,8 @@ Linux 包自包含静态构建的 FrankenPHP（内置 APCu / redis / mysqli）�
 ### 文档
 
 - 项目主页（中英切换）：<https://wangbo5825.github.io/frampp/>
+- GitHub（主仓库）：<https://github.com/wangbo5825/frampp>
+- Gitee（国内镜像）：<https://gitee.com/wang_bo_wang_bo/frampp>
 - 开发指南：[AGENTS.md](AGENTS.md)
 - 蓝图与里程碑：[docs/blueprint.md](docs/blueprint.md)
 - 版本发布：[docs/releases.md](docs/releases.md)

@@ -21,9 +21,5 @@ export FRAMPP_HOME
 PHP_INI="$FRAMPP_HOME/frankenphp/php.ini"
 export PHPRC="$PHP_INI"
 
-if [ -f "$PHP_INI" ]; then
-    exec "$FRAMPP_HOME/frankenphp/frankenphp" php-cli -c "$PHP_INI" \
-        "$FRAMPP_HOME/control-panel/bin/frampp" "$@"
-fi
 exec "$FRAMPP_HOME/frankenphp/frankenphp" php-cli \
     "$FRAMPP_HOME/control-panel/bin/frampp" "$@"

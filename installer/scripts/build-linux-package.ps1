@@ -104,6 +104,7 @@ if ($top.Count -eq 1 -and $top[0].PSIsContainer) {
     Remove-Item -LiteralPath $nested -Recurse -Force
 }
 Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb/bin") -File | ForEach-Object { & chmod +x $_.FullName }
+Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb/scripts") -File -ErrorAction SilentlyContinue | ForEach-Object { & chmod +x $_.FullName }
 
 # Redis：官方源码静态编译（复用 dist/tools 下的构建产物，避免重复编译）
 $redisBinDir = Join-Path $ToolsDir "redis-linux-x86_64"

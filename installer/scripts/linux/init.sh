@@ -213,15 +213,22 @@ chmod +x \
 if [[ -d "$RUNTIME_DIR/mariadb/bin" ]]; then
     chmod +x "$RUNTIME_DIR/mariadb/bin"/* 2>/dev/null || true
 fi
+if [[ -d "$RUNTIME_DIR/mariadb/scripts" ]]; then
+    chmod +x "$RUNTIME_DIR/mariadb/scripts"/* 2>/dev/null || true
+fi
 
 # 7. MariaDB 数据目录初始化
 DB_INITIALIZED=0
 MYSQL_BIN="$RUNTIME_DIR/mariadb/bin"
-if [[ "$SKIP_DB_INIT" -eq 0 && -x "$MYSQL_BIN/mariadb-install-db" ]]; then
+INSTALL_DB="$RUNTIME_DIR/mariadb/scripts/mariadb-install-db"
+if [[ ! -x "$INSTALL_DB" ]]; then
+    INSTALL_DB="$MYSQL_BIN/mariadb-install-db"
+fi
+if [[ "$SKIP_DB_INIT" -eq 0 && -x "$INSTALL_DB" ]]; then
     DATADIR="$RUNTIME_DIR/data/mariadb"
     if [[ ! -d "$DATADIR/mysql" ]]; then
         step "初始化 MariaDB 数据目录 ..."
-        "$MYSQL_BIN/mariadb-install-db" --no-defaults \
+        "$INSTALL_DB" --no-defaults \
             --datadir="$DATADIR" \
             --auth-root-authentication-method=normal \
             > "$RUNTIME_DIR/logs/mariadb-install-db.log" 2>&1 || \

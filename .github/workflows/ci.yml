@@ -99,7 +99,9 @@ jobs:
             libssl-dev libpcre2-dev zlib1g-dev libncurses-dev libcurl4-openssl-dev \
             libxml2-dev libonig-dev libreadline-dev libargon2-dev libsodium-dev \
             libsqlite3-dev libbz2-dev libzip-dev libyaml-dev libffi-dev \
-            xz-utils unzip upx-ucl autoconf libaio-dev liburing-dev
+            xz-utils unzip upx-ucl autoconf libaio-dev liburing-dev \
+            libgnutls28-dev liblz4-dev libedit-dev libsnappy-dev \
+            libpam0g-dev libkrb5-dev libsystemd-dev libcrack2-dev
 
       - name: Build Linux package (versions-linux-x86_64.json)
         shell: pwsh

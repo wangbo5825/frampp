@@ -10,8 +10,8 @@ Positioning: **one-click installers for everyday users** (XAMPP-style), publishe
 
 ```text
 frampp-setup-<channel>-<version>-<env>.<ext>
-示例 / e.g. frampp-setup-8.5-0.2.0-windows-x64.exe
-示例 / e.g. frampp-setup-8.5-0.2.0-linux-x86_64.run
+示例 / e.g. frampp-setup-8.5-0.3.0-windows-x64.exe
+示例 / e.g. frampp-setup-8.5-0.3.0-linux-x86_64.run
 ```
 
 - `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.12.7 / PHP 8.5.9 / MariaDB 12.3.2 / Redis 8.10.1）
@@ -36,8 +36,8 @@ powershell -ExecutionPolicy Bypass -File installer/scripts/release.ps1 -Env wind
 pwsh -File installer/scripts/release.ps1 -Env linux-x86_64 -Publish
 ```
 
-CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.2.0`）。
-CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.2.0`).
+CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.3.0`）。
+CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.3.0`).
 
 ## Publish to Gitee / 发布到 Gitee
 
@@ -46,8 +46,8 @@ GitHub is the single source of truth. Gitee mirrors the repository automatically
 Gitee mirror sync does **not** copy GitHub Releases, so a Gitee 发行版 (with installer attachments) is optional. If you also publish Gitee releases, use the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.2.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.2.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.3.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.3.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 Notes:
@@ -61,8 +61,8 @@ GitHub 是唯一推送源。Gitee 通过其 GitHub 镜像同步自动更新仓�
 镜像同步**不会**复制 GitHub Releases，因此 Gitee 发行版（含安装包附件）为可选项。如仍需发布 Gitee 发行版，运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.2.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.2.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.3.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.3.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 说明：
@@ -77,7 +77,7 @@ FRAMPP 0.3.0 slims the Linux x86_64 package without changing functionality:
 
 - **MariaDB** is now compiled from source (`installer/scripts/linux/build-mariadb.sh`): heavy storage engines and plugins (RocksDB / Mroonga / Connect / Spider / Sphinx / S3 / OQGraph / TokuDB / Archive / Blackhole) are disabled, binaries are stripped, and `mysql-test/ sql-bench/ man/ include/ lib/*.a` are removed. Target size: 30–50 MB, keeping mysqld / mysql / mysqladmin / mysqldump / mysql_install_db.
 - **FrankenPHP** is built from source (`installer/scripts/linux/build-frankenphp.sh`): the default PHP extensions drop `intl / soap / gmp / bcmath / exif / imagick`; Caddy modules drop Mercure / Vulcain and add **Souin** (HTTP cache); built with `SPC_LIBC=glibc` (mostly static) and UPX compression (`-w -s` symbols stripped).
-- **Python 3.13** is bundled as a slim self-contained runtime (`python-build-standalone` install_only_stripped, ~30 MB) and added to `PATH` via the `bin/frampp` wrapper.
+- **Python 3.13** is bundled as a slim self-contained runtime (`python-build-standalone` install_only_stripped; `include/ share/`, Tcl/Tk native libs and dev configs are removed, ~30 MB) and added to `PATH` via the `bin/frampp` wrapper.
 
 Build time on CI is expected to grow to roughly 1.5–2 hours per Linux package job.
 
@@ -85,7 +85,7 @@ FRAMPP 0.3.0 对 Linux x86_64 安装包做精简，功能保持不变：
 
 - **MariaDB** 改为源码编译（`installer/scripts/linux/build-mariadb.sh`）：禁用 RocksDB / Mroonga / Connect / Spider / Sphinx / S3 / OQGraph / TokuDB / Archive / Blackhole 等重型引擎与插件，二进制 strip，删除 `mysql-test/ sql-bench/ man/ include/ lib/*.a`；目标体积 30~50 MB，保留 mysqld / mysql / mysqladmin / mysqldump / mysql_install_db。
 - **FrankenPHP** 改为源码定制构建（`installer/scripts/linux/build-frankenphp.sh`）：PHP 扩展去掉 `intl / soap / gmp / bcmath / exif / imagick`；Caddy 模块去掉 Mercure / Vulcain，加入 **Souin**（HTTP 缓存）；`SPC_LIBC=glibc`（mostly static）+ UPX 压缩（`-w -s` 去符号）。
-- **Python 3.13** 内置精简独立运行时（python-build-standalone install_only_stripped，约 30 MB），`bin/frampp` 包装器自动将其加入 PATH。
+- **Python 3.13** 内置精简独立运行时（python-build-standalone install_only_stripped；删除 include/share、Tcl/Tk 原生库与开发配置，约 30 MB），`bin/frampp` 包装器自动将其加入 PATH。
 
 CI 构建时间预计增加到每个 Linux 打包作业约 1.5~2 小时。
 
@@ -98,10 +98,10 @@ CI 构建时间预计增加到每个 Linux 打包作业约 1.5~2 小时。
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash
-chmod +x frampp-setup-8.5-0.2.0-linux-x86_64.run
-./frampp-setup-8.5-0.2.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-setup-8.5-0.2.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
-./frampp-setup-8.5-0.2.0-linux-x86_64.run --help           # 帮助 / help
+chmod +x frampp-setup-8.5-0.3.0-linux-x86_64.run
+./frampp-setup-8.5-0.3.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-setup-8.5-0.3.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+./frampp-setup-8.5-0.3.0-linux-x86_64.run --help           # 帮助 / help
 
 ~/frampp/bin/frampp status        # 查看服务状态 / check status
 ~/frampp/uninstall.sh             # 停止服务并可选清理数据 / stop services, optionally clean data
@@ -121,6 +121,6 @@ The Linux package bundles all three binaries (static FrankenPHP, MariaDB bintar,
 
 ```powershell
 Get-FileHash frampp-setup-8.5-0.1.0-windows-x64.exe -Algorithm SHA256
-sha256sum frampp-setup-8.5-0.2.0-linux-x86_64.run
+sha256sum frampp-setup-8.5-0.3.0-linux-x86_64.run
 # 与 / compare with SHA256SUMS.txt 中对应行 / the matching line
 ```

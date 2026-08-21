@@ -13,9 +13,9 @@
 ### Linux（x86_64）
 
 ```bash
-chmod +x frampp-setup-8.5-0.2.0-linux-x86_64.run
-./frampp-setup-8.5-0.2.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-setup-8.5-0.2.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+chmod +x frampp-setup-8.5-0.3.0-linux-x86_64.run
+./frampp-setup-8.5-0.3.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-setup-8.5-0.3.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
 ```
 
 单文件安装器会自动校验完整性、解压并执行 `installer/scripts/linux/init.sh`

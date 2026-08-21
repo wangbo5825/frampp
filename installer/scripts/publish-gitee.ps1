@@ -29,8 +29,8 @@ One or more files to upload as release attachments.
 Branch/commit the tag points to (default: master).
 
 .EXAMPLE
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.2.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.2.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.3.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.3.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Token,

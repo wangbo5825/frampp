@@ -4,7 +4,7 @@
 
 **One-click, out-of-the-box runtime & development platform for modern PHP developers — following the LAMPP / XAMPP / NMPP tradition, with a built-in AI Agent layer (MCP).**
 
-> Current milestone: **M1 Core Runtime (implemented and runs locally)** — FrankenPHP + MySQL + Redis + APCu, plus a control-panel MVP (start / stop / status / ports / logs).
+> Current status: **M4 Production mode + Linux x86_64 variant (implemented)** — Inno Setup and self-extracting `.run` installers, control panel, Agent/MCP server, bundled MariaDB, Redis, FrankenPHP and a slim Python runtime.
 > Full design & decision records: [docs/blueprint.md](docs/blueprint.md).
 
 [![GitHub](https://img.shields.io/badge/GitHub-wangbo5825%2Fframpp-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/wangbo5825/frampp)
@@ -24,7 +24,7 @@ We focus on **everyday developers who want a zero-friction local environment**, 
 Key characteristics:
 
 - **Self-contained** — FrankenPHP (embedded Caddy, automatic HTTPS, worker mode, built-in APCu / redis / mysqli extensions), MariaDB and Redis are all bundled; no system package manager dependencies.
-- **No admin required** — installs under `~/frampp` on Linux and a per-user directory on Windows; no root / administrator privileges.
+- **Self-contained and relocatable** — Linux installs under `~/frampp` by default without root; Windows uses an Inno Setup installer.
 - **Relocatable** — the whole directory can be moved; on Linux just re-run `install.sh` after moving.
 - **One-command management** — `frampp {status|start|stop|logs|new-project}` plus a web control panel.
 - **AI-ready** — a built-in Agent (MCP) layer lets AI assistants interact with your local stack through standard MCP tools.
@@ -75,7 +75,7 @@ After install, visit:
 - Control panel: <http://127.0.0.1:8081/>
 - Manage: `~/frampp/bin/frampp {status|start|stop|logs|new-project}`
 
-The Linux package bundles static FrankenPHP (APCu / redis / mysqli built in), MariaDB and statically compiled Redis — no system packages required; the directory is relocatable (re-run `install.sh` after moving).
+The Linux package bundles a slimmed, mostly static FrankenPHP (APCu / redis / mysqli built in), a source-built MariaDB, statically compiled Redis, and a pruned embedded Python 3.13 runtime — no system packages required; the directory is relocatable (re-run `install.sh` after moving).
 
 ### Releases
 
@@ -112,7 +112,7 @@ FRAMPP 把完整的 Web 开发环境（PHP 应用服务器 + MariaDB + Redis）�
 核心特点：
 
 - **自包含** — 内置 FrankenPHP（含 Caddy、自动 HTTPS、worker 模式及 APCu / redis / mysqli 扩展）、MariaDB、Redis，不依赖系统包管理器
-- **无需管理员权限** — Linux 默认安装到 `~/frampp`，Windows 按用户目录安装
+- **自包含、可整体移动** — Linux 默认安装到 `~/frampp` 且无需 root；Windows 使用 Inno Setup 安装器
 - **目录可整体移动** — Linux 移动后重跑 `install.sh` 即可
 - **一条命令管理** — `frampp {status|start|stop|logs|new-project}` + Web 控制面板
 - **AI 就绪** — 内置 Agent（MCP）层，让 AI 助手通过标准 MCP 工具操作本地环境
@@ -163,7 +163,7 @@ chmod +x frampp-setup-8.5-<version>-linux-x86_64.run
 - 控制面板：<http://127.0.0.1:8081/>
 - 管理命令：`~/frampp/bin/frampp {status|start|stop|logs|new-project}`
 
-Linux 包自包含静态构建的 FrankenPHP（内置 APCu / redis / mysqli）、MariaDB 与静态编译的 Redis，不依赖系统包管理器；目录可整体移动（移动后重跑 `install.sh`）。
+Linux 包自包含精简的 mostly static FrankenPHP（内置 APCu / redis / mysqli）、源码构建的 MariaDB、静态编译的 Redis，以及精简的嵌入式 Python 3.13 运行时，不依赖系统包管理器；目录可整体移动（移动后重跑 `install.sh`）。
 
 ### 发布
 

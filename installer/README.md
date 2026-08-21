@@ -2,10 +2,12 @@
 
 一键安装与卸载流程、目录布局、PATH 注入、服务注册。
 
-- 平台：Windows（Inno Setup / MSIX 待定）
+- 平台：Windows（Inno Setup）、Linux x86_64（自解压 `.run`；MSIX / macOS / Docker 待定）
 - 安装后布局见 `docs/blueprint.md` §4.1
 
-## M1 组件（版本锁定见 `config/versions.json`）
+## 组件矩阵（版本锁定见 `config/versions*.json`）
+
+Windows：
 
 | 组件 | 版本 | 来源 |
 | --- | --- | --- |
@@ -15,6 +17,13 @@
 | Composer | 2.10.2 | getcomposer.org |
 | APCu | 5.1.28 | PECL（PHP 8.5 TS x64） |
 | Adminer | 6.0.1 | adminer.org（单文件，随包安装到 htdocs） |
+
+Linux x86_64：
+
+- FrankenPHP 1.12.7：源码定制构建（去部分扩展 + Souin + UPX，glibc mostly static）
+- MariaDB 12.3.2：源码编译精简版
+- Redis 8.10.1：官方源码静态编译
+- Python 3.13.15：`python-build-standalone` 精简运行时
 
 ## 使用
 
@@ -35,7 +44,10 @@ php control-panel/bin/frampp stop all
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/scripts/build-installer.ps1
-# 产物：dist/installer/frampp-setup-0.1.0.exe（Inno Setup，自动下载便携版 ISCC）
+# Windows 产物：dist/installer/frampp-setup-8.5-0.3.0-windows-x64.exe
+
+pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
+# Linux 产物：dist/installer/frampp-setup-8.5-0.3.0-linux-x86_64.run
 ```
 
 安装器行为：

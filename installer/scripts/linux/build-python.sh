@@ -6,8 +6,8 @@
 #   - 自包含：无系统包依赖（除 glibc）
 #   - install_only：不含头文件 / 测试 / 文档
 #   - stripped：已去除符号
-# 再做二次精简：删除 test / tkinter / idlelib / turtledemo / __pycache__，
-# 保留 ensurepip / pip 等常用组件。
+# 再做二次精简：删除 test / tkinter / idlelib / turtledemo / __pycache__、
+# include / share / Tcl/Tk 原生库 / 开发配置等，保留 pip 等常用组件。
 #
 # 用法: build-python.sh <python-tar.gz> <输出目录> [版本]
 #
@@ -38,7 +38,26 @@ rm -rf \
     "$STDLIB/tkinter" \
     "$STDLIB/idlelib" \
     "$STDLIB/turtledemo" \
-    "$STDLIB/site-packages/ensurepip/_bundled" 2>/dev/null || true
+    "$STDLIB/ensurepip/_bundled" \
+    "$OUT_DIR/include" \
+    "$OUT_DIR/share" \
+    "$OUT_DIR/lib/pkgconfig" \
+    "$STDLIB/config-"* 2>/dev/null || true
+rm -rf \
+    "$OUT_DIR"/lib/libtcl* \
+    "$OUT_DIR"/lib/libtk* \
+    "$OUT_DIR"/lib/tcl* \
+    "$OUT_DIR"/lib/tk* \
+    "$OUT_DIR"/lib/itcl* \
+    "$OUT_DIR"/lib/thread* 2>/dev/null || true
+rm -f \
+    "$STDLIB/turtle.py" \
+    "$STDLIB"/lib-dynload/_tkinter*.so \
+    "$OUT_DIR/bin/python3-config" \
+    "$OUT_DIR/bin/python3.13-config" 2>/dev/null || true
+rm -f \
+    "$STDLIB"/site-packages/pip/_vendor/distlib/t*.exe \
+    "$STDLIB"/site-packages/pip/_vendor/distlib/w*.exe 2>/dev/null || true
 find "$OUT_DIR" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
 find "$STDLIB" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete 2>/dev/null || true
 

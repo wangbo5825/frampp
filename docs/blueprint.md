@@ -89,7 +89,7 @@
   - `SPC_LIBC=glibc`：glibc mostly static（除 libc 外静态链接），兼容主流发行版。
   - `COMPRESS=1`：UPX 压缩最终二进制；Go 链接器 `-w -s` 去符号（spc 默认）。
   - 风险：源码构建耗时显著增长（CI 单作业约 1.5~2 h）；UPX 可能触发杀软误报（文档提示）。
-- **Python 3.13 内置（精简）**：采用 `python-build-standalone` 的 `install_only_stripped` 构建（自包含、去头文件/测试/符号），二次删除 `test/ tkinter/ idlelib/ turtledemo/ __pycache__`，保留 pip/ensurepip；目标体积约 30 MB。`bin/frampp` 包装器自动把 `python/bin` 加入 PATH，`runtime.json` 记录版本。
+- **Python 3.13 内置（精简）**：采用 `python-build-standalone` 的 `install_only_stripped` 构建（自包含、去头文件/测试/符号），二次删除 `test/ tkinter/ idlelib/ turtledemo/ __pycache__`、`include/ share/`、Tcl/Tk 原生库及开发配置，保留 pip；目标体积约 30 MB。`bin/frampp` 包装器自动把 `python/bin` 加入 PATH，`runtime.json` 记录版本。
 - **影响面**：仅 Linux x86_64 变体（0.3.0）；Windows 变体保持官方预编译组件，后续里程碑再做对等精简。
 
 ---

@@ -160,8 +160,13 @@ if (-not (Test-Path -LiteralPath (Join-Path $pyBinDir "bin/python3")) -or -not (
 } else {
     Write-Step "复用已准备 Python（$pyBinDir）"
 }
-Copy-Item -Path (Join-Path $pyBinDir "*") -Destination (Join-Path $StagingDir "python") -Recurse -Force
-Get-ChildItem -LiteralPath (Join-Path $StagingDir "python/bin") -File | ForEach-Object { & chmod +x $_.FullName }
+$stagingPython = Join-Path $StagingDir "python"
+& bash -c "set -e; mkdir -p '$stagingPython'; cp -a '$pyBinDir'/.' '$stagingPython'/" 2>$null
+if ($LASTEXITCODE -ne 0) {
+    # 兜底：某些环境无法调用 bash 时退回 Copy-Item（但不保证软链接保留）
+    Copy-Item -Path (Join-Path $pyBinDir "*") -Destination $stagingPython -Recurse -Force
+}
+Get-ChildItem -LiteralPath (Join-Path $stagingPython "bin") -File | ForEach-Object { & chmod +x $_.FullName }
 
 # Composer / Adminer
 Write-Step "安装 Composer / Adminer"

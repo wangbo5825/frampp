@@ -61,6 +61,10 @@ cmake -S . -B build \
     -DPLUGIN_BLACKHOLE=NO \
     -DPLUGIN_EXAMPLE=NO \
     -DPLUGIN_DAEMON_EXAMPLE=NO \
+    -DPLUGIN_AUTH_PAM=NO \
+    -DPLUGIN_CRACKLIB_PASSWORD_CHECK=NO \
+    -DPLUGIN_GSSAPI=NO \
+    -DPLUGIN_WSREP_INFO=NO \
     -DCMAKE_INSTALL_PREFIX="$OUT_DIR"
 
 echo "==> 编译（$(nproc) 并行）..."
@@ -87,11 +91,40 @@ find "$OUT_DIR" -name '*.la' -delete 2>/dev/null || true
 # 删除仅开发/编译用工具（保留核心运维命令）
 rm -f \
     "$OUT_DIR/bin/mysql_config" \
+    "$OUT_DIR/bin/mysql-config" \
     "$OUT_DIR/bin/mariadb_config" \
+    "$OUT_DIR/bin/mariadb-config" \
     "$OUT_DIR/bin/mysqltest" \
     "$OUT_DIR/bin/mysql_client_test" 2>/dev/null || true
+
+# 只保留核心工具：服务器 / 客户端 / 管理 / 备份导入导出 / 初始化 / 检查
+# （删除 mariabackup、myisamchk、mysqlbinlog、mysqlimport、mysqlshow、
+#   mysql_secure_installation 等体积大或非必需的工具）
+echo "==> 删除非核心工具（保留运维必需命令）..."
+keep_bin() {
+    local name="$1"
+    for k in mariadbd mysqld mariadb mysql mariadb-admin mysqladmin \
+             mariadb-dump mysqldump mariadb-install-db mariadb-check mariadb-upgrade; do
+        if [[ "$name" == "$k" ]]; then return 0; fi
+    done
+    return 1
+}
+for f in "$OUT_DIR"/bin/*; do
+    [[ -e "$f" || -L "$f" ]] || continue
+    if ! keep_bin "$(basename "$f")"; then
+        rm -f "$f"
+    fi
+done
+
+# 删除不再需要的目录（systemd/selinux 策略、pkgconfig、aclocal 等）
+rm -rf \
+    "$OUT_DIR/support-files" \
+    "$OUT_DIR/lib/pkgconfig" \
+    "$OUT_DIR/share/aclocal" \
+    "$OUT_DIR/share/man" 2>/dev/null || true
 
 echo "==> 产物清单（保留目录）:"
 du -sh "$OUT_DIR"
 du -sh "$OUT_DIR"/bin "$OUT_DIR"/lib "$OUT_DIR"/share 2>/dev/null || true
+ls -1 "$OUT_DIR/bin" 2>/dev/null || true
 echo "MARIADB_BUILD_OK version=$MDB_VERSION"

@@ -101,7 +101,7 @@ jobs:
             libsqlite3-dev libbz2-dev libzip-dev libyaml-dev libffi-dev \
             xz-utils unzip upx-ucl autoconf libaio-dev liburing-dev \
             libgnutls28-dev liblz4-dev libedit-dev libsnappy-dev \
-            libpam0g-dev libkrb5-dev libsystemd-dev libcrack2-dev
+            libpam0g-dev libkrb5-dev libsystemd-dev libcrack2-dev libcap-dev
 
       - name: Build Linux package (versions-linux-x86_64.json)
         shell: pwsh

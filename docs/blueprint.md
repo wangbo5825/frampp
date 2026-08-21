@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.4（2026-08-20，M1 组件定版 + Linux x86_64 变体定版 + 0.3.0 组件精简决策）
+> 状态：设计稿 v1.5（2026-08-21，M1 组件定版 + Linux x86_64 变体定版 + 0.3.0 组件精简 + 0.4.0 Caddy access-filter 集成）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -91,6 +91,13 @@
   - 风险：源码构建耗时显著增长（CI 单作业约 1.5~2 h）；UPX 可能触发杀软误报（文档提示）。
 - **Python 3.13 内置（精简）**：采用 `python-build-standalone` 的 `install_only_stripped` 构建（自包含、去头文件/测试/符号），二次删除 `test/ tkinter/ idlelib/ turtledemo/ __pycache__`、`include/ share/`、Tcl/Tk 原生库及开发配置，保留 pip；目标体积约 30 MB。`bin/frampp` 包装器自动把 `python/bin` 加入 PATH，`runtime.json` 记录版本。
 - **影响面**：仅 Linux x86_64 变体（0.3.0）；Windows 变体保持官方预编译组件，后续里程碑再做对等精简。
+
+### 2.8 0.4.0 Caddy access-filter 集成决策（v1.5，2026-08-21）
+
+- **背景**：`caddy-access-filter` 是 FRAMPP 作者维护的通用 Caddy 中间件，模块 ID `http.handlers.access_filter`，Caddyfile 指令为 `access` / `filter`；在 `reverse_proxy` 前后提供可编程 access/filter 钩子，处理器与语言无关，可对接本地 FrankenPHP worker、PHP / Node / Python / Go 服务或云函数。
+- **集成范围**：加入 Linux x86_64 FrankenPHP 定制构建的 `xcaddy` 模块清单，锁定 `github.com/wangbo5825/caddy-access-filter@v1.0.0`。Windows 变体仍使用官方预编译 FrankenPHP，本轮不做自定义 Caddy 模块构建。
+- **默认行为**：不向默认 `Caddyfile` 注入 `access` / `filter` 配置；未配置 processor 时模块为透明透传，不影响现有路由。
+- **版本定位**：FRAMPP `VERSION` 提升至 `0.4.0`；Linux `.run` 与 Windows `.exe` 的 FRAMPP 版本号均为 `0.4.0`，组件矩阵不变。
 
 ### 2.8 Gitee 镜像方式决策（v1.4，2026-08-21）
 

@@ -20,7 +20,7 @@ Windows：
 
 Linux x86_64：
 
-- FrankenPHP 1.12.7：源码定制构建（去部分扩展 + Souin + UPX，glibc mostly static）
+- FrankenPHP 1.12.7：源码定制构建（去部分扩展 + Souin + `caddy-access-filter` + UPX，glibc mostly static）
 - MariaDB 12.3.2：源码编译精简版
 - Redis 8.10.1：官方源码静态编译
 - Python 3.13.15：`python-build-standalone` 精简运行时
@@ -44,10 +44,10 @@ php control-panel/bin/frampp stop all
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/scripts/build-installer.ps1
-# Windows 产物：dist/installer/frampp-setup-8.5-0.3.0-windows-x64.exe
+# Windows 产物：dist/installer/frampp-setup-8.5-0.4.0-windows-x64.exe
 
 pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
-# Linux 产物：dist/installer/frampp-setup-8.5-0.3.0-linux-x86_64.run
+# Linux 产物：dist/installer/frampp-setup-8.5-0.4.0-linux-x86_64.run
 ```
 
 安装器行为：

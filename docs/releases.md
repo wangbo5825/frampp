@@ -10,8 +10,8 @@ Positioning: **one-click installers for everyday users** (XAMPP-style), publishe
 
 ```text
 frampp-setup-<channel>-<version>-<env>.<ext>
-示例 / e.g. frampp-setup-8.5-0.3.0-windows-x64.exe
-示例 / e.g. frampp-setup-8.5-0.3.0-linux-x86_64.run
+示例 / e.g. frampp-setup-8.5-0.4.0-windows-x64.exe
+示例 / e.g. frampp-setup-8.5-0.4.0-linux-x86_64.run
 ```
 
 - `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.12.7 / PHP 8.5.9 / MariaDB 12.3.2 / Redis 8.10.1）
@@ -36,8 +36,8 @@ powershell -ExecutionPolicy Bypass -File installer/scripts/release.ps1 -Env wind
 pwsh -File installer/scripts/release.ps1 -Env linux-x86_64 -Publish
 ```
 
-CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.3.0`）。
-CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.3.0`).
+CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.4.0`）。
+CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.4.0`).
 
 ## Publish to Gitee / 发布到 Gitee
 
@@ -48,8 +48,8 @@ GitHub is the single source of truth. The repository is mirrored to Gitee automa
 Gitee mirror sync does **not** copy GitHub Releases, so a Gitee 发行版 (with installer attachments) is optional. If you also publish Gitee releases, use the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.3.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.3.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.4.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.4.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 Notes:
@@ -65,8 +65,8 @@ GitHub 是唯一推送源。仓库由 **GitHub Actions 工作流** `.github/work
 镜像同步**不会**复制 GitHub Releases，因此 Gitee 发行版（含安装包附件）为可选项。如仍需发布 Gitee 发行版，运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.3.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.3.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.4.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.4.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 说明：
@@ -93,6 +93,25 @@ FRAMPP 0.3.0 对 Linux x86_64 安装包做精简，功能保持不变：
 
 CI 构建时间预计增加到每个 Linux 打包作业约 1.5~2 小时。
 
+## 0.4.0 Caddy Access Filter / 0.4.0 集成 Caddy Access Filter
+
+FRAMPP 0.4.0 adds the `caddy-access-filter` Caddy module to the Linux FrankenPHP
+custom build:
+
+- Caddy module ID: `http.handlers.access_filter`
+- Caddyfile directives: `access` / `filter`
+- Pinned module: `github.com/wangbo5825/caddy-access-filter@v1.0.0`
+- Default behavior: transparent passthrough unless `access` or `filter` is
+  configured with a processor upstream.
+
+FRAMPP 0.4.0 在 Linux FrankenPHP 定制构建中集成 `caddy-access-filter` Caddy
+模块：
+
+- Caddy 模块 ID：`http.handlers.access_filter`
+- Caddyfile 指令：`access` / `filter`
+- 锁定模块：`github.com/wangbo5825/caddy-access-filter@v1.0.0`
+- 默认行为：未配置处理器时透明透传。
+
 产物位于 / Artifacts in `dist/installer/`：
 
 - `frampp-setup-<channel>-<version>-<env>.exe`：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)
@@ -102,10 +121,10 @@ CI 构建时间预计增加到每个 Linux 打包作业约 1.5~2 小时。
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash
-chmod +x frampp-setup-8.5-0.3.0-linux-x86_64.run
-./frampp-setup-8.5-0.3.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-setup-8.5-0.3.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
-./frampp-setup-8.5-0.3.0-linux-x86_64.run --help           # 帮助 / help
+chmod +x frampp-setup-8.5-0.4.0-linux-x86_64.run
+./frampp-setup-8.5-0.4.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-setup-8.5-0.4.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+./frampp-setup-8.5-0.4.0-linux-x86_64.run --help           # 帮助 / help
 
 ~/frampp/bin/frampp status        # 查看服务状态 / check status
 ~/frampp/uninstall.sh             # 停止服务并可选清理数据 / stop services, optionally clean data
@@ -125,6 +144,6 @@ The Linux package bundles all three binaries (static FrankenPHP, MariaDB bintar,
 
 ```powershell
 Get-FileHash frampp-setup-8.5-0.1.0-windows-x64.exe -Algorithm SHA256
-sha256sum frampp-setup-8.5-0.3.0-linux-x86_64.run
+sha256sum frampp-setup-8.5-0.4.0-linux-x86_64.run
 # 与 / compare with SHA256SUMS.txt 中对应行 / the matching line
 ```

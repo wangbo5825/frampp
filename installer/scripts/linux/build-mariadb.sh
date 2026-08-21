@@ -104,7 +104,8 @@ echo "==> 删除非核心工具（保留运维必需命令）..."
 keep_bin() {
     local name="$1"
     for k in mariadbd mysqld mariadb mysql mariadb-admin mysqladmin \
-             mariadb-dump mysqldump mariadb-install-db mariadb-check mariadb-upgrade; do
+             mariadb-dump mysqldump mariadb-install-db mariadb-check mariadb-upgrade \
+             my_print_defaults resolveip; do
         if [[ "$name" == "$k" ]]; then return 0; fi
     done
     return 1

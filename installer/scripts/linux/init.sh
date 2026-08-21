@@ -250,7 +250,8 @@ if [[ "$SKIP_DB_INIT" -eq 0 && -x "$INSTALL_DB" ]]; then
             --datadir="$DATADIR" \
             --auth-root-authentication-method=normal \
             > "$RUNTIME_DIR/logs/mariadb-install-db.log" 2>&1 || \
-            warn "mariadb-install-db 失败，见 logs/mariadb-install-db.log"
+            { cat "$RUNTIME_DIR/logs/mariadb-install-db.log" 2>/dev/null || true; \
+              warn "mariadb-install-db 失败，见 logs/mariadb-install-db.log"; }
     fi
 
     if [[ -d "$DATADIR/mysql" ]]; then

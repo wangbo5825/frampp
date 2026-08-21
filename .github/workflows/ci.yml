@@ -154,6 +154,7 @@ jobs:
           tail -n 40 logs/frankenphp.log 2>/dev/null || true
           tail -n 60 logs/mariadb.err.log 2>/dev/null || true
           tail -n 40 logs/mariadb.log 2>/dev/null || true
+          tail -n 40 logs/mariadb-install-db.log 2>/dev/null || true
           tail -n 20 logs/panel-access.log logs/frankenphp-access.log 2>/dev/null || true
           echo "=== wait mysql port ==="
           mysql_ready() { (exec 3<>/dev/tcp/127.0.0.1/3306) 2>/dev/null; }

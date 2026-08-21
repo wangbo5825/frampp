@@ -82,9 +82,15 @@ fi
 echo "==> 删除开发/测试文件（mysql-test sql-bench man include *.a）..."
 rm -rf \
     "$OUT_DIR/mysql-test" \
+    "$OUT_DIR/mariadb-test" \
     "$OUT_DIR/sql-bench" \
     "$OUT_DIR/man" \
-    "$OUT_DIR/include"
+    "$OUT_DIR/include" \
+    "$OUT_DIR/docs" \
+    "$OUT_DIR/README.md" \
+    "$OUT_DIR/INSTALL-BINARY" \
+    "$OUT_DIR/THIRDPARTY" \
+    "$OUT_DIR/CREDITS"
 find "$OUT_DIR" -name '*.a' -delete 2>/dev/null || true
 find "$OUT_DIR" -name '*.la' -delete 2>/dev/null || true
 
@@ -127,5 +133,6 @@ rm -rf \
 echo "==> 产物清单（保留目录）:"
 du -sh "$OUT_DIR"
 du -sh "$OUT_DIR"/bin "$OUT_DIR"/lib "$OUT_DIR"/share 2>/dev/null || true
+du -sh "$OUT_DIR"/* 2>/dev/null | sort -h | tail -n 12 || true
 ls -1 "$OUT_DIR/bin" 2>/dev/null || true
 echo "MARIADB_BUILD_OK version=$MDB_VERSION"

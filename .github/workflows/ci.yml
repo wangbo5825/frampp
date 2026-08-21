@@ -149,6 +149,12 @@ jobs:
             | grep -o '"handler":"[a-z_]*"' | sort | uniq -c || true
           echo "=== control-panel/web listing ==="
           ls -la control-panel/web || true
+          echo "=== slim checks (mariadb-test must be gone) ==="
+          du -sh mariadb python frankenphp redis || true
+          if [ -d mariadb/mariadb-test ]; then
+            echo "MARIADB_TEST_STILL_PRESENT"; exit 1
+          fi
+          echo "SLIM_OK"
           echo "=== service logs ==="
           tail -n 60 logs/frankenphp.err.log 2>/dev/null || true
           tail -n 40 logs/frankenphp.log 2>/dev/null || true

@@ -41,7 +41,9 @@ CI alternative: after the Linux package is built by GitHub Actions, pass `releas
 
 ## Publish to Gitee / 发布到 Gitee
 
-GitHub is the single source of truth. Gitee mirrors the repository automatically through its GitHub mirror sync (configured in Gitee: 管理 → 仓库设置 → 镜像仓库管理), so **do not push to Gitee manually** — code, branches and tags all arrive via the mirror.
+GitHub is the single source of truth. The repository is mirrored to Gitee automatically by the **GitHub Actions workflow** `.github/workflows/mirror-gitee.yml` (on every push to `main`, branches and tags are pushed to Gitee), so **do not push to Gitee manually**. The workflow requires the repository secret `GITEE_TOKEN` (Gitee personal access token, scope: `projects`).
+
+> Note: if you previously enabled Gitee's built-in GitHub mirror sync (管理 → 仓库设置 → 镜像仓库管理), disable it to avoid two-way sync conflicts — the GitHub workflow is now the single sync path.
 
 Gitee mirror sync does **not** copy GitHub Releases, so a Gitee 发行版 (with installer attachments) is optional. If you also publish Gitee releases, use the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
 
@@ -52,11 +54,13 @@ pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.3
 
 Notes:
 
-- Push only to GitHub (`git push`); the Gitee mirror syncs on its own schedule or when manually triggered in the mirror settings.
+- Push only to GitHub (`git push`); the `Mirror to Gitee` workflow pushes the update to Gitee automatically.
 - Gitee attachment limit is **100 MB per file**; the Linux `.run` installer (over 100 MB) stays GitHub-only.
 - The script is idempotent: it creates the release when missing and uploads assets without duplicating them.
 
-GitHub 是唯一推送源。Gitee 通过其 GitHub 镜像同步自动更新仓库（Gitee 侧配置：管理 → 仓库设置 → 镜像仓库管理），**无需再手动推送到 Gitee**——代码、分支与标签都会经镜像同步到达。
+GitHub 是唯一推送源。仓库由 **GitHub Actions 工作流** `.github/workflows/mirror-gitee.yml` 自动镜像到 Gitee（每次 push 到 `main` 时，分支与标签自动推送到 Gitee），**无需再手动推送到 Gitee**。工作流需要仓库级 secret `GITEE_TOKEN`（Gitee 私人令牌，权限含 `projects`）。
+
+> 注意：如之前在 Gitee 侧开启了内置 GitHub 镜像同步（管理 → 仓库设置 → 镜像仓库管理），请停用以避免双向同步冲突——现在由 GitHub 工作流作为唯一同步通道。
 
 镜像同步**不会**复制 GitHub Releases，因此 Gitee 发行版（含安装包附件）为可选项。如仍需发布 Gitee 发行版，运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
 
@@ -67,7 +71,7 @@ pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.3
 
 说明：
 
-- 只推 GitHub（`git push`）；Gitee 镜像按设定的周期或手动触发同步。
+- 只推 GitHub（`git push`）；`Mirror to Gitee` 工作流会自动把更新推送到 Gitee。
 - Gitee 附件单文件上限 **100MB**；Linux `.run` 安装包（超过 100MB）仅在 GitHub 提供。
 - 脚本幂等：Release 不存在时创建，附件重复上传不会产生重复文件。
 

@@ -92,6 +92,12 @@
 - **Python 3.13 内置（精简）**：采用 `python-build-standalone` 的 `install_only_stripped` 构建（自包含、去头文件/测试/符号），二次删除 `test/ tkinter/ idlelib/ turtledemo/ __pycache__`、`include/ share/`、Tcl/Tk 原生库及开发配置，保留 pip；目标体积约 30 MB。`bin/frampp` 包装器自动把 `python/bin` 加入 PATH，`runtime.json` 记录版本。
 - **影响面**：仅 Linux x86_64 变体（0.3.0）；Windows 变体保持官方预编译组件，后续里程碑再做对等精简。
 
+### 2.8 Gitee 镜像方式决策（v1.4，2026-08-21）
+
+- **同步方向**：由“Gitee 侧内置 GitHub 镜像拉取”改为“GitHub 侧 Actions 自动推送”。
+- **实现**：新增 `.github/workflows/mirror-gitee.yml`，push 到 `main` 时自动把 `main`（并同步到 Gitee 默认分支 `master`）与 tags 推送到 `gitee.com/wang_bo_wang_bo/frampp`；凭据使用仓库级 secret `GITEE_TOKEN`（不落库）。
+- **约束**：GitHub 仍是唯一推送源，禁止手动 push Gitee；如 Gitee 侧曾开启内置镜像同步需停用，避免双向同步冲突。
+
 ---
 
 ## 3. 总体架构

@@ -1,0 +1,36 @@
+name: Mirror to Gitee
+
+# GitHub 是唯一推送源（single source of truth）：每次 main 分支收到 push 后，
+# 自动把 main（并同步到 Gitee 默认分支 master）与全部 tags 推送到 Gitee 镜像仓库。
+# 需要仓库级 secret：GITEE_TOKEN（Gitee 私人令牌，scope 需含 projects）。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    name: Push to Gitee
+    runs-on: ubuntu-latest
+    if: github.repository == 'wangbo5825/frampp'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Push branches and tags to Gitee
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -euo pipefail
+          git remote add gitee "https://wang_bo_wang_bo:${GITEE_TOKEN}@gitee.com/wang_bo_wang_bo/frampp.git"
+          # Gitee 默认分支为 master；GitHub 为 main。两者都保持同步，避免 Gitee 默认分支失效。
+          git push gitee refs/heads/main:refs/heads/main refs/heads/main:refs/heads/master --tags --force

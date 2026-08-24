@@ -3,12 +3,11 @@
 # 在固定旧 glibc 基线容器内定制构建 FrankenPHP。
 #
 # 同 build-mariadb-glibc.sh 的原因：glibc 向下兼容，故在旧 glibc 容器内编译，
-# 使产物能在更多旧发行版上运行。默认 php:8.3-cli-bullseye——它同时满足
-# 两个条件：自带 PHP 8.3（spc 运行需要 PHP >= 8.3），以及 Debian 11 /
-# glibc 2.31（编译基线）。
+# 使产物能在更多旧发行版上运行。默认 debian:11（glibc 2.31）作为编译基线，
+# 并通过 Sury 仓库安装 PHP 8.4——spc（static-php-cli）运行需要 PHP >= 8.4。
 #
 # 环境变量:
-#   FRAMPP_GLIBC_IMAGE  构建镜像（默认 php:8.3-cli-bullseye）
+#   FRAMPP_GLIBC_IMAGE  构建镜像（默认 debian:11）
 #   FRAMPP_GLIBC_MAX    允许的最高 GLIBC 符号版本（默认 2.31）
 #
 # 用法: build-frankenphp-glibc.sh <frankenphp-源码-tar.gz> <输出目录> [版本]
@@ -18,7 +17,7 @@ set -euo pipefail
 SRC_TAR="$1"
 OUT_DIR="$2"
 FP_VERSION="${3:-unknown}"
-IMAGE="${FRAMPP_GLIBC_IMAGE:-php:8.3-cli-bullseye}"
+IMAGE="${FRAMPP_GLIBC_IMAGE:-debian:11}"
 GLIBC_MAX="${FRAMPP_GLIBC_MAX:-2.31}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -45,11 +44,13 @@ docker run --rm \
     -v "$SRC_TAR_ABS:/src/frankenphp.tar.gz:ro" \
     -v "$OUT_DIR_ABS:/out" \
     -v "$HERE/build-frankenphp.sh:/build-frankenphp.sh:ro" \
+    -e "FP_VERSION=$FP_VERSION" \
     "$IMAGE" bash -c '
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y >/dev/null
 apt-get install -y --no-install-recommends \
+    ca-certificates curl gnupg2 lsb-release \
     build-essential cmake bison re2c pkg-config autoconf \
     libssl-dev libpcre2-dev zlib1g-dev libncurses-dev libcurl4-openssl-dev \
     libxml2-dev libonig-dev libreadline-dev libargon2-dev libsodium-dev \
@@ -58,13 +59,22 @@ apt-get install -y --no-install-recommends \
     libfreetype6-dev libgmp-dev libedit-dev libaio-dev \
     libgnutls28-dev liblz4-dev libsnappy-dev libpam0g-dev libkrb5-dev \
     libsystemd-dev libcrack2-dev libcap-dev \
-    unzip git curl jq xz-utils ca-certificates \
+    unzip git jq xz-utils \
     >/dev/null
-# spc 需要 Composer 2；用官方安装器安装（发行版自带的是 1.x，过旧）
+# 通过 Sury 仓库安装 PHP 8.4（spc 运行要求 PHP >= 8.4）
+curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ bullseye main" \
+    > /etc/apt/sources.list.d/php.list
+apt-get update -y >/dev/null
+apt-get install -y --no-install-recommends \
+    php8.4-cli php8.4-curl php8.4-mbstring php8.4-xml php8.4-sodium \
+    >/dev/null
+update-alternatives --set php /usr/bin/php8.4 2>/dev/null || true
+# Composer 2（用 PHP 8.4 安装）
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
 php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
 rm -f /tmp/composer-setup.php
-bash /build-frankenphp.sh /src/frankenphp.tar.gz /out "'"$FP_VERSION"'"
+bash /build-frankenphp.sh /src/frankenphp.tar.gz /out "$FP_VERSION"
 chown -R "$HOST_UID:$HOST_GID" /out
 '
 

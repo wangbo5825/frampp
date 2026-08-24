@@ -54,9 +54,11 @@ apk add --no-cache \
     php84-dom php84-openssl php84-posix php84-pcntl php84-phar \
     php84-tokenizer php84-ctype php84-simplexml php84-xmlwriter php84-xmlreader \
     >/dev/null
+# Alpine 的 PHP 8.4 可执行文件名为 php84，composer 需要 `php` 命令
+ln -sf /usr/bin/php84 /usr/local/bin/php
 # Composer 2（用 Alpine 的 PHP 8.4 安装）
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
-php84 /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
+php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
 rm -f /tmp/composer-setup.php
 bash /build-frankenphp.sh /src/frankenphp.tar.gz /out "$FP_VERSION"
 chown -R "$HOST_UID:$HOST_GID" /out

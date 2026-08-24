@@ -51,7 +51,7 @@ apk add --no-cache \
     bash git curl jq xz unzip ca-certificates \
     build-base cmake bison re2c pkgconf autoconf automake libtool \
     php84 php84-curl php84-mbstring php84-xml php84-sodium \
-    php84-dom php84-openssl php84-posix php84-pcntl php84-phar \
+    php84-dom php84-openssl php84-posix php84-pcntl php84-phar php84-iconv \
     php84-tokenizer php84-ctype php84-simplexml php84-xmlwriter php84-xmlreader \
     >/dev/null
 # Alpine 的 PHP 8.4 可执行文件名为 php84，composer 需要 `php` 命令

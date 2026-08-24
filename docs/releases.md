@@ -85,6 +85,16 @@ FRAMPP 0.3.0 slims the Linux x86_64 package without changing functionality:
 
 Build time on CI is expected to grow to roughly 1.5–2 hours per Linux package job.
 
+### glibc baseline / glibc 基线
+
+The Linux x86_64 package targets a **glibc 2.31** baseline so the bundled binaries run on Ubuntu 20.04+, Debian 11+ and RHEL 9 / Rocky 9 / Alma 9 (glibc 2.34). MariaDB and FrankenPHP are compiled inside a pinned old-glibc container (`ubuntu:20.04`) rather than on the CI host or your local WSL, because binaries built against a newer glibc will not run on an older one.
+
+Linux x86_64 包以 **glibc 2.31** 为基线，确保内置二进制能在 Ubuntu 20.04+、Debian 11+ 以及 RHEL 9 / Rocky 9 / Alma 9（glibc 2.34）上运行。MariaDB 与 FrankenPHP 改在固定旧 glibc 容器（`ubuntu:20.04`）内编译，而不是在 CI 宿主机或本地 WSL 上编译——因为在新 glibc 上编译的二进制无法在旧 glibc 上运行。
+
+The build scripts `installer/scripts/linux/build-mariadb-glibc.sh` and `build-frankenphp-glibc.sh` pin the image (`FRAMPP_GLIBC_IMAGE`, default `ubuntu:20.04`) and assert the maximum referenced GLIBC symbol version (`FRAMPP_GLIBC_MAX`, default `2.31`); CI also asserts `GLIBC_OK` during the smoke test.
+
+构建脚本 `installer/scripts/linux/build-mariadb-glibc.sh` 与 `build-frankenphp-glibc.sh` 固定构建镜像（`FRAMPP_GLIBC_IMAGE`，默认 `ubuntu:20.04`），并校验最高引用的 GLIBC 符号版本（`FRAMPP_GLIBC_MAX`，默认 `2.31`）；CI 冒烟测试同时断言 `GLIBC_OK`。
+
 FRAMPP 0.3.0 对 Linux x86_64 安装包做精简，功能保持不变：
 
 - **MariaDB** 改为源码编译（`installer/scripts/linux/build-mariadb.sh`）：禁用 RocksDB / Mroonga / Connect / Spider / Sphinx / S3 / OQGraph / TokuDB / Archive / Blackhole 等重型引擎与插件，二进制 strip，删除 `mysql-test/ sql-bench/ man/ include/ lib/*.a`；目标体积 30~50 MB，保留 mysqld / mysql / mysqladmin / mysqldump / mysql_install_db。

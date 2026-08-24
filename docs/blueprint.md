@@ -105,6 +105,14 @@
 - **实现**：新增 `.github/workflows/mirror-gitee.yml`，push 到 `main` 时自动把 `main`（并同步到 Gitee 默认分支 `master`）与 tags 推送到 `gitee.com/wang_bo_wang_bo/frampp`；凭据使用仓库级 secret `GITEE_TOKEN`（不落库）。
 - **约束**：GitHub 仍是唯一推送源，禁止手动 push Gitee；如 Gitee 侧曾开启内置镜像同步需停用，避免双向同步冲突。
 
+### 2.9 glibc 基线决策（v1.5，2026-08-24）
+
+- **问题**：0.3.0 源码编译 MariaDB/FrankenPHP 在 CI `ubuntu-latest`（glibc 2.39）与本机 WSL Ubuntu 26（glibc 2.43）上执行，产物带 `GLIBC_2.38` 及以上符号要求，无法在旧 glibc 发行版运行（报 `GLIBC_2.38 not found`）。
+- **根因**：glibc 是向下兼容的——新 glibc 编译的二进制不能在旧 glibc 运行，反之可以。要兼容旧发行版必须在旧 glibc 环境编译。
+- **基线**：定 **glibc 2.31**（Ubuntu 20.04 / Debian 11），覆盖 Ubuntu 20.04+、Debian 11+、RHEL 9 / Rocky 9 / Alma 9（glibc 2.34）。
+- **实现**：MariaDB / FrankenPHP 改由固定旧 glibc 容器构建——`installer/scripts/linux/build-mariadb-glibc.sh`、`build-frankenphp-glibc.sh`（默认镜像 `ubuntu:20.04`，可经 `FRAMPP_GLIBC_IMAGE` 覆盖）；新增 `assert-glibc-max.sh` 校验产物最高 GLIBC 符号版本不超过基线，CI 冒烟测试加 `GLIBC_OK` 断言防止回归。
+- **Redis / Python 不受影响**：Redis 用 Alpine musl 静态编译（无 glibc 依赖）；Python 用 python-build-standalone（自带低 glibc 基线）。
+
 ---
 
 ## 3. 总体架构

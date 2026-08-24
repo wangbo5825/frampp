@@ -35,6 +35,9 @@ if (-not $AppVersion) { $AppVersion = (Get-Content -LiteralPath (Join-Path $Root
 
 $ErrorActionPreference = "Stop"
 
+# glibc 基线：改变此值时，编译缓存标记会随之变化，从而强制重新编译
+$GlibcMax = if ($env:FRAMPP_GLIBC_MAX) { $env:FRAMPP_GLIBC_MAX } else { "2.31" }
+
 function Write-Step([string]$Message) { Write-Host "==> $Message" -ForegroundColor Cyan }
 
 if ($Env -ne "linux-x86_64") {
@@ -93,11 +96,12 @@ Write-Step "暂存目录就绪: $StagingDir"
 
 # 3. 组件
 # FrankenPHP：定制源码构建（精简扩展 + Souin + UPX + glibc mostly static）
+# 在固定旧 glibc 基线容器内构建，保证产物兼容旧发行版。
 $fpBinDir = Join-Path $ToolsDir "frankenphp-linux-x86_64"
-$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)"
+$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-glibc$GlibcMax"
 if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (Test-Path -LiteralPath $fpMarker)) {
     Write-Step "编译 FrankenPHP $($config.components.frankenphp.version)（定制: 精简扩展 + Souin + UPX）"
-    & bash (Join-Path $PSScriptRoot "linux/build-frankenphp.sh") `
+    & bash (Join-Path $PSScriptRoot "linux/build-frankenphp-glibc.sh") `
         (Join-Path $CacheDir $config.components.frankenphp.cacheFile) `
         $fpBinDir `
         $config.components.frankenphp.version
@@ -110,11 +114,12 @@ Copy-Item -LiteralPath (Join-Path $fpBinDir "frankenphp") -Destination (Join-Pat
 & chmod +x (Join-Path $StagingDir "frankenphp/frankenphp")
 
 # MariaDB：源码编译精简版（去重型插件 + strip + 去测试/开发文件）
+# 在固定旧 glibc 基线容器内构建，保证产物兼容旧发行版。
 $mariaBinDir = Join-Path $ToolsDir "mariadb-linux-x86_64"
-$mariaMarker = Join-Path $mariaBinDir ".built-$($config.components.mariadb.version)"
+$mariaMarker = Join-Path $mariaBinDir ".built-$($config.components.mariadb.version)-glibc$GlibcMax"
 if (-not (Test-Path -LiteralPath (Join-Path $mariaBinDir "bin/mariadbd")) -or -not (Test-Path -LiteralPath $mariaMarker)) {
     Write-Step "编译 MariaDB $($config.components.mariadb.version)（精简版）"
-    & bash (Join-Path $PSScriptRoot "linux/build-mariadb.sh") `
+    & bash (Join-Path $PSScriptRoot "linux/build-mariadb-glibc.sh") `
         (Join-Path $CacheDir $config.components.mariadb.cacheFile) `
         $mariaBinDir `
         $config.components.mariadb.version

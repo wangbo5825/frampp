@@ -155,6 +155,10 @@ jobs:
             echo "MARIADB_TEST_STILL_PRESENT"; exit 1
           fi
           echo "SLIM_OK"
+          echo "=== glibc baseline checks (must be <= 2.31) ==="
+          bash "$GITHUB_WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" mariadb 2.31 mariadb
+          bash "$GITHUB_WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" frankenphp 2.31 frankenphp
+          echo "GLIBC_OK"
           echo "=== service logs ==="
           tail -n 60 logs/frankenphp.err.log 2>/dev/null || true
           tail -n 40 logs/frankenphp.log 2>/dev/null || true

@@ -48,11 +48,18 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y >/dev/null
 apt-get install -y --no-install-recommends \
-    build-essential cmake bison pkg-config \
+    build-essential bison pkg-config curl ca-certificates \
     libssl-dev libpcre2-dev zlib1g-dev libncurses-dev libcurl4-openssl-dev \
     libxml2-dev libaio-dev libgnutls28-dev liblz4-dev libedit-dev \
     libsnappy-dev libpam0g-dev libkrb5-dev libsystemd-dev libcrack2-dev libcap-dev \
     >/dev/null
+# MariaDB 12.3 需要较新 cmake；ubuntu:20.04 自带 3.16 过旧，改用 Kitware 静态二进制
+curl -sSLo /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.29.3/cmake-3.29.3-linux-x86_64.tar.gz
+mkdir -p /opt/cmake
+tar -xzf /tmp/cmake.tar.gz -C /opt/cmake --strip-components=1
+ln -sf /opt/cmake/bin/cmake /usr/local/bin/cmake
+ln -sf /opt/cmake/bin/ctest /usr/local/bin/ctest
+rm -f /tmp/cmake.tar.gz
 bash /build-mariadb.sh /src/mariadb.tar.gz /out "'"$MDB_VERSION"'"
 chown -R "$HOST_UID:$HOST_GID" /out
 '

@@ -3,11 +3,12 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "上传 Linux 安装包到指定 Release tag（如 v0.2.0）"
+        description: "上传 Linux 安装包到指定 Release tag（如 v0.5.0）"
         required: false
         default: ""
 

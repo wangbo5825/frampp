@@ -50,7 +50,7 @@ apt-get update -y >/dev/null
 apt-get install -y --no-install-recommends \
     build-essential cmake bison pkg-config \
     libssl-dev libpcre2-dev zlib1g-dev libncurses-dev libcurl4-openssl-dev \
-    libxml2-dev libaio-dev liburing-dev libgnutls28-dev liblz4-dev libedit-dev \
+    libxml2-dev libaio-dev libgnutls28-dev liblz4-dev libedit-dev \
     libsnappy-dev libpam0g-dev libkrb5-dev libsystemd-dev libcrack2-dev libcap-dev \
     >/dev/null
 bash /build-mariadb.sh /src/mariadb.tar.gz /out "'"$MDB_VERSION"'"

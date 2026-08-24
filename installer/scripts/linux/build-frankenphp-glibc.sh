@@ -53,7 +53,7 @@ apt-get install -y --no-install-recommends \
     libxml2-dev libonig-dev libreadline-dev libargon2-dev libsodium-dev \
     libsqlite3-dev libbz2-dev libzip-dev libyaml-dev libffi-dev \
     libicu-dev liblzma-dev libxslt1-dev libjpeg-dev libpng-dev libwebp-dev \
-    libfreetype6-dev libgmp-dev libedit-dev libaio-dev liburing-dev \
+    libfreetype6-dev libgmp-dev libedit-dev libaio-dev \
     libgnutls28-dev liblz4-dev libsnappy-dev libpam0g-dev libkrb5-dev \
     libsystemd-dev libcrack2-dev libcap-dev \
     php-cli unzip git curl jq xz-utils \

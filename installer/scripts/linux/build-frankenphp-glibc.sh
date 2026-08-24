@@ -3,10 +3,12 @@
 # 在固定旧 glibc 基线容器内定制构建 FrankenPHP。
 #
 # 同 build-mariadb-glibc.sh 的原因：glibc 向下兼容，故在旧 glibc 容器内编译，
-# 使产物能在更多旧发行版上运行。默认 ubuntu:20.04（glibc 2.31）。
+# 使产物能在更多旧发行版上运行。默认 php:8.3-cli-bullseye——它同时满足
+# 两个条件：自带 PHP 8.3（spc 运行需要 PHP >= 8.3），以及 Debian 11 /
+# glibc 2.31（编译基线）。
 #
 # 环境变量:
-#   FRAMPP_GLIBC_IMAGE  构建镜像（默认 ubuntu:20.04）
+#   FRAMPP_GLIBC_IMAGE  构建镜像（默认 php:8.3-cli-bullseye）
 #   FRAMPP_GLIBC_MAX    允许的最高 GLIBC 符号版本（默认 2.31）
 #
 # 用法: build-frankenphp-glibc.sh <frankenphp-源码-tar.gz> <输出目录> [版本]
@@ -16,7 +18,7 @@ set -euo pipefail
 SRC_TAR="$1"
 OUT_DIR="$2"
 FP_VERSION="${3:-unknown}"
-IMAGE="${FRAMPP_GLIBC_IMAGE:-ubuntu:20.04}"
+IMAGE="${FRAMPP_GLIBC_IMAGE:-php:8.3-cli-bullseye}"
 GLIBC_MAX="${FRAMPP_GLIBC_MAX:-2.31}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -56,7 +58,7 @@ apt-get install -y --no-install-recommends \
     libfreetype6-dev libgmp-dev libedit-dev libaio-dev \
     libgnutls28-dev liblz4-dev libsnappy-dev libpam0g-dev libkrb5-dev \
     libsystemd-dev libcrack2-dev libcap-dev \
-    php-cli unzip git curl jq xz-utils ca-certificates \
+    unzip git curl jq xz-utils ca-certificates \
     >/dev/null
 # spc 需要 Composer 2；用官方安装器安装（发行版自带的是 1.x，过旧）
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php

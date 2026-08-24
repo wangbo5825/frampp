@@ -46,6 +46,7 @@ echo "==> CMake 配置 MariaDB $MDB_VERSION（Release，禁用重型插件）...
 cmake -S . -B build \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_CONFIG=mysql_release \
+    -DIGNORE_AIO_CHECK=ON \
     -DWITH_UNIT_TESTS=OFF \
     -DWITH_EMBEDDED_SERVER=OFF \
     -DPLUGIN_ROCKSDB=NO \

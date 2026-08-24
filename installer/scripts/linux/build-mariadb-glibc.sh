@@ -50,7 +50,7 @@ apt-get update -y >/dev/null
 apt-get install -y --no-install-recommends \
     build-essential bison pkg-config curl ca-certificates \
     libssl-dev libpcre2-dev zlib1g-dev libncurses-dev libcurl4-openssl-dev \
-    libxml2-dev libaio-dev libgnutls28-dev liblz4-dev libedit-dev \
+    libxml2-dev libgnutls28-dev liblz4-dev libedit-dev \
     libsnappy-dev libpam0g-dev libkrb5-dev libsystemd-dev libcrack2-dev libcap-dev \
     >/dev/null
 # MariaDB 12.3 需要较新 cmake；ubuntu:20.04 自带 3.16 过旧，改用 Kitware 静态二进制

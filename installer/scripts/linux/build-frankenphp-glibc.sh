@@ -70,6 +70,13 @@ apt-get install -y --no-install-recommends \
     php8.4-cli php8.4-curl php8.4-mbstring php8.4-xml \
     >/dev/null
 ln -sf /usr/bin/php8.4 /usr/local/bin/php 2>/dev/null || true
+# spc 要求 cmake >= 3.22；bullseye 自带 3.18 过旧，改用 Kitware 官方静态二进制
+curl -sSLo /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.29.3/cmake-3.29.3-linux-x86_64.tar.gz
+mkdir -p /opt/cmake
+tar -xzf /tmp/cmake.tar.gz -C /opt/cmake --strip-components=1
+ln -sf /opt/cmake/bin/cmake /usr/local/bin/cmake
+ln -sf /opt/cmake/bin/ctest /usr/local/bin/ctest
+rm -f /tmp/cmake.tar.gz
 # Composer 2（用 PHP 8.4 安装）
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
 php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet

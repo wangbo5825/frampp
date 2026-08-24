@@ -67,9 +67,9 @@ echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.
     > /etc/apt/sources.list.d/php.list
 apt-get update -y >/dev/null
 apt-get install -y --no-install-recommends \
-    php8.4-cli php8.4-curl php8.4-mbstring php8.4-xml php8.4-sodium \
+    php8.4-cli php8.4-curl php8.4-mbstring php8.4-xml \
     >/dev/null
-update-alternatives --set php /usr/bin/php8.4 2>/dev/null || true
+ln -sf /usr/bin/php8.4 /usr/local/bin/php 2>/dev/null || true
 # Composer 2（用 PHP 8.4 安装）
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
 php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet

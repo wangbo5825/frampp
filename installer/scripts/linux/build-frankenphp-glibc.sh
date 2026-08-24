@@ -56,7 +56,7 @@ apt-get install -y --no-install-recommends \
     libfreetype6-dev libgmp-dev libedit-dev libaio-dev \
     libgnutls28-dev liblz4-dev libsnappy-dev libpam0g-dev libkrb5-dev \
     libsystemd-dev libcrack2-dev libcap-dev \
-    php-cli unzip git curl jq xz-utils \
+    php-cli unzip git curl jq xz-utils ca-certificates \
     >/dev/null
 # spc 需要 Composer 2；用官方安装器安装（发行版自带的是 1.x，过旧）
 curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php

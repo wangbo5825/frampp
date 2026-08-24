@@ -14,7 +14,7 @@ Gitee personal access token (required; scope: projects).
 Gitee repository "owner/repo" (default: wang_bo_wang_bo/frampp).
 
 .PARAMETER Tag
-Tag to publish, e.g. v0.4.0.
+Tag to publish, e.g. v0.5.0.
 
 .PARAMETER Name
 Release title (defaults to "FRAMPP <Tag>").
@@ -29,8 +29,8 @@ One or more files to upload as release attachments.
 Branch/commit the tag points to (default: master).
 
 .EXAMPLE
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.4.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.4.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.5.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.5.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Token,

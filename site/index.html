@@ -180,9 +180,11 @@
             <div class="tabs">
                 <button class="tab active" id="tabLinux" type="button"></button>
                 <button class="tab" id="tabWindows" type="button"></button>
+                <button class="tab" id="tabDocker" type="button"></button>
             </div>
             <div class="tabpane active" id="paneLinux"></div>
             <div class="tabpane" id="paneWindows"></div>
+            <div class="tabpane" id="paneDocker"></div>
             <p class="muted" id="qsUrls" style="margin-top:18px"></p>
         </div>
     </section>
@@ -226,7 +228,7 @@
 <script>
 "use strict";
 
-var VERSION = "0.2.0";
+var VERSION = "0.5.0";
 var CHANNEL = "8.5";
 
 var REPO = "https://github.com/wangbo5825/frampp";
@@ -235,6 +237,7 @@ var RELEASES = REPO + "/releases";
 var DL = RELEASES + "/latest/download";
 var LINUX_RUN = DL + "/frampp-setup-" + CHANNEL + "-" + VERSION + "-linux-x86_64.run";
 var WINDOWS_EXE = DL + "/frampp-setup-" + CHANNEL + "-" + VERSION + "-windows-x64.exe";
+var DOCKER_LINK = REPO + "/pkgs/container/frampp";
 
 var I18N = {
     zh: {
@@ -259,6 +262,8 @@ var I18N = {
                 linuxOs: ".run · 单文件自解压 / single-file self-extracting",
                 windows: "下载 Windows 安装包 / Download Windows",
                 windowsOs: ".exe · Inno Setup 一键安装 / one-click installer",
+                docker: "Docker 镜像 / Docker Image",
+                dockerOs: "ghcr.io · 单镜像一键启动 / one-click all-in-one image",
                 all: "查看所有版本 / All Releases",
                 github: "GitHub 仓库 / Repository"
             },
@@ -266,7 +271,7 @@ var I18N = {
                 ["PHP 8.5.9", "内置扩展 / built-in: APCu · redis · mysqli"],
                 ["MariaDB 12.3.2", "默认数据库 / default database"],
                 ["Redis 8.10.1", "缓存 / 队列 / 会话"],
-                ["2 平台", "Windows x64 · Linux x86_64"]
+                ["3 平台", "Windows x64 · Linux x86_64 · Docker"]
             ]
         },
         features: {
@@ -278,7 +283,7 @@ var I18N = {
                 ["🤖", "内置 AI Agent", "内置 MCP 服务器，为 AI Agent 提供数据库与运行时工具的标准化接入层，开箱即用。"],
                 ["🚀", "生产级应用服务器", "FrankenPHP 内置 Caddy：自动 HTTPS、worker 模式、热重载，支持现代 PHP 8.5。"],
                 ["🔒", "安全基线", "服务仅绑定 127.0.0.1，随机生成密钥，MariaDB 只读账号，控制面板操作需令牌。"],
-                ["🌍", "多平台", "Windows x64 与 Linux x86_64 一键安装包；macOS / Docker 为后续里程碑。"]
+                ["🌍", "多平台", "Windows x64 与 Linux x86_64 一键安装包，另有单镜像 Docker 变体。"]
             ]
         },
         components: {
@@ -299,6 +304,7 @@ var I18N = {
             sub: "安装后访问默认站点与控制面板，即可开始开发。",
             linux: "LINUX · .run 单文件安装器",
             windows: "WINDOWS · .exe 一键安装",
+            docker: "DOCKER · 单镜像一键启动",
             linuxCode: [
                 ["c", "# 下载后 / after download"],
                 ["", "chmod +x frampp-setup-" + CHANNEL + "-" + VERSION + "-linux-x86_64.run"],
@@ -311,6 +317,18 @@ var I18N = {
                 ["", "~/frampp/bin/frampp stop all"]
             ],
             linuxNote: "安装器会自动校验完整性、解压并执行初始化（随机密钥 / MariaDB 数据目录）与启动，然后打印访问地址。",
+            dockerCode: [
+                ["c", "# 一键启动 / one-click start"],
+                ["", "docker run -d --name frampp \\"],
+                ["", "  -p 8080:8080 -p 8081:8081 \\"],
+                ["", "  -v frampp-data:/opt/frampp/data \\"],
+                ["", "  -v frampp-logs:/opt/frampp/logs \\"],
+                ["", "  -v frampp-htdocs:/opt/frampp/htdocs \\"],
+                ["", "  ghcr.io/wangbo5825/frampp:" + VERSION],
+                ["c", "# 或使用 Compose / or use Compose"],
+                ["", "docker compose up -d"]
+            ],
+            dockerNote: "镜像首次启动自动初始化（随机密钥、MariaDB 数据目录），随后启动 FrankenPHP、MariaDB 与 Redis。",
             windowsCode: [
                 ["c", "# 方式一：双击安装，自动初始化并启动 / double-click to install"],
                 ["c", "# 方式二：从源码运行 / or run from source"],
@@ -354,11 +372,12 @@ var I18N = {
             items: [
                 {
                     ver: "v" + VERSION,
-                    date: "2026-08-20",
-                    desc: "Linux 单文件 .run 自解压安装器；Windows 安装包同步更新；README / 发布说明双语化。",
+                    date: "2026-08-24",
+                    desc: "Linux .run 与 Windows 安装包；新增单镜像 Docker 变体；README / 发布说明双语化。",
                     links: [
                         ["Linux .run", LINUX_RUN],
-                        ["Windows .exe", WINDOWS_EXE]
+                        ["Windows .exe", WINDOWS_EXE],
+                        ["Docker image", DOCKER_LINK]
                     ]
                 },
                 {
@@ -379,6 +398,7 @@ var I18N = {
                 ["📖 README", "项目总览与快速开始", REPO + "/blob/main/README.md"],
                 ["🔄 升级与卸载", "备份、覆盖安装、卸载", REPO + "/blob/main/docs/upgrade.md"],
                 ["📦 发布说明", "安装包命名与发布流程", REPO + "/blob/main/docs/releases.md"],
+                ["🐳 Docker", "镜像、卷与一键启动", REPO + "/blob/main/docs/docker.md"],
                 ["🔧 蓝图", "里程碑与架构设计", REPO + "/blob/main/docs/blueprint.md"],
                 ["💬 讨论", "提问与交流", REPO + "/discussions"],
                 ["🐛 问题反馈", "提交 Issue", REPO + "/issues"],
@@ -415,6 +435,8 @@ var I18N = {
                 linuxOs: ".run · single-file self-extracting installer",
                 windows: "Download Windows",
                 windowsOs: ".exe · one-click Inno Setup installer",
+                docker: "Docker Image",
+                dockerOs: "ghcr.io · one-click all-in-one image",
                 all: "All Releases",
                 github: "Repository"
             },
@@ -422,7 +444,7 @@ var I18N = {
                 ["PHP 8.5.9", "built-in: APCu · redis · mysqli"],
                 ["MariaDB 12.3.2", "default database"],
                 ["Redis 8.10.1", "cache / queue / sessions"],
-                ["2 platforms", "Windows x64 · Linux x86_64"]
+                ["3 platforms", "Windows x64 · Linux x86_64 · Docker"]
             ]
         },
         features: {
@@ -434,7 +456,7 @@ var I18N = {
                 ["🤖", "AI Agent Built-in", "A built-in MCP server exposes database & runtime tools to AI agents through a standard interface, ready to use."],
                 ["🚀", "Production-grade Server", "FrankenPHP embeds Caddy: automatic HTTPS, worker mode, hot reload, and modern PHP 8.5 support."],
                 ["🔒", "Security Baseline", "Services bind to 127.0.0.1 only, random secrets, a read-only MariaDB account, and token-protected control panel actions."],
-                ["🌍", "Multi-platform", "One-click installers for Windows x64 and Linux x86_64; macOS / Docker are later milestones."]
+                ["🌍", "Multi-platform", "One-click installers for Windows x64 and Linux x86_64, plus a single all-in-one Docker image."]
             ]
         },
         components: {
@@ -455,6 +477,7 @@ var I18N = {
             sub: "After install, open the default site and the control panel and start coding.",
             linux: "LINUX · .run single-file installer",
             windows: "WINDOWS · .exe one-click installer",
+            docker: "DOCKER · one-click all-in-one image",
             linuxCode: [
                 ["c", "# after download"],
                 ["", "chmod +x frampp-setup-" + CHANNEL + "-" + VERSION + "-linux-x86_64.run"],
@@ -467,6 +490,18 @@ var I18N = {
                 ["", "~/frampp/bin/frampp stop all"]
             ],
             linuxNote: "The installer verifies integrity, extracts, initializes (random secrets / MariaDB datadir), starts all services, and prints the URLs.",
+            dockerCode: [
+                ["c", "# one-click start"],
+                ["", "docker run -d --name frampp \\"],
+                ["", "  -p 8080:8080 -p 8081:8081 \\"],
+                ["", "  -v frampp-data:/opt/frampp/data \\"],
+                ["", "  -v frampp-logs:/opt/frampp/logs \\"],
+                ["", "  -v frampp-htdocs:/opt/frampp/htdocs \\"],
+                ["", "  ghcr.io/wangbo5825/frampp:" + VERSION],
+                ["c", "# or use Compose"],
+                ["", "docker compose up -d"]
+            ],
+            dockerNote: "The image initializes on first start (random secrets, MariaDB datadir), then starts FrankenPHP, MariaDB and Redis.",
             windowsCode: [
                 ["c", "# Option 1: double-click the installer (auto init & start)"],
                 ["c", "# Option 2: run from source"],
@@ -510,11 +545,12 @@ var I18N = {
             items: [
                 {
                     ver: "v" + VERSION,
-                    date: "2026-08-20",
-                    desc: "Linux single-file .run self-extracting installer; Windows installer refreshed; README & release notes are now bilingual.",
+                    date: "2026-08-24",
+                    desc: "Linux .run and Windows installers; new single-image Docker variant; bilingual README & release notes.",
                     links: [
                         ["Linux .run", LINUX_RUN],
-                        ["Windows .exe", WINDOWS_EXE]
+                        ["Windows .exe", WINDOWS_EXE],
+                        ["Docker image", DOCKER_LINK]
                     ]
                 },
                 {
@@ -535,6 +571,7 @@ var I18N = {
                 ["📖 README", "Overview & quick start", REPO + "/blob/main/README.md"],
                 ["🔄 Upgrade & Uninstall", "Backup, upgrade, uninstall", REPO + "/blob/main/docs/upgrade.md"],
                 ["📦 Release Notes", "Naming & release process", REPO + "/blob/main/docs/releases.md"],
+                ["🐳 Docker", "Image, volumes & one-click start", REPO + "/blob/main/docs/docker.md"],
                 ["🔧 Blueprint", "Milestones & architecture", REPO + "/blob/main/docs/blueprint.md"],
                 ["💬 Discussions", "Questions & community", REPO + "/discussions"],
                 ["🐛 Issues", "Report a problem", REPO + "/issues"],
@@ -602,6 +639,8 @@ function render(lang) {
             '<span class="os">' + esc(h.downloads.linuxOs) + "</span></a>" +
         '<a class="btn btn-primary" href="' + WINDOWS_EXE + '">' + esc(h.downloads.windows) +
             '<span class="os">' + esc(h.downloads.windowsOs) + "</span></a>" +
+        '<a class="btn btn-ghost" href="' + DOCKER_LINK + '">' + esc(h.downloads.docker) +
+            '<span class="os">' + esc(h.downloads.dockerOs) + "</span></a>" +
         '<a class="btn btn-ghost" href="' + RELEASES + '">' + esc(h.downloads.all) + "</a>" +
         '<a class="btn btn-ghost" href="' + REPO + '">' + esc(h.downloads.github) + "</a>";
     document.getElementById("heroStats").innerHTML = h.stats.map(function (s) {
@@ -630,9 +669,12 @@ function render(lang) {
     document.getElementById("qsSub").textContent = q.sub;
     document.getElementById("tabLinux").textContent = q.linux;
     document.getElementById("tabWindows").textContent = q.windows;
+    document.getElementById("tabDocker").textContent = q.docker;
     document.getElementById("paneLinux").innerHTML = codeBlock(q.linuxCode) +
         '<p class="muted" style="margin-top:10px">' + esc(q.linuxNote) + "</p>";
     document.getElementById("paneWindows").innerHTML = codeBlock(q.windowsCode);
+    document.getElementById("paneDocker").innerHTML = codeBlock(q.dockerCode) +
+        '<p class="muted" style="margin-top:10px">' + esc(q.dockerNote) + "</p>";
     document.getElementById("qsUrls").innerHTML =
         '<span class="ok">✓</span> ' + esc(q.urls);
 
@@ -683,11 +725,14 @@ function render(lang) {
 function switchTab(pane) {
     document.getElementById("tabLinux").classList.toggle("active", pane === "linux");
     document.getElementById("tabWindows").classList.toggle("active", pane === "windows");
+    document.getElementById("tabDocker").classList.toggle("active", pane === "docker");
     document.getElementById("paneLinux").classList.toggle("active", pane === "linux");
     document.getElementById("paneWindows").classList.toggle("active", pane === "windows");
+    document.getElementById("paneDocker").classList.toggle("active", pane === "docker");
 }
 document.getElementById("tabLinux").addEventListener("click", function () { switchTab("linux"); });
 document.getElementById("tabWindows").addEventListener("click", function () { switchTab("windows"); });
+document.getElementById("tabDocker").addEventListener("click", function () { switchTab("docker"); });
 
 // language toggle
 var currentLang = getLang();

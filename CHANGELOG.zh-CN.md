@@ -2,6 +2,24 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.5.0] - 2026-08-24
+
+### 新增
+
+- 新增单镜像 all-in-one Docker 镜像（`Dockerfile`、`docker-compose.yml`），复用
+  Linux x86_64 `.run` 载荷，以非 root 用户运行、首启动初始化并提供健康检查。
+- 新增 Docker 入口 / 健康检查脚本与 `installer/scripts/build-docker.ps1` 辅助脚本。
+- 新增 CI 的 Docker 构建、冒烟测试及 tag 发布时推送到 GitHub Container Registry。
+
+### 变更
+
+- Linux 自解压安装器新增 `--extract-only`，`install.sh` 新增 `--skip-start`，
+  使同一安装包可用于构建镜像且不在镜像中烘焙密钥。
+- FrankenPHP 改为 musl 完全静态构建（不依赖 glibc），MariaDB 以 glibc 2.31 为
+  基线编译并移除 libaio 依赖，使 Linux 包可在 Ubuntu 20.04+、Debian 11+ 以及
+  RHEL 9 / Rocky 9 / Alma 9+ 上运行。
+- FRAMPP 版本号提升至 `0.5.0`。
+
 ## [0.4.0] - 2026-08-21
 
 ### 新增

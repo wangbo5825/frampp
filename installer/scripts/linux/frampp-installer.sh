@@ -9,7 +9,7 @@
 # into the target directory and runs install.sh (init + start).
 #
 # 用法 / Usage:
-#   ./frampp-setup-__CHANNEL__-__APP_VERSION__-linux-x86_64.run [--prefix <dir>] [--help]
+#   ./frampp-setup-__CHANNEL__-__APP_VERSION__-linux-x86_64.run [--prefix <dir>] [--extract-only] [--skip-start] [--help]
 #
 
 set -e
@@ -21,6 +21,8 @@ CHANNEL="__CHANNEL__"
 
 DEFAULT_PREFIX="${HOME:-.}/frampp"
 PREFIX=""
+EXTRACT_ONLY=0
+SKIP_START=0
 
 usage() {
     cat <<EOF
@@ -30,9 +32,11 @@ FRAMPP $APP_VERSION 一键安装包 / One-Click Installer (channel: $CHANNEL)
   ./$(basename "$0") [选项/options]
 
 选项 / Options:
-  --prefix <dir>   安装目录 / installation directory（默认 / default: $DEFAULT_PREFIX）
-  --version        显示版本 / show version
-  --help, -h       显示帮助 / show this help
+   --prefix <dir>    安装目录 / installation directory（默认 / default: $DEFAULT_PREFIX）
+   --extract-only    仅解压载荷，不执行 install.sh / extract payload only
+   --skip-start      安装时不启动服务 / initialize but do not start services
+   --version         显示版本 / show version
+   --help, -h        显示帮助 / show this help
 
 示例 / Examples:
   ./$(basename "$0")
@@ -49,6 +53,14 @@ while [ $# -gt 0 ]; do
             fi
             PREFIX="$2"
             shift 2
+            ;;
+        --extract-only)
+            EXTRACT_ONLY=1
+            shift
+            ;;
+        --skip-start)
+            SKIP_START=1
+            shift
             ;;
         --version)
             echo "FRAMPP $APP_VERSION ($CHANNEL) - Linux x86_64"
@@ -103,8 +115,15 @@ mkdir -p "$PREFIX"
 tail -c +"$PAYLOAD_OFFSET" "$0" | tar -xzf - -C "$PREFIX"
 
 cd "$PREFIX"
-if [ -x "./install.sh" ]; then
-    ./install.sh
+if [ "$EXTRACT_ONLY" -eq 1 ]; then
+    echo "==> 载荷已解压到 / payload extracted to: $PREFIX"
+    echo "==> 已跳过 install.sh / install.sh skipped (--extract-only)."
+elif [ -x "./install.sh" ]; then
+    if [ "$SKIP_START" -eq 1 ]; then
+        ./install.sh --skip-start
+    else
+        ./install.sh
+    fi
 else
     echo "ERROR: 解压不完整 / extraction incomplete: install.sh not found" >&2
     exit 1

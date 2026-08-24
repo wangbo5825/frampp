@@ -2,7 +2,7 @@
 
 一键安装与卸载流程、目录布局、PATH 注入、服务注册。
 
-- 平台：Windows（Inno Setup）、Linux x86_64（自解压 `.run`；MSIX / macOS / Docker 待定）
+- 平台：Windows（Inno Setup）、Linux x86_64（自解压 `.run`）、Docker（单镜像）
 - 安装后布局见 `docs/blueprint.md` §4.1
 
 ## 组件矩阵（版本锁定见 `config/versions*.json`）
@@ -40,15 +40,35 @@ php control-panel/bin/frampp start all
 php control-panel/bin/frampp stop all
 ```
 
-## 构建安装器（M4）
+## 构建安装器与镜像（M4 / M5）
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/scripts/build-installer.ps1
-# Windows 产物：dist/installer/frampp-setup-8.5-0.4.0-windows-x64.exe
+# Windows 产物：dist/installer/frampp-setup-8.5-0.5.0-windows-x64.exe
 
 pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
-# Linux 产物：dist/installer/frampp-setup-8.5-0.4.0-linux-x86_64.run
+# Linux 产物：dist/installer/frampp-setup-8.5-0.5.0-linux-x86_64.run
+
+pwsh -File installer/scripts/build-docker.ps1 -ImageName frampp
+# Docker 产物：frampp:0.5.0 镜像（复用上面的 .run 载荷）
 ```
+
+### Docker 镜像
+
+Dockerfile 复用 Linux `.run` 产物，`--extract-only` 解压而不初始化，镜像首启动
+时才生成随机密钥与 MariaDB 数据目录。默认以非 root 用户 `frampp` 运行，入口
+脚本见 `installer/scripts/linux/docker-entrypoint.sh`。
+
+```bash
+docker run -d --name frampp \
+  -p 8080:8080 -p 8081:8081 \
+  -v frampp-data:/opt/frampp/data \
+  -v frampp-logs:/opt/frampp/logs \
+  -v frampp-htdocs:/opt/frampp/htdocs \
+  frampp:0.5.0
+```
+
+详细卷、端口与发布说明见 [docs/docker.md](../docs/docker.md)。
 
 安装器行为：
 

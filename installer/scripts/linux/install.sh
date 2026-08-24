@@ -9,6 +9,24 @@ set -euo pipefail
 FRAMPP_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export FRAMPP_HOME
 
+SKIP_START=0
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --skip-start)
+            SKIP_START=1
+            shift
+            ;;
+        -h|--help)
+            echo "用法: ./install.sh [--skip-start]"
+            exit 0
+            ;;
+        *)
+            echo "未知参数: $1" >&2
+            exit 2
+            ;;
+    esac
+done
+
 echo "FRAMPP 一键安装 / One-Click Install (Linux x86_64)"
 echo "安装目录 / install directory: $FRAMPP_HOME"
 
@@ -36,9 +54,13 @@ if [[ ! -x "$FRAMPP_HOME/bin/frampp" && -f "$FRAMPP_HOME/installer/scripts/linux
     chmod +x "$FRAMPP_HOME/bin/frampp"
 fi
 
-# 启动全部服务
-"$FRAMPP_HOME/bin/frampp" start all || true
-"$FRAMPP_HOME/bin/frampp" status || true
+# 启动全部服务（构建镜像 / 容器首启动时可跳过，由入口脚本负责启动）
+if [[ "$SKIP_START" -eq 1 ]]; then
+    echo "跳过服务启动 / skipping service start (--skip-start)."
+else
+    "$FRAMPP_HOME/bin/frampp" start all || true
+    "$FRAMPP_HOME/bin/frampp" status || true
+fi
 
 cat <<EOF
 

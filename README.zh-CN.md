@@ -10,8 +10,8 @@ LAMPP / XAMPP / NMPP 的产品形态，并内置基于 MCP 的 AI Agent 接入�
 
 ## 当前状态
 
-- 里程碑：**M4 生产模式 + Linux x86_64 变体**
-- 最新版本线：**0.4.x**
+- 里程碑：**M4 生产模式 + Linux x86_64 / Docker 变体**
+- 最新版本线：**0.5.x**
 - 当前通道：PHP **8.5** / FrankenPHP **1.12.7**
 
 ## FRAMPP 是什么？
@@ -26,6 +26,8 @@ FRAMPP 把 PHP 应用服务器、MariaDB 和 Redis 打包成自包含的 XAMPP �
 
 - **自包含** — FrankenPHP 内置 Caddy、自动 HTTPS、worker 模式，以及
   APCu / redis / mysqli 等扩展。
+- **Docker 就绪** — 同样的技术栈也发布为单个公开 Docker 镜像，支持
+  `docker run` / Docker Compose 一键启动。
 - **AI 就绪** — 内置 Agent / MCP 服务器，将 MySQL、Redis、日志和环境信息开放
   给主流 AI 编码工具。
 - **一条命令管理** — `frampp {status|start|stop|logs|new-project}`，并提供 Web
@@ -53,15 +55,15 @@ FRAMPP 把 PHP 应用服务器、MariaDB 和 Redis 打包成自包含的 XAMPP �
 ### Windows
 
 从 [GitHub Releases](https://github.com/wangbo5825/frampp/releases) 下载
-`frampp-setup-8.5-0.4.0-windows-x64.exe`，双击安装。安装器会自动初始化并启动
+`frampp-setup-8.5-0.5.0-windows-x64.exe`，双击安装。安装器会自动初始化并启动
 整套环境。
 
 ### Linux
 
 ```bash
-chmod +x frampp-setup-8.5-0.4.0-linux-x86_64.run
-./frampp-setup-8.5-0.4.0-linux-x86_64.run
-./frampp-setup-8.5-0.4.0-linux-x86_64.run --prefix /opt/frampp
+chmod +x frampp-setup-8.5-0.5.0-linux-x86_64.run
+./frampp-setup-8.5-0.5.0-linux-x86_64.run
+./frampp-setup-8.5-0.5.0-linux-x86_64.run --prefix /opt/frampp
 ```
 
 安装完成后：
@@ -70,6 +72,40 @@ chmod +x frampp-setup-8.5-0.4.0-linux-x86_64.run
 - 控制面板：<http://127.0.0.1:8081/>
 - 管理命令：`~/frampp/bin/frampp {status|start|stop|logs|new-project}`
 
+### Docker
+
+同样的自包含技术栈也发布为单个公开 Docker 镜像，无需安装任何组件即可启动：
+
+```bash
+docker run -d --name frampp \
+  -p 8080:8080 -p 8081:8081 \
+  -v frampp-data:/opt/frampp/data \
+  -v frampp-logs:/opt/frampp/logs \
+  -v frampp-htdocs:/opt/frampp/htdocs \
+  ghcr.io/wangbo5825/frampp:0.5.0
+```
+
+也可使用仓库中的 Docker Compose：
+
+```bash
+docker compose up -d
+```
+
+容器首次启动会初始化运行时（生成随机密钥、MariaDB 数据目录和配置），随后启动
+FrankenPHP、MariaDB 与 Redis。默认站点 <http://127.0.0.1:8080/>，控制面板
+<http://127.0.0.1:8081/>。卷、端口和源码构建方式见 [docs/docker.md](docs/docker.md)。
+
+## 系统要求
+
+- **Windows**：x64，Windows 10 / 11（及 Windows Server 2016+）。
+- **Linux（x86_64）**：任意 glibc ≥ 2.31 的发行版（Ubuntu 20.04+、Debian 11+、
+  RHEL 9 / Rocky 9 / Alma 9+）。FrankenPHP 与 Redis 为完全静态的 musl 二进制
+  （不依赖 glibc），MariaDB 以 glibc 2.31 为基线编译且不依赖 libaio。
+- **Docker**：任意安装 Docker 引擎的主机；镜像基于 `debian:bookworm-slim`。
+
+CI 在冒烟测试中断言该可移植性（`PORTABLE_OK`：FrankenPHP 静态 + MariaDB
+GLIBC ≤ 2.31）。详见 [docs/releases.md](docs/releases.md)。
+
 ## 文档
 
 - [蓝图](docs/blueprint.md)
@@ -77,6 +113,7 @@ chmod +x frampp-setup-8.5-0.4.0-linux-x86_64.run
 - [安装 / 升级](docs/upgrade.md)
 - [安装器](installer/README.md)
 - [Agent](agent/README.md)
+- [Docker](docs/docker.md)
 
 ## 许可证
 

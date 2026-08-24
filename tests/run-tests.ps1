@@ -107,18 +107,28 @@ Assert-True ($setupIss -match 'OutputBaseFilename=frampp-setup-\{#Channel\}-{#My
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/build-installer.ps1")) "build-installer.ps1 exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/build-linux-package.ps1")) "build-linux-package.ps1 exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/release.ps1")) "release.ps1 exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "Dockerfile")) "Dockerfile exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docker-compose.yml")) "docker-compose.yml exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/build-docker.ps1")) "build-docker.ps1 exists"
 foreach ($linuxScript in @(
     "installer/scripts/linux/init.sh",
     "installer/scripts/linux/install.sh",
     "installer/scripts/linux/uninstall.sh",
     "installer/scripts/linux/build-redis.sh",
-    "installer/scripts/linux/frampp-wrapper.sh"
+    "installer/scripts/linux/frampp-wrapper.sh",
+    "installer/scripts/linux/docker-entrypoint.sh",
+    "installer/scripts/linux/docker-healthcheck.sh"
 )) {
     Assert-True (Test-Path -LiteralPath (Join-Path $Root $linuxScript)) "$linuxScript exists"
 }
+$installScript = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/install.sh")
+Assert-True ($installScript -match '\-\-skip-start') "install.sh supports --skip-start"
+$runHeader = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/frampp-installer.sh")
+Assert-True ($runHeader -match '\-\-extract-only') "frampp-installer.sh supports --extract-only"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/config/channels.json")) "channels.json exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/upgrade.md")) "docs/upgrade.md exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/releases.md")) "docs/releases.md exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/docker.md")) "docs/docker.md exists"
 $versionFile = Get-Content -Raw -LiteralPath (Join-Path $Root "VERSION")
 Assert-True ($versionFile -match '^\d+\.\d+\.\d+\s*$') "VERSION file is a semver"
 

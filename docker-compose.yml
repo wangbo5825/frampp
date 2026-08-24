@@ -1,0 +1,20 @@
+services:
+  frampp:
+    image: ${FRAMPP_IMAGE:-ghcr.io/wangbo5825/frampp:0.5.0}
+    container_name: frampp
+    ports:
+      - "8080:8080" # 默认站点 / default site
+      - "8081:8081" # 控制面板 / control panel
+      # 如需从宿主机直连数据库 / 缓存，取消以下注释：
+      # - "3306:3306" # MariaDB
+      # - "6379:6379" # Redis
+    volumes:
+      - frampp-data:/opt/frampp/data
+      - frampp-logs:/opt/frampp/logs
+      - frampp-htdocs:/opt/frampp/htdocs
+    restart: unless-stopped
+
+volumes:
+  frampp-data:
+  frampp-logs:
+  frampp-htdocs:

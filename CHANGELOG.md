@@ -2,6 +2,28 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.5.0] - 2026-08-24
+
+### Added
+
+- Added a single all-in-one Docker image (`Dockerfile`, `docker-compose.yml`)
+  reusing the Linux x86_64 `.run` payload, with a non-root runtime user,
+  first-start initialization and health checks.
+- Added Docker entrypoint / healthcheck scripts and a
+  `installer/scripts/build-docker.ps1` helper.
+- Added CI Docker build, smoke test and GitHub Container Registry publishing
+  for release tags.
+
+### Changed
+
+- Added `--extract-only` to the Linux self-extracting installer and
+  `--skip-start` to `install.sh` so the same package can build images without
+  baking secrets.
+- Rebuilt FrankenPHP as a fully static musl binary (no glibc dependency) and
+  compiled MariaDB against a glibc 2.31 baseline without libaio, so the Linux
+  package runs on Ubuntu 20.04+, Debian 11+ and RHEL 9 / Rocky 9 / Alma 9+.
+- Bumped FRAMPP version to `0.5.0`.
+
 ## [0.4.0] - 2026-08-21
 
 ### Added

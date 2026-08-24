@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.5（2026-08-21，M1 组件定版 + Linux x86_64 变体定版 + 0.3.0 组件精简 + 0.4.0 Caddy access-filter 集成）
+> 状态：设计稿 v1.6（2026-08-24，M1 组件定版 + Linux x86_64 / Docker 变体定版 + 0.3.0 组件精简 + 0.4.0 Caddy access-filter 集成 + 0.5.0 Docker 单镜像）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -11,7 +11,7 @@
 一句话：FRAMPP 是一个面向现代 PHP 开发者的“一键安装、开箱即用”的运行环境与开发平台，延续 LAMPP / XAMPP / NMPP 的命名与产品形态，但底座换成 FrankenPHP，并把 **AI Agent 接入（MCP）作为一级组件**。
 
 - 目标用户：PHP 开发者（本地开发）、小团队（内网部署 / 演示）、开源社区
-- 平台：**Windows 优先**（与 XAMPP 一致的形态），Linux / macOS / Docker 变体为后续里程碑
+- 平台：**Windows 优先**（与 XAMPP 一致的形态）；Linux x86_64 与 Docker 变体已实现，macOS 为后续里程碑
 - 差异化定位：不是“又一个 PHP 环境”，而是 **AI 时代的 PHP 运行环境**——自带 Agent（MCP 服务器），把 MySQL / Redis / 日志 / 项目环境开放给主流 AI 编码工具
 
 ---
@@ -105,13 +105,24 @@
 - **实现**：新增 `.github/workflows/mirror-gitee.yml`，push 到 `main` 时自动把 `main`（并同步到 Gitee 默认分支 `master`）与 tags 推送到 `gitee.com/wang_bo_wang_bo/frampp`；凭据使用仓库级 secret `GITEE_TOKEN`（不落库）。
 - **约束**：GitHub 仍是唯一推送源，禁止手动 push Gitee；如 Gitee 侧曾开启内置镜像同步需停用，避免双向同步冲突。
 
-### 2.9 glibc 基线决策（v1.5，2026-08-24）
+### 2.9 可移植性 / libc 决策（v1.5，2026-08-24）
 
 - **问题**：0.3.0 源码编译 MariaDB/FrankenPHP 在 CI `ubuntu-latest`（glibc 2.39）与本机 WSL Ubuntu 26（glibc 2.43）上执行，产物带 `GLIBC_2.38` 及以上符号要求，无法在旧 glibc 发行版运行（报 `GLIBC_2.38 not found`）。
-- **根因**：glibc 是向下兼容的——新 glibc 编译的二进制不能在旧 glibc 运行，反之可以。要兼容旧发行版必须在旧 glibc 环境编译。
-- **基线**：定 **glibc 2.31**（Ubuntu 20.04 / Debian 11），覆盖 Ubuntu 20.04+、Debian 11+、RHEL 9 / Rocky 9 / Alma 9（glibc 2.34）。
-- **实现**：MariaDB / FrankenPHP 改由固定旧 glibc 容器构建——`installer/scripts/linux/build-mariadb-glibc.sh`、`build-frankenphp-glibc.sh`（默认镜像 `ubuntu:20.04`，可经 `FRAMPP_GLIBC_IMAGE` 覆盖）；新增 `assert-glibc-max.sh` 校验产物最高 GLIBC 符号版本不超过基线，CI 冒烟测试加 `GLIBC_OK` 断言防止回归。
-- **Redis / Python 不受影响**：Redis 用 Alpine musl 静态编译（无 glibc 依赖）；Python 用 python-build-standalone（自带低 glibc 基线）。
+- **根因**：glibc 向下兼容——新 glibc 编译的二进制不能在旧 glibc 运行，反之可以。
+- **FrankenPHP → musl 完全静态**：改为在 `alpine:3.21` 容器内以 `SPC_LIBC=musl` 构建（`installer/scripts/linux/build-frankenphp-musl.sh`），产物不链接 glibc，可运行于任意 glibc 版本甚至 Alpine；这也是 FrankenPHP 官方静态构建默认方式。spc 运行需 PHP ≥ 8.4，由 Alpine 的 `php84` 包提供。
+- **MariaDB → glibc 2.31 基线**：MariaDB 无法轻易静态化，改在 `ubuntu:20.04` 容器内编译（`installer/scripts/linux/build-mariadb-glibc.sh`），把最低 glibc 要求锁到 2.31，覆盖 Ubuntu 20.04+、Debian 11+、RHEL 9 / Rocky 9 / Alma 9（glibc 2.34）。新增 `assert-glibc-max.sh` 校验，CI 冒烟断言防止回归。
+- **Redis / Python 不受影响**：Redis 用 Alpine musl 静态编译；Python 用 python-build-standalone（自带低 glibc 基线）。
+
+### 2.10 Docker 变体决策（v1.6，2026-08-24）
+
+- **目标**：提供**单个 all-in-one 公共镜像**，让 Docker 用户无需安装任何组件即可一键启动完整 FRAMPP 技术栈；保持与 XAMPP“单包即完整环境”的产品形态一致。
+- **镜像形态**：单镜像内置 FrankenPHP + MariaDB + Redis + Agent（MCP）+ 控制面板 + 精简 Python，而不是多容器 Compose；`docker-compose.yml` 仅作为端口 / 卷的便捷封装。
+- **复用 Linux `.run`**：Dockerfile 不重复编译组件，构建时读取 `frampp-setup-<channel>-<version>-linux-x86_64.run`，通过新增 `--extract-only` 解压载荷；不在镜像内运行 `init.sh`，因此**不烘焙随机密钥 / 数据库数据**。容器首次启动由入口脚本运行 `init.sh` 生成密钥、初始化 MariaDB 数据目录与配置。
+- **基础镜像**：`debian:bookworm-slim`（glibc 基线 2.36，兼容 2.31 基线的组件产物；后续可替换为更低基线镜像）。仅安装 `ca-certificates` 与 `passwd`，创建非 root 用户 `frampp` 运行服务。
+- **运行模型**：入口脚本 `docker-entrypoint.sh` 作为 PID 1，复用 `bin/frampp` / `ServiceManager` 启动三件套，`trap INT TERM` 优雅停机；健康检查读取 `bin/frampp status --json` 判断至少一个服务存活。
+- **卷与端口**：默认暴露 `data/`、`logs/`、`htdocs/` 三个卷；发布 8080（站点）/ 8081（控制面板），3306 / 6379 默认不发布（延续 localhost 安全基线）。
+- **发布**：CI `linux-package` 作业生成 `.run` 后，`docker` 作业复用产物构建并冒烟测试；推送 `v*` tag 时发布到 `ghcr.io/wangbo5825/frampp`（版本 tag + `latest`）。本地可用 `installer/scripts/build-docker.ps1` 构建。
+- **版本定位**：FRAMPP `VERSION` 提升至 `0.5.0`；Windows `.exe`、Linux `.run` 与 Docker 镜像共享同一版本号。
 
 ---
 
@@ -165,6 +176,7 @@ flowchart LR
 ```text
 frampp/
 ├─ README.md / LICENSE / CONTRIBUTING.md
+├─ Dockerfile / docker-compose.yml   # 单镜像 Docker 变体
 ├─ docs/                  # 架构、安全、用户手册
 ├─ src/
 │  ├─ php/                # PHP 组件源码（MCP server、控制面板后端）
@@ -306,7 +318,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 | M2 Agent v0.1 | MCP 服务器 + MariaDB / Redis / 日志 / 环境工具 + 安全边界 | Claude Code / Cursor 可调用工具 |
 | M3 开发体验 | Adminer、本地域名 / HTTPS、API Platform starter、项目一键创建 | ✅ 2026-08-20 完成并验证：Adminer 随包安装；`frampp new-project`（minimal 离线模板 / symfony / api-platform = symfony/skeleton + api-platform/core），api-demo 实测 `/api` 返回 Entrypoint JSON-LD；本地域名 / HTTPS 暂缓（仅测试用途、无用户价值，必要时再加） |
 | M4 生产模式 | 安装器 / 升级流程、代码签名、多用户文档（Authelia 已移除：属应用开发范畴） | 可对外正式发布（2026-08-20 已实现：Inno Setup 安装器 + 自动初始化/自启 + 卸载清理 + 升级文档；代码签名待证书采购，属成本项） |
-| M5 生态 | A2A 路线图、Linux / macOS / Docker 变体、社区贡献指南 | ✅ Linux x86_64 变体已实现（2026-08-20：版本清单 / init.sh / install.sh / build-linux-package.ps1 / CI 冒烟）；macOS / Docker 变体待做 |
+| M5 生态 | A2A 路线图、Linux / macOS / Docker 变体、社区贡献指南 | ✅ Linux x86_64 变体已实现（2026-08-20：版本清单 / init.sh / install.sh / build-linux-package.ps1 / CI 冒烟）；✅ Docker 单镜像已实现（2026-08-24：Dockerfile / docker-compose / build-docker.ps1 / CI 构建冒烟）；macOS 与 A2A 待做 |
 
 ---
 
@@ -327,4 +339,6 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 1. ✅ 在独立目录创建 Codex 项目，把本蓝图作为 `docs/blueprint.md` 入库
 2. ✅ M0：`git init`、README / LICENSE / CI 骨架、GitHub 仓库（wangbo5825/frampp）
 3. ✅ M1：FrankenPHP + MariaDB + Redis + APCu 打包（download.ps1 / init.ps1）+ 控制面板 MVP（启停 / 状态 / 端口 / 日志），本机端到端验证通过
-4. 下一步：**M2 Agent v0.1**——MCP 服务器 + MariaDB / Redis / 日志 / 环境工具 + 安全边界
+4. ✅ M2/M3/M4：Agent v0.1、开发体验（Adminer / 项目创建）、生产模式（Windows / Linux 安装器）已实现
+5. ✅ M5 部分：Linux x86_64 `.run` 与 Docker 单镜像已实现
+6. 下一步：发布 **v0.5.0**（Windows .exe + Linux .run + Docker 镜像），或 macOS / A2A 变体

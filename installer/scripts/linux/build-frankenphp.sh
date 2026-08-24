@@ -54,8 +54,8 @@ cd "$WORK/$SRC_NAME"
 export PHP_VERSION="${FRAMPP_PHP_VERSION:-8.5.9}"
 export PHP_EXTENSIONS="amqp,apcu,ast,brotli,bz2,calendar,ctype,curl,dba,dom,fileinfo,filter,ftp,gd,gettext,iconv,igbinary,ldap,lz4,mbregex,mbstring,memcached,mysqli,mysqlnd,opcache,openssl,password-argon2,parallel,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,protobuf,readline,redis,session,shmop,simplexml,sockets,sodium,sqlite3,ssh2,sysvmsg,sysvsem,sysvshm,tidy,tokenizer,xlswriter,xml,xmlreader,xmlwriter,xsl,xz,zip,zlib,yaml,zstd"
 
-# glibc mostly static + UPX 压缩
-export SPC_LIBC="${FRAMPP_SPC_LIBC:-glibc}"
+# musl 完全静态（无 glibc 依赖，可运行于任意 glibc 版本）+ UPX 压缩
+export SPC_LIBC="${FRAMPP_SPC_LIBC:-musl}"
 export COMPRESS=1
 
 # 版本固定（解压目录无 .git，必须显式给出版本）

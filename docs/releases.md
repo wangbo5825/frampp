@@ -10,13 +10,13 @@ Positioning: **one-click installers for everyday users** (XAMPP-style), publishe
 
 ```text
 frampp-setup-<channel>-<version>-<env>.<ext>
-示例 / e.g. frampp-setup-8.5-0.4.0-windows-x64.exe
-示例 / e.g. frampp-setup-8.5-0.4.0-linux-x86_64.run
+示例 / e.g. frampp-setup-8.5-0.5.0-windows-x64.exe
+示例 / e.g. frampp-setup-8.5-0.5.0-linux-x86_64.run
 ```
 
 - `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.12.7 / PHP 8.5.9 / MariaDB 12.3.2 / Redis 8.10.1）
 - `<version>`：FRAMPP 版本号（语义化，随 Release 递增，来源：仓库 `VERSION` 文件）/ semantic version, bumped per release (from repo `VERSION`)
-- `<env>`：目标环境 / target environment（`windows-x64` / `linux-x86_64`；macOS / Docker 属 M5）
+- `<env>`：目标环境 / target environment（`windows-x64` / `linux-x86_64`；macOS 属后续里程碑，Docker 以 `ghcr.io/wangbo5825/frampp:<version>` 镜像发布）
 - `<ext>`：`.exe`（Windows，Inno Setup）或 `.run`（Linux，自解压单文件安装器 / self-extracting single-file installer）
 
 ## 发布步骤 / Release Steps
@@ -36,8 +36,30 @@ powershell -ExecutionPolicy Bypass -File installer/scripts/release.ps1 -Env wind
 pwsh -File installer/scripts/release.ps1 -Env linux-x86_64 -Publish
 ```
 
-CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.4.0`）。
-CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.4.0`).
+CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.5.0`）。推送 `v*` tag 时，`docker` 作业还会构建并推送 Docker 镜像。
+CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.5.0`). Pushing a `v*` tag also builds and pushes the Docker image in the `docker` job.
+
+## Docker 镜像 / Docker Image
+
+Linux `.run` 构建完成后，镜像复用该产物，单镜像包含完整 FRAMPP 技术栈：
+
+```bash
+docker run -d --name frampp \
+  -p 8080:8080 -p 8081:8081 \
+  -v frampp-data:/opt/frampp/data \
+  -v frampp-logs:/opt/frampp/logs \
+  -v frampp-htdocs:/opt/frampp/htdocs \
+  ghcr.io/wangbo5825/frampp:0.5.0
+```
+
+发布到 GitHub Container Registry：
+
+```powershell
+pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
+pwsh -File installer/scripts/build-docker.ps1 -Registry ghcr.io/wangbo5825 -ImageName frampp -Push
+```
+
+更多卷、端口与源码构建说明见 [docs/docker.md](docker.md)。
 
 ## Publish to Gitee / 发布到 Gitee
 
@@ -48,8 +70,8 @@ GitHub is the single source of truth. The repository is mirrored to Gitee automa
 Gitee mirror sync does **not** copy GitHub Releases, so a Gitee 发行版 (with installer attachments) is optional. If you also publish Gitee releases, use the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.4.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.4.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.5.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.5.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 Notes:
@@ -65,8 +87,8 @@ GitHub 是唯一推送源。仓库由 **GitHub Actions 工作流** `.github/work
 镜像同步**不会**复制 GitHub Releases，因此 Gitee 发行版（含安装包附件）为可选项。如仍需发布 Gitee 发行版，运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.4.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.4.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.5.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.5.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 说明：
@@ -87,13 +109,13 @@ Build time on CI is expected to grow to roughly 1.5–2 hours per Linux package 
 
 ### glibc baseline / glibc 基线
 
-The Linux x86_64 package targets a **glibc 2.31** baseline so the bundled binaries run on Ubuntu 20.04+, Debian 11+ and RHEL 9 / Rocky 9 / Alma 9 (glibc 2.34). MariaDB and FrankenPHP are compiled inside a pinned old-glibc container (`ubuntu:20.04`) rather than on the CI host or your local WSL, because binaries built against a newer glibc will not run on an older one.
+The Linux x86_64 package is portable across distributions: **FrankenPHP is built as a fully static musl binary** (no glibc dependency, runs on any glibc version and even Alpine), while **MariaDB is compiled against a glibc 2.31 baseline** (Ubuntu 20.04 / Debian 11), so it runs on Ubuntu 20.04+, Debian 11+ and RHEL 9 / Rocky 9 / Alma 9 (glibc 2.34).
 
-Linux x86_64 包以 **glibc 2.31** 为基线，确保内置二进制能在 Ubuntu 20.04+、Debian 11+ 以及 RHEL 9 / Rocky 9 / Alma 9（glibc 2.34）上运行。MariaDB 与 FrankenPHP 改在固定旧 glibc 容器（`ubuntu:20.04`）内编译，而不是在 CI 宿主机或本地 WSL 上编译——因为在新 glibc 上编译的二进制无法在旧 glibc 上运行。
+Linux x86_64 包具备跨发行版可移植性：**FrankenPHP 以 musl 完全静态方式构建**（不依赖 glibc，可运行于任意 glibc 版本甚至 Alpine），**MariaDB 以 glibc 2.31 为基线编译**（对应 Ubuntu 20.04 / Debian 11），因此可在 Ubuntu 20.04+、Debian 11+ 以及 RHEL 9 / Rocky 9 / Alma 9（glibc 2.34）上运行。
 
-The build scripts `installer/scripts/linux/build-mariadb-glibc.sh` and `build-frankenphp-glibc.sh` pin the image (`FRAMPP_GLIBC_IMAGE`, default `ubuntu:20.04`) and assert the maximum referenced GLIBC symbol version (`FRAMPP_GLIBC_MAX`, default `2.31`); CI also asserts `GLIBC_OK` during the smoke test.
+The build scripts `installer/scripts/linux/build-frankenphp-musl.sh` (Alpine, musl static) and `installer/scripts/linux/build-mariadb-glibc.sh` (Ubuntu 20.04, glibc 2.31) keep the produced binaries on a wide-compatibility baseline; CI asserts `PORTABLE_OK` (FrankenPHP static + MariaDB GLIBC ≤ 2.31) during the smoke test.
 
-构建脚本 `installer/scripts/linux/build-mariadb-glibc.sh` 与 `build-frankenphp-glibc.sh` 固定构建镜像（`FRAMPP_GLIBC_IMAGE`，默认 `ubuntu:20.04`），并校验最高引用的 GLIBC 符号版本（`FRAMPP_GLIBC_MAX`，默认 `2.31`）；CI 冒烟测试同时断言 `GLIBC_OK`。
+构建脚本 `installer/scripts/linux/build-frankenphp-musl.sh`（Alpine，musl 静态）与 `installer/scripts/linux/build-mariadb-glibc.sh`（Ubuntu 20.04，glibc 2.31）把产物锁定在广泛兼容的基线上；CI 冒烟测试断言 `PORTABLE_OK`（FrankenPHP 静态 + MariaDB GLIBC ≤ 2.31）。
 
 FRAMPP 0.3.0 对 Linux x86_64 安装包做精简，功能保持不变：
 
@@ -126,15 +148,16 @@ FRAMPP 0.4.0 在 Linux FrankenPHP 定制构建中集成 `caddy-access-filter` Ca
 
 - `frampp-setup-<channel>-<version>-<env>.exe`：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)
 - `frampp-setup-<channel>-<version>-linux-x86_64.run`：Linux 自解压单文件安装器（运行后自动校验、解压、初始化并启动；目录可整体移动）/ self-extracting single-file Linux installer (verifies, extracts, initializes and starts; directory relocatable)
+- `ghcr.io/wangbo5825/frampp:<version>`：单镜像 all-in-one Docker 镜像（首启动初始化，`docker run` / Compose 一键启动）/ single all-in-one Docker image (initializes on first start; one-click via `docker run` / Compose)
 - `SHA256SUMS.txt`：全部安装包哈希，供用户核对 / hashes of all installers for verification
 
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash
-chmod +x frampp-setup-8.5-0.4.0-linux-x86_64.run
-./frampp-setup-8.5-0.4.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-setup-8.5-0.4.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
-./frampp-setup-8.5-0.4.0-linux-x86_64.run --help           # 帮助 / help
+chmod +x frampp-setup-8.5-0.5.0-linux-x86_64.run
+./frampp-setup-8.5-0.5.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-setup-8.5-0.5.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+./frampp-setup-8.5-0.5.0-linux-x86_64.run --help           # 帮助 / help
 
 ~/frampp/bin/frampp status        # 查看服务状态 / check status
 ~/frampp/uninstall.sh             # 停止服务并可选清理数据 / stop services, optionally clean data
@@ -153,7 +176,7 @@ The Linux package bundles all three binaries (static FrankenPHP, MariaDB bintar,
 ## 校验 / Verification
 
 ```powershell
-Get-FileHash frampp-setup-8.5-0.1.0-windows-x64.exe -Algorithm SHA256
-sha256sum frampp-setup-8.5-0.4.0-linux-x86_64.run
+Get-FileHash frampp-setup-8.5-0.5.0-windows-x64.exe -Algorithm SHA256
+sha256sum frampp-setup-8.5-0.5.0-linux-x86_64.run
 # 与 / compare with SHA256SUMS.txt 中对应行 / the matching line
 ```

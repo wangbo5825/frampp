@@ -95,13 +95,13 @@ foreach ($d in $layout) { New-Item -ItemType Directory -Force -Path $d | Out-Nul
 Write-Step "暂存目录就绪: $StagingDir"
 
 # 3. 组件
-# FrankenPHP：定制源码构建（精简扩展 + Souin + UPX + glibc mostly static）
-# 在固定旧 glibc 基线容器内构建，保证产物兼容旧发行版。
+# FrankenPHP：定制源码构建（精简扩展 + Souin + UPX + musl 完全静态）
+# 在 Alpine 容器内 musl 静态构建，产物无 glibc 依赖，兼容任意发行版。
 $fpBinDir = Join-Path $ToolsDir "frankenphp-linux-x86_64"
-$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-glibc$GlibcMax"
+$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-musl"
 if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (Test-Path -LiteralPath $fpMarker)) {
     Write-Step "编译 FrankenPHP $($config.components.frankenphp.version)（定制: 精简扩展 + Souin + UPX）"
-    & bash (Join-Path $PSScriptRoot "linux/build-frankenphp-glibc.sh") `
+    & bash (Join-Path $PSScriptRoot "linux/build-frankenphp-musl.sh") `
         (Join-Path $CacheDir $config.components.frankenphp.cacheFile) `
         $fpBinDir `
         $config.components.frankenphp.version

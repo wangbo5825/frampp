@@ -155,10 +155,16 @@ jobs:
             echo "MARIADB_TEST_STILL_PRESENT"; exit 1
           fi
           echo "SLIM_OK"
-          echo "=== glibc baseline checks (must be <= 2.31) ==="
+          echo "=== portability checks ==="
+          echo "--- FrankenPHP must be static (musl, no glibc dep) ---"
+          if file frankenphp/frankenphp | grep -qi "statically linked"; then
+            echo "FRANKENPHP_STATIC_OK"
+          else
+            echo "FRANKENPHP_NOT_STATIC"; exit 1
+          fi
+          echo "--- MariaDB glibc baseline must be <= 2.31 ---"
           bash "$GITHUB_WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" mariadb 2.31 mariadb
-          bash "$GITHUB_WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" frankenphp 2.31 frankenphp
-          echo "GLIBC_OK"
+          echo "PORTABLE_OK"
           echo "=== service logs ==="
           tail -n 60 logs/frankenphp.err.log 2>/dev/null || true
           tail -n 40 logs/frankenphp.log 2>/dev/null || true
@@ -199,3 +205,101 @@ jobs:
           PKG="$(ls frampp-setup-*-linux-x86_64.run | head -n1)"
           echo "Uploading $PKG to ${{ github.event.inputs.release_tag }}"
           gh release upload "${{ github.event.inputs.release_tag }}" "$PKG" --clobber
+
+  docker:
+    name: Docker image (build + smoke + push)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    needs: linux-package
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frampp-linux-x86_64
+          path: dist/installer
+
+      - name: Read FRAMPP version
+        id: version
+        shell: bash
+        run: echo "version=$(tr -d '\r\n' < VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Locate Linux package
+        id: pkg
+        shell: bash
+        run: |
+          PKG="$(find dist/installer -maxdepth 1 -name 'frampp-setup-*-linux-x86_64.run' -print -quit)"
+          if [ -z "$PKG" ]; then
+            echo "Linux .run package not found" >&2
+            exit 1
+          fi
+          echo "pkg=${PKG}" >> "$GITHUB_OUTPUT"
+          echo "Using package: $PKG"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/wangbo5825/frampp
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Build image (smoke)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          build-args: |
+            FRAMPP_PACKAGE=${{ steps.pkg.outputs.pkg }}
+          tags: frampp:ci
+
+      - name: Smoke test Docker image
+        shell: bash
+        run: |
+          set -euxo pipefail
+          CID="frampp-ci-$$"
+          trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
+          docker run -d --name "$CID" -p 18080:8080 -p 18081:8081 frampp:ci
+
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:18081/ >/dev/null 2>&1; then
+              echo "panel ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+          curl -fsS http://127.0.0.1:18080/ | grep -q 'FRAMPP'
+          curl -fsS http://127.0.0.1:18081/ | grep -q 'FRAMPP 控制面板'
+          docker exec "$CID" /opt/frampp/bin/frampp status --json
+          docker exec "$CID" /opt/frampp/bin/frampp version
+          docker logs "$CID" | tail -n 40
+
+      - name: Log in to GitHub Container Registry
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            FRAMPP_PACKAGE=${{ steps.pkg.outputs.pkg }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

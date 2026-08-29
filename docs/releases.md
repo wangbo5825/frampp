@@ -19,6 +19,13 @@ frampp-setup-<channel>-<version>-<env>.<ext>
 - `<env>`：目标环境 / target environment（`windows-x64` / `linux-x86_64`；macOS 属后续里程碑，Docker 以 `ghcr.io/wangbo5825/frampp:<version>` 镜像发布）
 - `<ext>`：`.exe`（Windows，Inno Setup）或 `.run`（Linux，自解压单文件安装器 / self-extracting single-file installer）
 
+> **下版本计划（v0.7.0+）**：FRAMPP 与 PHP 大版本保持一致（当前通道 `8.5`），
+> 安装包命名简化为 `frampp-<version>-<env>.<ext>`（去掉通道段），
+> 版本与 PHP / 组件的对应关系保留在 Release note 中说明。
+> Planned (v0.7.0+): since FRAMPP tracks the PHP major version (current channel
+> `8.5`), simplify installer names to `frampp-<version>-<env>.<ext>` and keep
+> the PHP/component mapping in the release notes.
+
 ## 发布步骤 / Release Steps
 
 ```powershell

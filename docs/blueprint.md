@@ -60,6 +60,9 @@
 - **发布形态**：类似 XAMPP——按 **FRAMPP 版本 × 组件通道 × 环境** 发布不同的一键安装包：`frampp-setup-<channel>-<version>-<env>.exe`。
 - **通道**：当前仅 `8.5`（FrankenPHP 1.12.7 / PHP 8.5.9 / MariaDB 12.3.2 / Redis 8.10.1）；新增通道需 FrankenPHP 提供对应 Windows 构建并在 `channels.json` / `versions-<channel>.json` 注册。
 - **发布管线**：`installer/scripts/release.ps1` 构建各通道、生成 SHA256SUMS、可选直发 GitHub Releases（tag `v<version>`）。流程见 [docs/releases.md](releases.md)。
+- **命名简化（v0.7.0 计划，2026-08-29 记录）**：FRAMPP 与 PHP 大版本保持一致（当前通道 `8.5`），安装包命名自 v0.7.0 起简化为
+  `frampp-<version>-<env>.<ext>`（去掉通道段）；版本与 PHP / 组件矩阵的对应关系在 Release note 中说明。
+  `channels.json` 保留通道注册，作为版本清单（`versions-<channel>.json`）的组织方式，不再出现在文件名中。
 
 ### 2.6 Linux x86_64 变体决策（v1.3，2026-08-20）
 

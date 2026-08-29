@@ -7,7 +7,7 @@
     - 组件矩阵：installer/config/versions-linux-x86_64.json（哈希锁定）
     - Redis 由官方源码静态编译（installer/scripts/linux/build-redis.sh）
     - 产物：dist/installer/frampp-setup-<channel>-<version>-linux-x86_64.run
-    - .run = 自解压脚本头 + tar.gz 载荷；运行后自动校验、解压并执行 install.sh
+    - .run = 自解压脚本头 + tar.gz 载荷；运行后自动校验、解压并执行 bin/frampp init
     - 运行环境：Linux + pwsh 7 + tar（CI ubuntu 与本地 Linux 均可）
 
 .PARAMETER Root
@@ -73,23 +73,27 @@ if ($missing.Count -gt 0) {
 if (Test-Path -LiteralPath $StagingDir) {
     Remove-Item -LiteralPath $StagingDir -Recurse -Force
 }
+$moduleDir = Join-Path $StagingDir "modules"
 $layout = @(
-    (Join-Path $StagingDir "frankenphp"),
-    (Join-Path $StagingDir "mariadb"),
-    (Join-Path $StagingDir "redis"),
-    (Join-Path $StagingDir "python"),
+    (Join-Path $moduleDir "frankenphp"),
+    (Join-Path $moduleDir "mariadb"),
+    (Join-Path $moduleDir "redis"),
+    (Join-Path $moduleDir "python"),
+    (Join-Path $moduleDir "composer"),
+    (Join-Path $moduleDir "agent"),
+    (Join-Path $moduleDir "control-panel"),
+    (Join-Path $moduleDir "control-panel/web"),
+    (Join-Path $moduleDir "templates"),
     (Join-Path $StagingDir "bin"),
+    (Join-Path $StagingDir "etc"),
+    (Join-Path $StagingDir "var"),
     (Join-Path $StagingDir "htdocs"),
     (Join-Path $StagingDir "logs"),
-    (Join-Path $StagingDir "data"),
-    (Join-Path $StagingDir "control-panel"),
-    (Join-Path $StagingDir "control-panel/web"),
-    (Join-Path $StagingDir "agent"),
     (Join-Path $StagingDir "installer/scripts"),
     (Join-Path $StagingDir "installer/config"),
     (Join-Path $StagingDir "installer/templates"),
-    (Join-Path $StagingDir "docs"),
-    (Join-Path $StagingDir "templates")
+    (Join-Path $StagingDir "installer/runtime"),
+    (Join-Path $StagingDir "docs")
 )
 foreach ($d in $layout) { New-Item -ItemType Directory -Force -Path $d | Out-Null }
 Write-Step "暂存目录就绪: $StagingDir"
@@ -98,7 +102,7 @@ Write-Step "暂存目录就绪: $StagingDir"
 # FrankenPHP：定制源码构建（精简扩展 + Souin + UPX + musl 完全静态）
 # 在 Alpine 容器内 musl 静态构建，产物无 glibc 依赖，兼容任意发行版。
 $fpBinDir = Join-Path $ToolsDir "frankenphp-linux-x86_64"
-$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-musl"
+$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-musl-accessfilter1.2.0"
 if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (Test-Path -LiteralPath $fpMarker)) {
     Write-Step "编译 FrankenPHP $($config.components.frankenphp.version)（定制: 精简扩展 + Souin + UPX）"
     & bash (Join-Path $PSScriptRoot "linux/build-frankenphp-musl.sh") `
@@ -110,8 +114,8 @@ if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (T
 } else {
     Write-Step "复用已编译 FrankenPHP（$fpBinDir）"
 }
-Copy-Item -LiteralPath (Join-Path $fpBinDir "frankenphp") -Destination (Join-Path $StagingDir "frankenphp/frankenphp")
-& chmod +x (Join-Path $StagingDir "frankenphp/frankenphp")
+Copy-Item -LiteralPath (Join-Path $fpBinDir "frankenphp") -Destination (Join-Path $moduleDir "frankenphp/frankenphp")
+& chmod +x (Join-Path $moduleDir "frankenphp/frankenphp")
 
 # MariaDB：源码编译精简版（去重型插件 + strip + 去测试/开发文件）
 # 在固定旧 glibc 基线容器内构建，保证产物兼容旧发行版。
@@ -128,9 +132,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $mariaBinDir "bin/mariadbd")) -or -n
 } else {
     Write-Step "复用已编译 MariaDB（$mariaBinDir）"
 }
-Copy-Item -Path (Join-Path $mariaBinDir "*") -Destination (Join-Path $StagingDir "mariadb") -Recurse -Force
-Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb/bin") -File | ForEach-Object { & chmod +x $_.FullName }
-Get-ChildItem -LiteralPath (Join-Path $StagingDir "mariadb/lib/plugin") -File -ErrorAction SilentlyContinue | ForEach-Object { & chmod +x $_.FullName }
+Copy-Item -Path (Join-Path $mariaBinDir "*") -Destination (Join-Path $moduleDir "mariadb") -Recurse -Force
+Get-ChildItem -LiteralPath (Join-Path $moduleDir "mariadb/bin") -File | ForEach-Object { & chmod +x $_.FullName }
+Get-ChildItem -LiteralPath (Join-Path $moduleDir "mariadb/lib/plugin") -File -ErrorAction SilentlyContinue | ForEach-Object { & chmod +x $_.FullName }
 
 # Redis：官方源码静态编译（复用 dist/tools 下的构建产物，避免重复编译）
 $redisBinDir = Join-Path $ToolsDir "redis-linux-x86_64"
@@ -147,8 +151,8 @@ if (-not (Test-Path -LiteralPath (Join-Path $redisBinDir "redis-server")) -or -n
     Write-Step "复用已编译 Redis（$redisBinDir）"
 }
 foreach ($redisBin in @("redis-server", "redis-cli")) {
-    Copy-Item -LiteralPath (Join-Path $redisBinDir $redisBin) -Destination (Join-Path $StagingDir "redis")
-    & chmod +x (Join-Path (Join-Path $StagingDir "redis") $redisBin)
+    Copy-Item -LiteralPath (Join-Path $redisBinDir $redisBin) -Destination (Join-Path $moduleDir "redis")
+    & chmod +x (Join-Path (Join-Path $moduleDir "redis") $redisBin)
 }
 
 # Python：独立精简运行时
@@ -165,7 +169,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $pyBinDir "bin/python3")) -or -not (
 } else {
     Write-Step "复用已准备 Python（$pyBinDir）"
 }
-$stagingPython = Join-Path $StagingDir "python"
+$stagingPython = Join-Path $moduleDir "python"
 & bash -c "set -e; mkdir -p '$stagingPython'; cp -a '$pyBinDir'/.' '$stagingPython'/" 2>$null
 if ($LASTEXITCODE -ne 0) {
     # 兜底：某些环境无法调用 bash 时退回 Copy-Item（但不保证软链接保留）
@@ -175,20 +179,24 @@ Get-ChildItem -LiteralPath (Join-Path $stagingPython "bin") -File | ForEach-Obje
 
 # Composer / Adminer
 Write-Step "安装 Composer / Adminer"
-Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.composer.cacheFile) -Destination (Join-Path $StagingDir "bin/composer.phar")
+Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.composer.cacheFile) -Destination (Join-Path $moduleDir "composer/composer.phar")
 Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination (Join-Path $StagingDir "htdocs/adminer.php")
 
 # 4. 仓库内容（控制面板 / Agent / 模板 / 文档 / 安装脚本）
 Write-Step "复制控制面板 / Agent / 模板 / 文档"
-Copy-Item -Path (Join-Path $Root "control-panel/web/*") -Destination (Join-Path $StagingDir "control-panel/web") -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $Root "control-panel/src") -Destination (Join-Path $StagingDir "control-panel") -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $Root "control-panel/bin") -Destination (Join-Path $StagingDir "control-panel") -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $Root "agent") -Destination (Join-Path $StagingDir "agent") -Recurse -Force
-Copy-Item -Path (Join-Path $Root "installer/scripts/*") -Destination (Join-Path $StagingDir "installer/scripts") -Recurse -Force
+Copy-Item -Path (Join-Path $Root "control-panel/web/*") -Destination (Join-Path $moduleDir "control-panel/web") -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $Root "control-panel/src") -Destination (Join-Path $moduleDir "control-panel") -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $Root "control-panel/bin") -Destination (Join-Path $moduleDir "control-panel") -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $Root "agent") -Destination (Join-Path $moduleDir "agent") -Recurse -Force
+# 只复制运行时需要的脚本；构建脚本不进安装包
+foreach ($runtimeScript in @("init.sh", "docker-entrypoint.sh", "docker-healthcheck.sh")) {
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/$runtimeScript") -Destination (Join-Path $StagingDir "installer/scripts")
+}
 Copy-Item -Path (Join-Path $Root "installer/config/*") -Destination (Join-Path $StagingDir "installer/config") -Recurse -Force
 Copy-Item -Path (Join-Path $Root "installer/templates/*") -Destination (Join-Path $StagingDir "installer/templates") -Recurse -Force
+Copy-Item -Path (Join-Path $Root "installer/runtime/*") -Destination (Join-Path $StagingDir "installer/runtime") -Recurse -Force
 Copy-Item -Path (Join-Path $Root "docs/*") -Destination (Join-Path $StagingDir "docs") -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $Root "installer/templates/project-minimal") -Destination (Join-Path $StagingDir "templates/project-minimal") -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $Root "installer/templates/project-minimal") -Destination (Join-Path $moduleDir "templates/project-minimal") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "README.md") -Destination (Join-Path $StagingDir "README.md")
 Copy-Item -LiteralPath (Join-Path $Root "LICENSE") -Destination (Join-Path $StagingDir "LICENSE")
 Copy-Item -LiteralPath (Join-Path $Root "VERSION") -Destination (Join-Path $StagingDir "VERSION")
@@ -196,12 +204,11 @@ Copy-Item -LiteralPath (Join-Path $Root "VERSION") -Destination (Join-Path $Stag
 # 默认站点首页
 Copy-Item -LiteralPath (Join-Path $Root "installer/templates/htdocs/index.php") -Destination (Join-Path $StagingDir "htdocs/index.php")
 
-# 一键安装/卸载脚本与 CLI 包装器（包根目录）
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/install.sh") -Destination (Join-Path $StagingDir "install.sh")
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/uninstall.sh") -Destination (Join-Path $StagingDir "uninstall.sh")
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/frampp-wrapper.sh") -Destination (Join-Path $StagingDir "bin/frampp")
-foreach ($bin in @("install.sh", "uninstall.sh", "bin/frampp")) {
-    & chmod +x (Join-Path $StagingDir $bin)
+# bin 命令包装（Linux）
+Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot "../runtime/bin") -File |
+    Copy-Item -Destination (Join-Path $StagingDir "bin") -Force
+foreach ($bin in (Get-ChildItem -LiteralPath (Join-Path $StagingDir "bin") -File)) {
+    & chmod +x $bin.FullName
 }
 
 # 5. 打包为 XAMPP 风格单文件 .run（自解压安装器）

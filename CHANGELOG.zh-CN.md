@@ -2,6 +2,27 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.6.0] - 2026-08-29
+
+### 新增
+
+- 新增安装后统一布局：软件模块移入 `modules/`，配置集中到 `etc/`，运行时数据由
+  `data/` 改为 `var/`。
+- `bin/` 新增统一命令包装：`php`（兼容标准 PHP CLI）、`composer`、`python`、
+  `pip`、`mysql`、`redis-cli` 等，并提供 `env` 脚本设置 `PATH` / `FRAMPP_HOME` /
+  `PHPRC`；Linux 使用符号链接，Windows 使用 `.cmd` 包装。
+- 新增 Linux systemd 服务：`etc/frampp.service`、`bin/framppd` 与
+  `bin/install-systemd`（安装 / 卸载服务）。
+- 升级 `caddy-access-filter` 至 v1.2.0，支持本地 IP / CIDR / 国家地区码规则与
+  GeoIP 数据库；控制面板新增 IP 访问控制管理（规则、默认策略、热重载）。
+
+### 变更
+
+- 卸载脚本移至 `bin/uninstall`；移除安装后无用的根目录 `install.sh` 与构建脚本，
+  `.run` 改为直接调用 `bin/frampp init`。
+- 安装提示统一改为中英双语。
+- FRAMPP 版本号提升至 `0.6.0`。
+
 ## [0.5.0] - 2026-08-24
 
 ### 新增

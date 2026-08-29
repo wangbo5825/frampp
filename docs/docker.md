@@ -14,26 +14,26 @@ x86_64 self-contained installer.
 ```bash
 docker run -d --name frampp \
   -p 8080:8080 -p 8081:8081 \
-  -v frampp-data:/opt/frampp/data \
+  -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.5.0
+  ghcr.io/wangbo5825/frampp:0.6.0
 ```
 
-首次启动会自动初始化运行时：生成随机密钥（`data/secrets.json`）、初始化
-MariaDB 数据目录、由模板生成 `php.ini` / `redis.conf` / `Caddyfile`，随后启动
+首次启动会自动初始化运行时：生成随机密钥（`var/secrets.json`）、初始化
+MariaDB 数据目录、由模板生成 `etc/php.ini` / `etc/redis.conf` / `etc/Caddyfile`，随后启动
 FrankenPHP、MariaDB 与 Redis。
 
 On first start the container initializes the runtime automatically: it generates
-random secrets (`data/secrets.json`), initializes the MariaDB data directory,
-renders `php.ini` / `redis.conf` / `Caddyfile` from templates, and then starts
+random secrets (`var/secrets.json`), initializes the MariaDB data directory,
+renders `etc/php.ini` / `etc/redis.conf` / `etc/Caddyfile` from templates, and then starts
 FrankenPHP, MariaDB and Redis.
 
 访问 / Visit:
 
 - 默认站点 / Default site: <http://127.0.0.1:8080/>
 - 控制面板 / Control panel: <http://127.0.0.1:8081/>
-- 管理命令 / Manage: `docker exec frampp /opt/frampp/bin/frampp {status|start|stop|logs|new-project}`
+- 管理命令 / Manage: `docker exec frampp /opt/frampp/bin/frampp {status|start|stop|logs|new-project|ip-access}`
 
 ## Docker Compose
 
@@ -47,28 +47,28 @@ docker compose down
 
 默认只映射 8080（站点）与 8081（控制面板）。如需从宿主机直连 MariaDB 或
 Redis，取消 `docker-compose.yml` 中 3306 / 6379 端口的注释。
-若使用本地构建的 `frampp:0.5.0` 镜像，可覆盖镜像名：
-`FRAMPP_IMAGE=frampp:0.5.0 docker compose up -d`。
+若使用本地构建的 `frampp:0.6.0` 镜像，可覆盖镜像名：
+`FRAMPP_IMAGE=frampp:0.6.0 docker compose up -d`。
 
 The root `docker-compose.yml` wraps the common ports and named volumes. Only
 8080 (site) and 8081 (control panel) are published by default; uncomment 3306 /
 6379 if you need host access to MariaDB or Redis.
-To use a locally built `frampp:0.5.0` image instead, override the image:
-`FRAMPP_IMAGE=frampp:0.5.0 docker compose up -d`.
+To use a locally built `frampp:0.6.0` image instead, override the image:
+`FRAMPP_IMAGE=frampp:0.6.0 docker compose up -d`.
 
 ## 卷 / Volumes
 
 | 容器路径 / Container path | 用途 / Purpose |
 | --- | --- |
-| `/opt/frampp/data` | MariaDB 数据、Redis AOF、`runtime.json` 与 `secrets.json` |
+| `/opt/frampp/var` | MariaDB 数据、Redis AOF、`runtime.json` 与 `secrets.json` |
 | `/opt/frampp/logs` | FrankenPHP / MariaDB / Redis / 控制面板日志 |
 | `/opt/frampp/htdocs` | 默认站点与 `frampp new-project` 创建的项目 |
 
 建议使用命名卷或宿主机目录挂载上述路径，避免删除容器后丢失数据。挂载
-`data/` 后，容器重建时不会重新生成密钥与数据库数据。
+`var/` 后，容器重建时不会重新生成密钥与数据库数据。
 
 Persist the paths above with named volumes or host directories to avoid losing
-data when the container is removed. Mounting `data/` preserves secrets and the
+data when the container is removed. Mounting `var/` preserves secrets and the
 database across container re-creation.
 
 ## 端口 / Ports
@@ -107,16 +107,16 @@ pwsh -File installer/scripts/build-docker.ps1 -ImageName frampp
 或直接使用 Docker：
 
 ```bash
-docker build -t frampp:0.5.0 \
-  --build-arg FRAMPP_PACKAGE=dist/installer/frampp-setup-8.5-0.5.0-linux-x86_64.run .
+docker build -t frampp:0.6.0 \
+  --build-arg FRAMPP_PACKAGE=dist/installer/frampp-setup-8.5-0.6.0-linux-x86_64.run .
 ```
 
-构建时通过 `--extract-only` 仅解压载荷，不生成密钥；`data/` 在容器首次启动时
+构建时通过 `--extract-only` 仅解压载荷，不生成密钥；`var/` 在容器首次启动时
 才初始化，保证镜像可安全公开分发。
 
 The image reuses the Linux `.run` artifact instead of recompiling components in
 the Dockerfile. During build the payload is extracted with `--extract-only` and
-no secrets are baked; `data/` is initialized on first container start, so the
+no secrets are baked; `var/` is initialized on first container start, so the
 image is safe to distribute publicly.
 
 ## 镜像发布 / Publishing

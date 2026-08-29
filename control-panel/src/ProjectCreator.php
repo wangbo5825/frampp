@@ -37,7 +37,7 @@ final class ProjectCreator
 
     private function createMinimal(string $name, string $target): array
     {
-        $template = $this->config->root . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR . 'project-minimal';
+        $template = $this->config->module('templates') . DIRECTORY_SEPARATOR . 'project-minimal';
         if (!is_dir($template)) {
             // 开发布局回退：<repo>/installer/templates/project-minimal
             $repo = dirname(__DIR__, 2);
@@ -64,8 +64,9 @@ final class ProjectCreator
      */
     private function createFromComposer(string $name, string $target, array $steps): array
     {
-        $php = $this->config->bin('frankenphp') . DIRECTORY_SEPARATOR . 'php.exe';
-        $composer = $this->config->bin('bin') . DIRECTORY_SEPARATOR . 'composer.phar';
+        $php = $this->config->module('frankenphp') . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'frankenphp.exe' : 'frankenphp');
+        $phpCli = 'php-cli';
+        $composer = $this->config->module('composer') . DIRECTORY_SEPARATOR . 'composer.phar';
         foreach ([$php, $composer] as $file) {
             if (!is_file($file)) {
                 throw new \RuntimeException("缺少依赖文件: $file");
@@ -73,8 +74,9 @@ final class ProjectCreator
         }
         $first = array_shift($steps);
         $cmd = sprintf(
-            '%s -d memory_limit=1G %s create-project %s %s --no-interaction --no-ansi --no-progress --prefer-dist 2>&1',
+            '%s %s -d memory_limit=1G %s create-project %s %s --no-interaction --no-ansi --no-progress --prefer-dist 2>&1',
             escapeshellarg($php),
+            $phpCli,
             escapeshellarg($composer),
             escapeshellarg((string) $first),
             escapeshellarg($target)
@@ -89,8 +91,9 @@ final class ProjectCreator
         $requires = [];
         foreach ($steps as $package) {
             $cmd = sprintf(
-                '%s -d memory_limit=1G %s require %s --no-interaction --no-ansi --no-progress --prefer-dist 2>&1',
+                '%s %s -d memory_limit=1G %s require %s --no-interaction --no-ansi --no-progress --prefer-dist 2>&1',
                 escapeshellarg($php),
+                $phpCli,
                 escapeshellarg($composer),
                 escapeshellarg($package)
             );

@@ -95,15 +95,19 @@ $config = Get-Content -Raw -LiteralPath (Join-Path $Root "installer\config\versi
 
 # 1. 布局
 $dirs = @(
-    (Join-Path $RuntimeDir "frankenphp"),
-    (Join-Path $RuntimeDir "mariadb"),
-    (Join-Path $RuntimeDir "redis"),
+    (Join-Path $RuntimeDir "modules\frankenphp"),
+    (Join-Path $RuntimeDir "modules\mariadb"),
+    (Join-Path $RuntimeDir "modules\redis"),
+    (Join-Path $RuntimeDir "modules\composer"),
+    (Join-Path $RuntimeDir "modules\control-panel\web"),
+    (Join-Path $RuntimeDir "modules\agent"),
+    (Join-Path $RuntimeDir "modules\templates"),
     (Join-Path $RuntimeDir "bin"),
+    (Join-Path $RuntimeDir "etc"),
     (Join-Path $RuntimeDir "htdocs"),
     (Join-Path $RuntimeDir "logs"),
-    (Join-Path $RuntimeDir "data\mariadb"),
-    (Join-Path $RuntimeDir "data\redis"),
-    (Join-Path $RuntimeDir "control-panel\web")
+    (Join-Path $RuntimeDir "var\mariadb"),
+    (Join-Path $RuntimeDir "var\redis")
 )
 foreach ($d in $dirs) {
     New-Item -ItemType Directory -Force -Path $d | Out-Null
@@ -161,7 +165,7 @@ foreach ($prop in $config.components.PSObject.Properties) {
 }
 
 # 4. Composer
-$composerTarget = Join-Path $RuntimeDir "bin\composer.phar"
+$composerTarget = Join-Path $RuntimeDir "modules\composer\composer.phar"
 if (-not (Test-Path -LiteralPath $composerTarget)) {
     Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.composer.cacheFile) -Destination $composerTarget
     Write-Step "Composer installed: $composerTarget"
@@ -175,18 +179,18 @@ if (-not (Test-Path -LiteralPath $adminerTarget)) {
 }
 
 # 项目模板（控制面板 new-project 使用）
-$templatesCopy = Join-Path $RuntimeDir "templates\project-minimal"
+$templatesCopy = Join-Path $RuntimeDir "modules\templates\project-minimal"
 if (-not (Test-Path -LiteralPath $templatesCopy)) {
     $srcTpl = Join-Path $Root "installer\templates\project-minimal"
     if (Test-Path -LiteralPath $srcTpl) {
-        New-Item -ItemType Directory -Force -Path (Join-Path $RuntimeDir "templates") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $RuntimeDir "modules\templates") | Out-Null
         Copy-Item -LiteralPath $srcTpl -Destination $templatesCopy -Recurse
         Write-Step "Project templates installed"
     }
 }
 
 # 5. 密钥（仅在首次生成）
-$secretsFile = Join-Path $RuntimeDir "data\secrets.json"
+$secretsFile = Join-Path $RuntimeDir "var\secrets.json"
 if (-not (Test-Path -LiteralPath $secretsFile)) {
     $secrets = [ordered]@{
         mariadb_root_password   = New-Secret
@@ -215,23 +219,46 @@ function Fill-Template([string]$TemplatePath, [hashtable]$Values, [string]$OutPa
 
 $templatesDir = Join-Path $Root "installer\templates"
 
-$phpIni = Join-Path $RuntimeDir "frankenphp\php.ini"
+$phpIni = Join-Path $RuntimeDir "etc\php.ini"
 if (-not (Test-Path -LiteralPath $phpIni)) {
     Copy-Item -LiteralPath (Join-Path $templatesDir "php.ini.template") -Destination $phpIni
 }
 
-$redisConf = Join-Path $RuntimeDir "redis\redis.conf"
+$redisConf = Join-Path $RuntimeDir "etc\redis.conf"
 Fill-Template (Join-Path $templatesDir "redis.conf.template") @{
     REDIS_PASSWORD = $secrets.redis_password
-    DATA_DIR       = Convert-PathToForward (Join-Path $RuntimeDir "data\redis")
+    DATA_DIR       = Convert-PathToForward (Join-Path $RuntimeDir "var\redis")
     LOG_FILE       = Convert-PathToForward (Join-Path $RuntimeDir "logs\redis.log")
 } $redisConf
 
-$caddyFile = Join-Path $RuntimeDir "Caddyfile"
+# IP 访问控制配置（Windows 官方 FrankenPHP 暂未内置 caddy-access-filter，默认关闭）
+$accessConfigPath = Join-Path $RuntimeDir "etc\access.json"
+if (-not (Test-Path -LiteralPath $accessConfigPath)) {
+    Write-JsonFile $accessConfigPath @{
+        enabled        = $false
+        supported      = $false
+        default_action = "allow"
+        geoip_db       = ""
+        geoip_format   = ""
+    }
+}
+$accessRulesPath = Join-Path $RuntimeDir "etc\access-filter.rules"
+if (-not (Test-Path -LiteralPath $accessRulesPath)) {
+    [System.IO.File]::WriteAllText(
+        $accessRulesPath,
+        "# FRAMPP IP 访问规则 / IP access rules`n# 格式: <IP|CIDR|code:XX> <allow|block>`n",
+        (New-Object System.Text.UTF8Encoding($false))
+    )
+}
+$accessCaddyPath = Join-Path $RuntimeDir "etc\access-filter.caddy"
+[System.IO.File]::WriteAllText($accessCaddyPath, "# access-filter disabled`n", (New-Object System.Text.UTF8Encoding($false)))
+
+$caddyFile = Join-Path $RuntimeDir "etc\Caddyfile"
 Fill-Template (Join-Path $templatesDir "Caddyfile.template") @{
-    HTDOCS     = Convert-PathToForward (Join-Path $RuntimeDir "htdocs")
-    PANEL_ROOT = Convert-PathToForward (Join-Path $RuntimeDir "control-panel\web")
-    LOGS_DIR   = Convert-PathToForward (Join-Path $RuntimeDir "logs")
+    HTDOCS        = Convert-PathToForward (Join-Path $RuntimeDir "htdocs")
+    PANEL_ROOT    = Convert-PathToForward (Join-Path $RuntimeDir "modules\control-panel\web")
+    LOGS_DIR      = Convert-PathToForward (Join-Path $RuntimeDir "logs")
+    ACCESS_IMPORT = "# access-filter disabled"
 } $caddyFile
 
 $htdocsIndex = Join-Path $RuntimeDir "htdocs\index.php"
@@ -241,7 +268,7 @@ if (-not (Test-Path -LiteralPath $htdocsIndex)) {
 
 # 复制控制面板到运行时（安装布局下 Root == RuntimeDir 时跳过，避免自我复制）
 $panelSrc = Join-Path $Root "control-panel\web"
-$panelDestDir = Join-Path $RuntimeDir "control-panel\web"
+$panelDestDir = Join-Path $RuntimeDir "modules\control-panel\web"
 $srcResolved = (Resolve-Path -LiteralPath $panelSrc -ErrorAction SilentlyContinue).Path
 $dstResolved = (Resolve-Path -LiteralPath $panelDestDir -ErrorAction SilentlyContinue).Path
 if ($srcResolved -and $dstResolved -and $srcResolved -eq $dstResolved) {
@@ -249,17 +276,27 @@ if ($srcResolved -and $dstResolved -and $srcResolved -eq $dstResolved) {
 } elseif (Test-Path -LiteralPath (Join-Path $panelSrc "index.php")) {
     New-Item -ItemType Directory -Force -Path $panelDestDir | Out-Null
     Copy-Item -Path (Join-Path $panelSrc "*") -Destination $panelDestDir -Recurse -Force
-    Copy-Item -LiteralPath (Join-Path $Root "control-panel\src") -Destination (Join-Path $RuntimeDir "control-panel\") -Recurse -Force
-    Copy-Item -LiteralPath (Join-Path $Root "control-panel\bin") -Destination (Join-Path $RuntimeDir "control-panel\") -Recurse -Force
+    Copy-Item -LiteralPath (Join-Path $Root "control-panel\src") -Destination (Join-Path $RuntimeDir "modules\control-panel\") -Recurse -Force
+    Copy-Item -LiteralPath (Join-Path $Root "control-panel\bin") -Destination (Join-Path $RuntimeDir "modules\control-panel\") -Recurse -Force
     Write-Step "Control panel copied to runtime"
+}
+
+# 9. bin 命令包装（Windows .cmd）
+$cmdSrc = Join-Path $Root "installer\runtime\bin\windows"
+if (-not (Test-Path -LiteralPath $cmdSrc)) {
+    $cmdSrc = Join-Path $RuntimeDir "installer\runtime\bin\windows"
+}
+if (Test-Path -LiteralPath $cmdSrc) {
+    Copy-Item -Path (Join-Path $cmdSrc "*.cmd") -Destination (Join-Path $RuntimeDir "bin") -Force
+    Write-Step "Command wrappers installed: bin/*.cmd"
 }
 
 # 7. MariaDB 数据目录初始化（install-db 直接设置 root 密码；随后临时启动创建只读账号）
 $dbInitialized = $false
 $ports = @{ http = 8080; panel = 8081; mysql = 3306; redis = 6379 }
-$mariadbBin = Join-Path $RuntimeDir "mariadb\bin"
+$mariadbBin = Join-Path $RuntimeDir "modules\mariadb\bin"
 if (-not $SkipDbInit -and (Test-Path -LiteralPath (Join-Path $mariadbBin "mariadb-install-db.exe"))) {
-    $datadir = Join-Path $RuntimeDir "data\mariadb"
+$datadir = Join-Path $RuntimeDir "var\mariadb"
     $initialized = Test-Path -LiteralPath (Join-Path $datadir "mysql")
     if (-not $initialized) {
         Write-Step "Initializing MariaDB data directory ..."
@@ -279,7 +316,7 @@ if (-not $SkipDbInit -and (Test-Path -LiteralPath (Join-Path $mariadbBin "mariad
         # 临时启动 -> 创建只读账号 -> 优雅关闭
         # 注意：mariadbd 用 --log-error 自管日志，避免 Start-Process 重定向句柄在 PS 5.1 下的兼容问题
         $serverErr = Join-Path $RuntimeDir "logs\mariadb.err.log"
-        $pidFile = Join-Path $RuntimeDir "data\mariadb.pid"
+        $pidFile = Join-Path $RuntimeDir "var\mariadb.pid"
         $mysql = Join-Path $mariadbBin "mysql.exe"
         $mysqladmin = Join-Path $mariadbBin "mysqladmin.exe"
         $rootPw = [string]$secrets.mariadb_root_password
@@ -369,7 +406,7 @@ $runtime = [ordered]@{
     }
     db_initialized = $dbInitialized
 }
-Write-JsonFile (Join-Path $RuntimeDir "data\runtime.json") $runtime
+Write-JsonFile (Join-Path $RuntimeDir "var\runtime.json") $runtime
 
 Write-Step "Done. Runtime ready at $RuntimeDir"
 Write-Output "DB_INITIALIZED=$dbInitialized"

@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+#
+# FRAMPP PHP CLI：与标准 php 命令兼容，实际调用 frankenphp php-cli。
+#
+set -e
+
+FRAMPP_HOME=$(cd "$(dirname "$0")/.." && pwd)
+export PHPRC="$FRAMPP_HOME/etc/php.ini"
+exec "$FRAMPP_HOME/modules/frankenphp/frankenphp" php-cli "$@"

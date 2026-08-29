@@ -3,7 +3,7 @@
     FRAMPP 安装器构建：准备干净的分发暂存目录（dist/staging），下载 Inno Setup 便携版并编译 setup.iss。
 
 .DESCRIPTION
-    - 暂存目录不包含开发机生成的数据（data/、logs/、Caddyfile、redis.conf、测试项目），
+    - 暂存目录不包含开发机生成的数据（var/、logs/、etc/ 配置、测试项目），
       安装后由 init.ps1 在目标机生成。
     - Inno Setup 下载到 dist/tools/inno（已存在则跳过）。
 #>
@@ -33,7 +33,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $CacheDir "frankenphp-windows-x86_64
     Write-Step "组件缓存缺失，先运行 download.ps1"
     & (Join-Path $PSScriptRoot "download.ps1") -Root $Root -CacheDir $CacheDir
 }
-$fpMarker = Get-ChildItem -LiteralPath (Join-Path $StagingDir "frankenphp") -Filter ".extracted-*" -Force -ErrorAction SilentlyContinue
+$fpMarker = Get-ChildItem -LiteralPath (Join-Path $StagingDir "modules\frankenphp") -Filter ".extracted-*" -Force -ErrorAction SilentlyContinue
 if (-not $fpMarker) {
     if (Test-Path -LiteralPath $StagingDir) {
         Remove-Item -LiteralPath $StagingDir -Recurse -Force
@@ -45,7 +45,7 @@ if (-not $fpMarker) {
 # 2. 清理开发机产物，仅保留可分发内容
 Write-Step "清理暂存目录中的开发机数据"
 foreach ($p in @(
-    (Join-Path $StagingDir "data"),
+    (Join-Path $StagingDir "var"),
     (Join-Path $StagingDir "logs")
 )) {
     if (Test-Path -LiteralPath $p) {
@@ -53,9 +53,12 @@ foreach ($p in @(
     }
 }
 foreach ($f in @(
-    (Join-Path $StagingDir "Caddyfile"),
-    (Join-Path $StagingDir "redis\redis.conf"),
-    (Join-Path $StagingDir "frankenphp\php.ini")
+    (Join-Path $StagingDir "etc\Caddyfile"),
+    (Join-Path $StagingDir "etc\redis.conf"),
+    (Join-Path $StagingDir "etc\php.ini"),
+    (Join-Path $StagingDir "etc\access.json"),
+    (Join-Path $StagingDir "etc\access-filter.rules"),
+    (Join-Path $StagingDir "etc\access-filter.caddy")
 )) {
     if (Test-Path -LiteralPath $f) { Remove-Item -LiteralPath $f -Force }
 }

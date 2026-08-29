@@ -44,10 +44,19 @@ final class AgentConfig
         if ($runtimeRoot !== null || is_dir($runtimeRoot ?? '')) {
             // 显式指定时使用
         } else {
-            // 自动发现：安装布局 <root>/data/runtime.json；开发布局 <repo>/dist/runtime
-            $base = dirname(__DIR__, 2);
-            foreach ([$base, $base . DIRECTORY_SEPARATOR . 'dist' . DIRECTORY_SEPARATOR . 'runtime'] as $candidate) {
-                if (is_file($candidate . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime.json')) {
+            // 自动发现：安装布局 <root>/var/runtime.json；开发布局 <repo>/dist/runtime
+            $bases = array_unique([
+                dirname(__DIR__, 3),                    // 安装布局：<runtime>/modules/agent/src
+                dirname(__DIR__, 2),                    // 开发布局：<repo>/agent/src
+            ]);
+            $candidates = [];
+            foreach ($bases as $base) {
+                $candidates[] = $base;
+                $candidates[] = $base . DIRECTORY_SEPARATOR . 'dist' . DIRECTORY_SEPARATOR . 'runtime';
+            }
+            foreach ($candidates as $candidate) {
+                if (is_file($candidate . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'runtime.json')
+                    || is_file($candidate . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime.json')) {
                     $runtimeRoot = $candidate;
                     break;
                 }
@@ -55,11 +64,17 @@ final class AgentConfig
         }
 
         if ($runtimeRoot !== null && is_dir($runtimeRoot)) {
-            $runtimeFile = $runtimeRoot . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime.json';
+            $runtimeFile = $runtimeRoot . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'runtime.json';
+            if (!is_file($runtimeFile)) {
+                $runtimeFile = $runtimeRoot . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime.json';
+            }
             if (is_file($runtimeFile)) {
                 $runtime = json_decode((string) file_get_contents($runtimeFile), true, 512, JSON_THROW_ON_ERROR);
             }
-            $secretsFile = $runtimeRoot . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'secrets.json';
+            $secretsFile = $runtimeRoot . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'secrets.json';
+            if (!is_file($secretsFile)) {
+                $secretsFile = $runtimeRoot . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'secrets.json';
+            }
             if (is_file($secretsFile)) {
                 $secrets = json_decode((string) file_get_contents($secretsFile), true, 512, JSON_THROW_ON_ERROR);
             }

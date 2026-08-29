@@ -2,6 +2,30 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.6.0] - 2026-08-29
+
+### Added
+
+- Unified installed layout: software modules live under `modules/`, configs under
+  `etc/`, and runtime data moved from `data/` to `var/`.
+- Added unified `bin/` command wrappers: `php` (standard PHP CLI compatible),
+  `composer`, `python`, `pip`, `mysql`, `redis-cli`, plus an `env` script that
+  sets `PATH` / `FRAMPP_HOME` / `PHPRC`; symlinks on Linux and `.cmd` wrappers
+  on Windows.
+- Added Linux systemd integration: `etc/frampp.service`, `bin/framppd` and
+  `bin/install-systemd` (install/remove service).
+- Upgraded `caddy-access-filter` to v1.2.0 with local IP / CIDR / country-code
+  rules and GeoIP databases; the control panel now manages IP access control
+  (rules, default policy, hot reload).
+
+### Changed
+
+- Moved the uninstall script to `bin/uninstall`; removed the root-level
+  `install.sh` and build scripts that are not needed at runtime. The `.run`
+  installer now calls `bin/frampp init` directly.
+- Installer messages are bilingual (Chinese + English).
+- Bumped FRAMPP version to `0.6.0`.
+
 ## [0.5.0] - 2026-08-24
 
 ### Added

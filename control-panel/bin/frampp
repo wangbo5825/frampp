@@ -6,10 +6,12 @@ declare(strict_types=1);
 require __DIR__ . '/../src/Config.php';
 require __DIR__ . '/../src/ProjectCreator.php';
 require __DIR__ . '/../src/ServiceManager.php';
+require __DIR__ . '/../src/AccessManager.php';
 
 use Frampp\ControlPanel\Config;
 use Frampp\ControlPanel\ProjectCreator;
 use Frampp\ControlPanel\ServiceManager;
+use Frampp\ControlPanel\AccessManager;
 
 $argv = $_SERVER['argv'] ?? [];
 $args = array_slice($argv, 1);
@@ -29,6 +31,7 @@ $cmd = $args[0] ?? 'status';
 try {
     $config = Config::discover($home);
     $mgr = new ServiceManager($config);
+    $access = new AccessManager($config);
 
     $data = match ($cmd) {
         'status' => $mgr->status(),
@@ -41,8 +44,9 @@ try {
             'components' => $config->runtime['components'] ?? [],
         ],
         'new-project' => (new ProjectCreator($config))->create((string) ($args[1] ?? ''), (string) ($args[2] ?? 'minimal')),
+        'ip-access' => self_ip_access($access, array_slice($args, 1)),
         default  => throw new \InvalidArgumentException(
-            "未知命令: $cmd（支持 status|start|stop|logs|ports|version|new-project）"
+            "未知命令: $cmd（支持 status|start|stop|logs|ports|version|new-project|ip-access）"
         ),
     };
 
@@ -121,4 +125,59 @@ function self_version(Config $config): string
         }
     }
     return '0.2.0';
+}
+
+function self_ip_access(AccessManager $access, array $args): array
+{
+    $sub = $args[0] ?? 'status';
+    switch ($sub) {
+        case 'status':
+        case 'list':
+            return ['config' => $access->config(), 'rules' => $access->rules()];
+
+        case 'add':
+            if (count($args) < 3) {
+                throw new \InvalidArgumentException('用法: frampp ip-access add <IP|CIDR|code:XX> <allow|block>');
+            }
+            $access->addRule($args[1], $args[2]);
+            break;
+
+        case 'remove':
+            if (count($args) < 2) {
+                throw new \InvalidArgumentException('用法: frampp ip-access remove <IP|CIDR|code:XX>');
+            }
+            $access->removeRule($args[1]);
+            break;
+
+        case 'default':
+            $action = $args[1] ?? '';
+            if (!in_array($action, ['allow', 'block'], true)) {
+                throw new \InvalidArgumentException('用法: frampp ip-access default <allow|block>');
+            }
+            $access->saveConfig(['default_action' => $action]);
+            break;
+
+        case 'enable':
+        case 'disable':
+            $access->saveConfig(['enabled' => $sub === 'enable']);
+            break;
+
+        case 'geoip':
+            if (count($args) < 2) {
+                throw new \InvalidArgumentException('用法: frampp ip-access geoip <database> [mmdb|cidr_csv|range_csv]');
+            }
+            $access->saveConfig(['geoip_db' => $args[1], 'geoip_format' => $args[2] ?? 'mmdb']);
+            break;
+
+        case 'reload':
+            $ok = $access->reload();
+            return ['reloaded' => $ok];
+
+        default:
+            throw new \InvalidArgumentException('未知 ip-access 子命令: ' . $sub);
+    }
+
+    $access->renderCaddyfile();
+    $reloaded = $access->reload();
+    return ['config' => $access->config(), 'rules' => $access->rules(), 'caddyfile_rendered' => true, 'reloaded' => $reloaded];
 }

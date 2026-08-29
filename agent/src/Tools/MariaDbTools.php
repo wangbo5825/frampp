@@ -27,7 +27,7 @@ final class MariaDbTools
             $user = 'frampp_ro';
             $pass = $this->config->secret('mariadb_readonly_password');
             if ($pass === null) {
-                throw new \RuntimeException('缺少只读账号密码（data/secrets.json 无 mariadb_readonly_password）');
+                throw new \RuntimeException('缺少只读账号密码（var/secrets.json 无 mariadb_readonly_password）');
             }
             $this->pdo = new PDO(
                 "mysql:host=127.0.0.1;port=$port;charset=utf8mb4",

@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+#
+# FRAMPP Python：调用随包安装的精简 Python 运行时。
+#
+set -e
+
+FRAMPP_HOME=$(cd "$(dirname "$0")/.." && pwd)
+exec "$FRAMPP_HOME/modules/python/bin/python3" "$@"

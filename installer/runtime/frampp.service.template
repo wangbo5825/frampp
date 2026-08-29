@@ -1,0 +1,17 @@
+[Unit]
+Description=FRAMPP runtime (FrankenPHP + MariaDB + Redis + Agent)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=FRAMPP_HOME=__FRAMPP_HOME__
+WorkingDirectory=__FRAMPP_HOME__
+ExecStart=__FRAMPP_HOME__/bin/framppd
+ExecStop=__FRAMPP_HOME__/bin/frampp stop all
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

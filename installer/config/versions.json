@@ -12,7 +12,7 @@
       "sha256": "4CDFC5F9B9B10E9657CE3BB47260D6A59A8F6789A885A0FA65061522B6C5981C",
       "cacheFile": "frankenphp-windows-x86_64.zip",
       "kind": "zip",
-      "installDir": "frankenphp"
+      "installDir": "modules/frankenphp"
     },
     "mariadb": {
       "name": "MariaDB",
@@ -21,7 +21,7 @@
       "sha256": "67347C129EB9C5923D002EA34FBFA27C60EB95D36DD73B85AF2651CDECEECAC5",
       "cacheFile": "mariadb-12.3.2-winx64.zip",
       "kind": "zip",
-      "installDir": "mariadb"
+      "installDir": "modules/mariadb"
     },
     "redis": {
       "name": "Redis (redis-windows msys2 build)",
@@ -30,7 +30,7 @@
       "sha256": "4E8F2F956ED92FEADF3F64B4E137ED34026438821E692E7AE22C9BBA5976607A",
       "cacheFile": "Redis-8.10.1-Windows-x64-msys2.zip",
       "kind": "zip",
-      "installDir": "redis"
+      "installDir": "modules/redis"
     },
     "composer": {
       "name": "Composer",
@@ -39,7 +39,7 @@
       "sha256": "5EE7125F8A30A34D246CEFDC0BC85B8A783B28F2AEC968994118512350D28027",
       "cacheFile": "composer.phar",
       "kind": "phar",
-      "installDir": "bin"
+      "installDir": "modules/composer"
     },
     "apcu": {
       "name": "APCu (PECL, PHP 8.5 TS x64)",
@@ -48,7 +48,7 @@
       "sha256": "ADE68CBC6ACE5002A2ECAC3FDA9AB38EC188D4322DD83D6867213AB8411951F0",
       "cacheFile": "php_apcu-5.1.28-8.5-ts-vs17-x64.zip",
       "kind": "zip",
-      "installDir": "frankenphp\\ext"
+      "installDir": "modules/frankenphp\\ext"
     },
     "adminer": {
       "name": "Adminer",

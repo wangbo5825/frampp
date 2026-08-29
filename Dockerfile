@@ -6,14 +6,14 @@
 # 构建前请先生成 Linux 安装包：
 #   pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
 # 然后：
-#   docker build -t frampp:0.5.0 \
-#     --build-arg FRAMPP_PACKAGE=dist/installer/frampp-setup-8.5-0.5.0-linux-x86_64.run .
+#   docker build -t frampp:0.6.0 \
+#     --build-arg FRAMPP_PACKAGE=dist/installer/frampp-setup-8.5-0.6.0-linux-x86_64.run .
 #
 ARG BASE_IMAGE=debian:bookworm-slim
 
 FROM ${BASE_IMAGE} AS runtime
 
-ARG FRAMPP_PACKAGE=dist/installer/frampp-setup-8.5-0.5.0-linux-x86_64.run
+ARG FRAMPP_PACKAGE=dist/installer/frampp-setup-8.5-0.6.0-linux-x86_64.run
 
 ENV FRAMPP_HOME=/opt/frampp \
     LANG=C.UTF-8 \
@@ -46,16 +46,16 @@ RUN set -eux; \
         /opt/frampp/installer/scripts/linux/init.sh \
         /opt/frampp/installer/scripts/linux/docker-entrypoint.sh \
         /opt/frampp/installer/scripts/linux/docker-healthcheck.sh \
-        /opt/frampp/frankenphp/frankenphp \
-        /opt/frampp/redis/redis-server \
-        /opt/frampp/redis/redis-cli; \
+        /opt/frampp/modules/frankenphp/frankenphp \
+        /opt/frampp/modules/redis/redis-server \
+        /opt/frampp/modules/redis/redis-cli; \
     groupadd --system frampp; \
     useradd --system --gid frampp --home-dir /opt/frampp --shell /usr/sbin/nologin frampp; \
     chown -R frampp:frampp /opt/frampp
 
 USER frampp
 
-VOLUME ["/opt/frampp/data", "/opt/frampp/logs", "/opt/frampp/htdocs"]
+VOLUME ["/opt/frampp/var", "/opt/frampp/logs", "/opt/frampp/htdocs"]
 
 EXPOSE 8080 8081 3306 6379
 

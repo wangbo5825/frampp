@@ -18,6 +18,7 @@ http://127.0.0.1:8080 {
 	root * {{HTDOCS}}
 	encode zstd gzip
 	route {
+		{{ACCESS_IMPORT}}
 		try_files {path} {path}/index.php index.php
 		php
 		file_server
@@ -31,6 +32,7 @@ http://127.0.0.1:8081 {
 	root * {{PANEL_ROOT}}
 	encode zstd gzip
 	route {
+		{{ACCESS_IMPORT}}
 		try_files {path} {path}/index.php index.php
 		php
 		file_server

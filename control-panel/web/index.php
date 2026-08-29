@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 require __DIR__ . '/../src/Config.php';
 require __DIR__ . '/../src/ServiceManager.php';
+require __DIR__ . '/../src/AccessManager.php';
 
 use Frampp\ControlPanel\Config;
 use Frampp\ControlPanel\ServiceManager;
+use Frampp\ControlPanel\AccessManager;
 
 $config = Config::discover();
 $mgr = new ServiceManager($config);
+$access = new AccessManager($config);
 $status = $mgr->status();
 $ports = $mgr->ports();
 $log = $mgr->tailLog('frankenphp', 40);
+$accessCfg = $access->config();
+$accessRules = $access->rules();
 $token = (string) $config->secret('panel_token');
 
 function badge(bool $ok): string
@@ -95,6 +100,83 @@ function badge(bool $ok): string
             <?php endforeach; ?>
             </tbody>
         </table>
+    </div>
+
+    <div class="card">
+        <h2 style="font-size:16px">IP 访问控制</h2>
+        <?php if (!$accessCfg['supported']): ?>
+            <p class="meta">当前 Windows 官方构建未内置 caddy-access-filter，IP 访问控制暂不可用。</p>
+        <?php else: ?>
+            <form method="post" action="action.php" style="margin-bottom:12px">
+                <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+                <input type="hidden" name="action" value="ip-access-save">
+                <label style="margin-right:12px">
+                    <input type="checkbox" name="enabled" value="1" <?= $accessCfg['enabled'] ? 'checked' : '' ?>>
+                    启用 / Enable
+                </label>
+                <label style="margin-right:12px">
+                    默认策略 / Default action
+                    <select name="default_action">
+                        <option value="allow" <?= $accessCfg['default_action'] === 'allow' ? 'selected' : '' ?>>允许 / allow</option>
+                        <option value="block" <?= $accessCfg['default_action'] === 'block' ? 'selected' : '' ?>>拒绝 / block</option>
+                    </select>
+                </label>
+                <label style="margin-right:12px">
+                    GeoIP 数据库 / DB
+                    <input type="text" name="geoip_db" value="<?= htmlspecialchars((string) ($accessCfg['geoip_db'] ?? '')) ?>" placeholder="/etc/GeoLite2-Country.mmdb" size="30">
+                </label>
+                <label style="margin-right:12px">
+                    格式 / Format
+                    <select name="geoip_format">
+                        <?php foreach (['mmdb', 'cidr_csv', 'range_csv'] as $fmt): ?>
+                            <option value="<?= $fmt ?>" <?= ($accessCfg['geoip_format'] ?? 'mmdb') === $fmt ? 'selected' : '' ?>><?= $fmt ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <button type="submit">保存 / Save</button>
+            </form>
+
+            <form method="post" action="action.php" style="margin-bottom:12px">
+                <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+                <input type="hidden" name="action" value="ip-access-add">
+                <input type="text" name="value" placeholder="203.0.113.10 / 198.51.100.0/24 / code:CN" size="34" required>
+                <select name="action">
+                    <option value="allow">允许 / allow</option>
+                    <option value="block">拒绝 / block</option>
+                </select>
+                <button type="submit">添加 / Add</button>
+            </form>
+
+            <table>
+                <thead><tr><th>规则 / Rule</th><th>操作 / Action</th><th></th></tr></thead>
+                <tbody>
+                <?php if (!$accessRules): ?>
+                    <tr><td colspan="3" class="meta">暂无规则 / no rules</td></tr>
+                <?php endif; ?>
+                <?php foreach ($accessRules as $rule): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($rule['value']) ?></td>
+                        <td><?= htmlspecialchars($rule['action']) ?></td>
+                        <td>
+                            <form method="post" action="action.php" style="display:inline">
+                                <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+                                <input type="hidden" name="action" value="ip-access-remove">
+                                <input type="hidden" name="value" value="<?= htmlspecialchars($rule['value']) ?>">
+                                <button type="submit">移除 / Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <form method="post" action="action.php" style="margin-top:12px">
+                <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+                <input type="hidden" name="action" value="ip-access-reload">
+                <button type="submit">热重载 / Reload</button>
+            </form>
+            <p class="meta">国家 / 地区规则（code:XX）需要配置 GeoIP 数据库后生效。</p>
+        <?php endif; ?>
     </div>
 
     <div class="card">

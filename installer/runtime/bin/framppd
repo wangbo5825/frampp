@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# FRAMPP 前台守护：启动三件套并保持运行，供 systemd / 容器使用。
+#
+set -euo pipefail
+
+FRAMPP_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+stop_all() {
+    "$FRAMPP_HOME/bin/frampp" stop all || true
+}
+trap stop_all INT TERM EXIT
+
+"$FRAMPP_HOME/bin/frampp" start all
+
+while true; do
+    sleep 60
+done

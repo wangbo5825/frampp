@@ -11,7 +11,7 @@ FRAMPP = FrankenPHP + Redis + Agent(MCP) + MySQL + PHP + Python：面向现代 P
 - 当前里程碑：**M4 生产模式（已实现）**——Inno Setup 安装器、发布管线（channels / releases）、升级文档
 - Linux 变体（M5 部分）：**linux-x86_64 一键安装包**已实现——`versions-linux-x86_64.json` + `installer/scripts/linux/*`（init/install/uninstall/build-redis）+ `build-linux-package.ps1`，CI 冒烟验证
 - Docker 变体（M5 部分）：**单镜像 all-in-one**已实现——`Dockerfile` + `docker-compose.yml` + `installer/scripts/linux/docker-*.sh` + `build-docker.ps1`，复用 `.run` 产物，CI 构建/冒烟/tag 推送 GHCR
-- 下一步：发布 v0.5.0（Windows .exe + Linux .run + Docker 镜像），或 macOS / A2A 变体
+- 下一步：发布 v0.6.0（Windows .exe + Linux .run + Docker 镜像），或 macOS / A2A 变体
 
 ## 目录约定
 

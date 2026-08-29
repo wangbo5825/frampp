@@ -12,7 +12,7 @@
       "sha256": "4F8636315CC3748DF02A27F36B3456B96EAEBF505029E26DBD5FB473896D94C5",
       "cacheFile": "frankenphp-v1.12.7.tar.gz",
       "kind": "src",
-      "installDir": "frankenphp"
+      "installDir": "modules/frankenphp"
     },
     "mariadb": {
       "name": "MariaDB (源码编译精简: 去重型引擎 + strip + 去测试/开发文件)",
@@ -21,7 +21,7 @@
       "sha256": "82798714BAF2F3456ED2F311FC803DC120F2BF3B82358E773847D628CDB4B670",
       "cacheFile": "mariadb-12.3.2.tar.gz",
       "kind": "src",
-      "installDir": "mariadb"
+      "installDir": "modules/mariadb"
     },
     "redis": {
       "name": "Redis (官方源码，Linux 静态编译)",
@@ -30,7 +30,7 @@
       "sha256": "60166C95AB7AEDAA9DFE516DE685BE0A4DD87BE95DED59BA429DF14C13F1B663",
       "cacheFile": "redis-8.10.1.tar.gz",
       "kind": "src",
-      "installDir": "redis"
+      "installDir": "modules/redis"
     },
     "composer": {
       "name": "Composer",
@@ -39,7 +39,7 @@
       "sha256": "5EE7125F8A30A34D246CEFDC0BC85B8A783B28F2AEC968994118512350D28027",
       "cacheFile": "composer.phar",
       "kind": "phar",
-      "installDir": "bin"
+      "installDir": "modules/composer"
     },
     "adminer": {
       "name": "Adminer",
@@ -57,7 +57,7 @@
       "sha256": "AACA2AF2AB4D7B68A712660D1334C0CFD5EC13C0312CCD30C29122D8D0342320",
       "cacheFile": "cpython-3.13.15-linux-x86_64-install_only_stripped.tar.gz",
       "kind": "tar.gz",
-      "installDir": "python"
+      "installDir": "modules/python"
     }
   }
 }

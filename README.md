@@ -7,7 +7,9 @@
 [中文](README.zh-CN.md) · [Blueprint](docs/blueprint.md) ·
 [Releases](https://github.com/wangbo5825/frampp/releases)
 
-> Current status: **v0.5.0** — Inno Setup and self-extracting `.run` installers, an all-in-one Docker image, control panel, Agent/MCP server, bundled MariaDB, Redis, FrankenPHP and a slim Python runtime. The Linux FrankenPHP build includes the `caddy-access-filter` module.
+> Current status: **v0.6.0** — standardized layout (`bin` / `etc` / `var` /
+> `modules`), unified command wrappers, systemd integration, IP access control
+> and an all-in-one Docker image.
 > Full design & decision records: [docs/blueprint.md](docs/blueprint.md).
 
 [![GitHub](https://img.shields.io/badge/GitHub-wangbo5825%2Fframpp-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/wangbo5825/frampp)
@@ -27,8 +29,10 @@ Key characteristics:
 - **Self-contained** — FrankenPHP (embedded Caddy, automatic HTTPS, worker mode, built-in APCu / redis / mysqli extensions), MariaDB and Redis are all bundled; no system package manager dependencies.
 - **Self-contained and relocatable** — Linux installs under `~/frampp` by default without root; Windows uses an Inno Setup installer.
 - **Docker-ready** — the same stack ships as a single public Docker image for `docker run` / Docker Compose one-click startup.
-- **Relocatable** — the whole directory can be moved; on Linux just re-run `install.sh` after moving.
-- **One-command management** — `frampp {status|start|stop|logs|new-project}` plus a web control panel.
+- **Standard layout & commands** — `bin/` for commands, `etc/` for configs,
+  `var/` for runtime data, `modules/` for components; the directory is
+  relocatable and `bin/frampp init` re-initializes after moving.
+- **One-command management** — `frampp {status|start|stop|logs|new-project|ip-access}` plus a web control panel.
 - **AI-ready** — a built-in Agent (MCP) layer lets AI assistants interact with your local stack through standard MCP tools.
 - **Secure by default** — services bind to localhost, runtime secrets are generated per installation, read-only database accounts are used where applicable, and audit logs are kept.
 - **Separate bilingual docs** — English and Chinese root README / changelog files.
@@ -49,7 +53,7 @@ Key characteristics:
 #### Windows
 
 ```powershell
-# Download frampp-setup-8.5-0.5.0-windows-x64.exe from GitHub Releases,
+# Download frampp-setup-8.5-0.6.0-windows-x64.exe from GitHub Releases,
 # then double-click to install; the installer initializes and starts the stack automatically.
 
 # Dev preview (run from source)
@@ -63,10 +67,10 @@ php control-panel/bin/frampp stop all                                     # stop
 #### Linux (x86_64, one-click installer)
 
 ```bash
-# Download frampp-setup-8.5-0.5.0-linux-x86_64.run from GitHub Releases
-chmod +x frampp-setup-8.5-0.5.0-linux-x86_64.run
-./frampp-setup-8.5-0.5.0-linux-x86_64.run                              # installs to ~/frampp
-./frampp-setup-8.5-0.5.0-linux-x86_64.run --prefix /opt/frampp         # custom directory
+# Download frampp-setup-8.5-0.6.0-linux-x86_64.run from GitHub Releases
+chmod +x frampp-setup-8.5-0.6.0-linux-x86_64.run
+./frampp-setup-8.5-0.6.0-linux-x86_64.run                              # installs to ~/frampp
+./frampp-setup-8.5-0.6.0-linux-x86_64.run --prefix /opt/frampp         # custom directory
 ```
 
 The installer verifies package integrity, extracts the bundle, initializes the runtime (random secrets, MariaDB data directory) and starts all services, then prints the URLs.
@@ -75,9 +79,15 @@ After install, visit:
 
 - Default site: <http://127.0.0.1:8080/>
 - Control panel: <http://127.0.0.1:8081/>
-- Manage: `~/frampp/bin/frampp {status|start|stop|logs|new-project}`
+- Manage: `~/frampp/bin/frampp {status|start|stop|logs|new-project|ip-access}`
+- Standard commands: `bin/php`, `bin/composer`, `bin/python`, `bin/pip`,
+  `bin/mysql`, `bin/redis-cli`; `source bin/env` sets `PATH` / `PHPRC`.
+- systemd: `sudo bin/install-systemd` installs a boot service.
 
-The Linux package bundles a slimmed, mostly static FrankenPHP (APCu / redis / mysqli built in), a source-built MariaDB, statically compiled Redis, and a pruned embedded Python 3.13 runtime — no system packages required; the directory is relocatable (re-run `install.sh` after moving).
+The Linux package bundles a slimmed, mostly static FrankenPHP (APCu / redis /
+mysqli built in), a source-built MariaDB, statically compiled Redis, and a
+pruned embedded Python 3.13 runtime — no system packages required; the directory
+is relocatable (run `bin/frampp init` after moving).
 
 #### Docker
 
@@ -87,10 +97,10 @@ you can start it without installing any components:
 ```bash
 docker run -d --name frampp \
   -p 8080:8080 -p 8081:8081 \
-  -v frampp-data:/opt/frampp/data \
+  -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.5.0
+  ghcr.io/wangbo5825/frampp:0.6.0
 ```
 
 Or use Docker Compose from the repository:

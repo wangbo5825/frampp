@@ -10,8 +10,8 @@ Positioning: **one-click installers for everyday users** (XAMPP-style), publishe
 
 ```text
 frampp-setup-<channel>-<version>-<env>.<ext>
-示例 / e.g. frampp-setup-8.5-0.5.0-windows-x64.exe
-示例 / e.g. frampp-setup-8.5-0.5.0-linux-x86_64.run
+示例 / e.g. frampp-setup-8.5-0.6.0-windows-x64.exe
+示例 / e.g. frampp-setup-8.5-0.6.0-linux-x86_64.run
 ```
 
 - `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.12.7 / PHP 8.5.9 / MariaDB 12.3.2 / Redis 8.10.1）
@@ -36,8 +36,8 @@ powershell -ExecutionPolicy Bypass -File installer/scripts/release.ps1 -Env wind
 pwsh -File installer/scripts/release.ps1 -Env linux-x86_64 -Publish
 ```
 
-CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.5.0`）。推送 `v*` tag 时，`docker` 作业还会构建并推送 Docker 镜像。
-CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.5.0`). Pushing a `v*` tag also builds and pushes the Docker image in the `docker` job.
+CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.6.0`）。推送 `v*` tag 时，`docker` 作业还会构建并推送 Docker 镜像。
+CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.6.0`). Pushing a `v*` tag also builds and pushes the Docker image in the `docker` job.
 
 ## Docker 镜像 / Docker Image
 
@@ -46,10 +46,10 @@ Linux `.run` 构建完成后，镜像复用该产物，单镜像包含完整 FRA
 ```bash
 docker run -d --name frampp \
   -p 8080:8080 -p 8081:8081 \
-  -v frampp-data:/opt/frampp/data \
+  -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.5.0
+  ghcr.io/wangbo5825/frampp:0.6.0
 ```
 
 发布到 GitHub Container Registry：
@@ -70,8 +70,8 @@ GitHub is the single source of truth. The repository is mirrored to Gitee automa
 Gitee mirror sync does **not** copy GitHub Releases, so a Gitee 发行版 (with installer attachments) is optional. If you also publish Gitee releases, use the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.5.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.5.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.6.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.6.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 Notes:
@@ -87,8 +87,8 @@ GitHub 是唯一推送源。仓库由 **GitHub Actions 工作流** `.github/work
 镜像同步**不会**复制 GitHub Releases，因此 Gitee 发行版（含安装包附件）为可选项。如仍需发布 Gitee 发行版，运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.5.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.5.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.6.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.6.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 说明：
@@ -144,6 +144,38 @@ FRAMPP 0.4.0 在 Linux FrankenPHP 定制构建中集成 `caddy-access-filter` Ca
 - 锁定模块：`github.com/wangbo5825/caddy-access-filter@v1.0.0`
 - 默认行为：未配置处理器时透明透传。
 
+## 0.6.0 Layout & IP Access Control / 0.6.0 布局与 IP 访问控制
+
+FRAMPP 0.6.0 重构了安装后布局并加入 IP 访问控制：
+
+- 软件模块统一到 `modules/`（frankenphp / mariadb / redis / python / agent /
+  control-panel / templates），配置集中到 `etc/`，运行时数据由 `data/` 改为
+  `var/`。
+- `bin/` 统一命令：`frampp`、`php`、`composer`、`python`、`pip`、`mysql`、
+  `redis-cli`、`env`、`uninstall`、`framppd`、`install-systemd`；Linux 用符号
+  链接，Windows 用 `.cmd` 包装。
+- 安装包不再携带 `install.sh` 与构建脚本；`.run` 解压后调用 `bin/frampp init`。
+- Linux systemd 集成：`bin/install-systemd` 安装开机自启服务。
+- `caddy-access-filter` 升级到 **v1.2.0**：支持本地 IP / CIDR / `code:XX`
+  国家地区码规则与 GeoIP（mmdb / cidr_csv / range_csv）；控制面板
+  `http://127.0.0.1:8081/` 新增 IP 访问控制管理，规则写入
+  `etc/access-filter.rules` 并通过 Caddy admin API 热重载。
+
+FRAMPP 0.6.0 restructures the installed layout and adds IP access control:
+
+- Components live under `modules/`, configs under `etc/`, and runtime data moved
+  from `data/` to `var/`.
+- `bin/` provides unified commands (`frampp`, `php`, `composer`, `python`,
+  `pip`, `mysql`, `redis-cli`, `env`, `uninstall`, `framppd`,
+  `install-systemd`); symlinks on Linux, `.cmd` wrappers on Windows.
+- The package no longer ships `install.sh` or build scripts; the `.run` calls
+  `bin/frampp init` after extraction.
+- Linux systemd integration via `bin/install-systemd`.
+- `caddy-access-filter` is upgraded to **v1.2.0** with local IP / CIDR /
+  `code:XX` country rules and GeoIP (mmdb / cidr_csv / range_csv); the control
+  panel at `http://127.0.0.1:8081/` now manages IP access rules, saved to
+  `etc/access-filter.rules`, with hot reload through the Caddy admin API.
+
 产物位于 / Artifacts in `dist/installer/`：
 
 - `frampp-setup-<channel>-<version>-<env>.exe`：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)
@@ -154,13 +186,13 @@ FRAMPP 0.4.0 在 Linux FrankenPHP 定制构建中集成 `caddy-access-filter` Ca
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash
-chmod +x frampp-setup-8.5-0.5.0-linux-x86_64.run
-./frampp-setup-8.5-0.5.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-setup-8.5-0.5.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
-./frampp-setup-8.5-0.5.0-linux-x86_64.run --help           # 帮助 / help
+chmod +x frampp-setup-8.5-0.6.0-linux-x86_64.run
+./frampp-setup-8.5-0.6.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-setup-8.5-0.6.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+./frampp-setup-8.5-0.6.0-linux-x86_64.run --help           # 帮助 / help
 
 ~/frampp/bin/frampp status        # 查看服务状态 / check status
-~/frampp/uninstall.sh             # 停止服务并可选清理数据 / stop services, optionally clean data
+~/frampp/bin/uninstall            # 停止服务并可选清理数据 / stop services, optionally clean data
 ```
 
 Linux 包自包含三件套二进制（FrankenPHP 静态构建、MariaDB bintar、Redis 官方源码静态编译），不依赖系统包管理器；运行时仅需常见工具（sh / tar / openssl 或 /dev/urandom）。
@@ -176,7 +208,7 @@ The Linux package bundles all three binaries (static FrankenPHP, MariaDB bintar,
 ## 校验 / Verification
 
 ```powershell
-Get-FileHash frampp-setup-8.5-0.5.0-windows-x64.exe -Algorithm SHA256
-sha256sum frampp-setup-8.5-0.5.0-linux-x86_64.run
+Get-FileHash frampp-setup-8.5-0.6.0-windows-x64.exe -Algorithm SHA256
+sha256sum frampp-setup-8.5-0.6.0-linux-x86_64.run
 # 与 / compare with SHA256SUMS.txt 中对应行 / the matching line
 ```

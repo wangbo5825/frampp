@@ -1,0 +1,37 @@
+#!/usr/bin/env sh
+#
+# FRAMPP CLI 包装器：用内置 FrankenPHP 的 PHP 运行控制面板 CLI。
+# 用法: bin/frampp {status|start|stop|logs|ports|version|new-project|init} [...]
+#
+set -e
+
+PRG="$0"
+while [ -h "$PRG" ]; do
+    LS=$(ls -ld "$PRG")
+    LINK=$(expr "$LS" : '.*-> \(.*\)$')
+    case "$LINK" in
+        /*) PRG="$LINK" ;;
+        *) PRG="$(dirname "$PRG")/$LINK" ;;
+    esac
+done
+
+FRAMPP_HOME=$(cd "$(dirname "$PRG")/.." && pwd)
+export FRAMPP_HOME
+export PATH="$FRAMPP_HOME/bin:$FRAMPP_HOME/modules/python/bin:$FRAMPP_HOME/modules/mariadb/bin:$FRAMPP_HOME/modules/redis:$PATH"
+
+PHP_INI="$FRAMPP_HOME/etc/php.ini"
+export PHPRC="$PHP_INI"
+
+case "${1:-}" in
+    init)
+        shift
+        exec bash "$FRAMPP_HOME/installer/scripts/linux/init.sh" --runtime-dir "$FRAMPP_HOME" "$@"
+        ;;
+    env)
+        cat "$FRAMPP_HOME/bin/env"
+        exit 0
+        ;;
+esac
+
+exec "$FRAMPP_HOME/modules/frankenphp/frankenphp" php-cli \
+    "$FRAMPP_HOME/modules/control-panel/bin/frampp" "$@"

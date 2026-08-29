@@ -20,14 +20,14 @@ FRAMPP 的 AI 接入层：把本地环境能力封装为 MCP 工具，供 Claude
 
 ```powershell
 # 直接运行（自动发现 FRAMPP 运行时；也可 --home 指定）
-php agent/bin/frampp-mcp
+bin/frampp-mcp
 
 # 客户端接入示例（Claude Code / Cursor / Codex 的 mcpServers 配置）
 # {
 #   "mcpServers": {
 #     "frampp": {
-#       "command": "php",
-#       "args": ["agent/bin/frampp-mcp", "--home", "C:/path/to/runtime"]
+#       "command": "bin/frampp-mcp",
+#       "args": ["--home", "C:/path/to/runtime"]
 #     }
 #   }
 # }

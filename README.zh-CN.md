@@ -11,7 +11,7 @@ LAMPP / XAMPP / NMPP 的产品形态，并内置基于 MCP 的 AI Agent 接入�
 ## 当前状态
 
 - 里程碑：**M4 生产模式 + Linux x86_64 / Docker 变体**
-- 最新版本线：**0.5.x**
+- 最新版本线：**0.6.x**
 - 当前通道：PHP **8.5** / FrankenPHP **1.12.7**
 
 ## FRAMPP 是什么？
@@ -30,14 +30,14 @@ FRAMPP 把 PHP 应用服务器、MariaDB 和 Redis 打包成自包含的 XAMPP �
   `docker run` / Docker Compose 一键启动。
 - **AI 就绪** — 内置 Agent / MCP 服务器，将 MySQL、Redis、日志和环境信息开放
   给主流 AI 编码工具。
-- **一条命令管理** — `frampp {status|start|stop|logs|new-project}`，并提供 Web
+- **一条命令管理** — `frampp {status|start|stop|logs|new-project|ip-access}`，并提供 Web
   控制面板。
-- **Linux 目录可整体移动** — 默认安装到 `~/frampp`，无需 root。
+- **标准布局与命令** — `bin/` 统一命令、`etc/` 集中配置、`var/` 运行时数据、
+  `modules/` 软件模块；Linux 目录可整体移动，移动后运行 `bin/frampp init`。
 - **默认安全** — 服务仅监听 localhost、每次安装生成随机密钥、使用只读数据库
   账号并保留审计日志。
-- **Caddy access/filter 钩子** — Linux FrankenPHP 构建集成
-  `caddy-access-filter`，支持代理前 `access` 与代理后 `filter` 两个可编程阶段，
-  由外部 HTTP 处理器完成业务裁决与响应加工。
+- **IP 访问控制** — Linux FrankenPHP 构建集成 `caddy-access-filter` v1.2.0，
+  支持本地 IP / CIDR / 国家地区码规则与 GeoIP，控制面板可在线管理并热重载。
 
 ## 组件
 
@@ -55,22 +55,25 @@ FRAMPP 把 PHP 应用服务器、MariaDB 和 Redis 打包成自包含的 XAMPP �
 ### Windows
 
 从 [GitHub Releases](https://github.com/wangbo5825/frampp/releases) 下载
-`frampp-setup-8.5-0.5.0-windows-x64.exe`，双击安装。安装器会自动初始化并启动
+`frampp-setup-8.5-0.6.0-windows-x64.exe`，双击安装。安装器会自动初始化并启动
 整套环境。
 
 ### Linux
 
 ```bash
-chmod +x frampp-setup-8.5-0.5.0-linux-x86_64.run
-./frampp-setup-8.5-0.5.0-linux-x86_64.run
-./frampp-setup-8.5-0.5.0-linux-x86_64.run --prefix /opt/frampp
+chmod +x frampp-setup-8.5-0.6.0-linux-x86_64.run
+./frampp-setup-8.5-0.6.0-linux-x86_64.run
+./frampp-setup-8.5-0.6.0-linux-x86_64.run --prefix /opt/frampp
 ```
 
 安装完成后：
 
 - 默认站点：<http://127.0.0.1:8080/>
 - 控制面板：<http://127.0.0.1:8081/>
-- 管理命令：`~/frampp/bin/frampp {status|start|stop|logs|new-project}`
+- 管理命令：`~/frampp/bin/frampp {status|start|stop|logs|new-project|ip-access}`
+- 标准命令：`bin/php`、`bin/composer`、`bin/python`、`bin/pip`、`bin/mysql`、
+  `bin/redis-cli`；环境变量可 `source bin/env` 一次性配置。
+- systemd：`sudo bin/install-systemd` 安装开机自启服务。
 
 ### Docker
 
@@ -79,10 +82,10 @@ chmod +x frampp-setup-8.5-0.5.0-linux-x86_64.run
 ```bash
 docker run -d --name frampp \
   -p 8080:8080 -p 8081:8081 \
-  -v frampp-data:/opt/frampp/data \
+  -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.5.0
+  ghcr.io/wangbo5825/frampp:0.6.0
 ```
 
 也可使用仓库中的 Docker Compose：

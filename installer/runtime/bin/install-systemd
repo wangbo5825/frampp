@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#
+# 安装 / 卸载 FRAMPP systemd 服务。
+# 用法: bin/install-systemd [--remove]
+#
+set -euo pipefail
+
+FRAMPP_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+UNIT="$FRAMPP_HOME/etc/frampp.service"
+SERVICE="frampp.service"
+
+if [[ "${1:-}" == "--remove" ]]; then
+    if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files "$SERVICE" >/dev/null 2>&1; then
+        systemctl disable --now "$SERVICE" || true
+    fi
+    rm -f "/etc/systemd/system/$SERVICE"
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl daemon-reload || true
+    fi
+    echo "systemd 服务已移除 / systemd service removed."
+    exit 0
+fi
+
+if [[ "$(id -u)" -ne 0 ]]; then
+    echo "需要 root 权限 / root required: sudo bin/install-systemd" >&2
+    exit 1
+fi
+if [[ ! -f "$UNIT" ]]; then
+    echo "缺少服务单元文件 / missing unit file: $UNIT" >&2
+    exit 1
+fi
+
+cp "$UNIT" "/etc/systemd/system/$SERVICE"
+systemctl daemon-reload
+systemctl enable "$SERVICE"
+systemctl start "$SERVICE"
+
+echo "systemd 服务已安装并启动 / systemd service installed and started: $SERVICE"

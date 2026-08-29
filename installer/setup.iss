@@ -23,18 +23,19 @@ OutputBaseFilename=frampp-setup-{#Channel}-{#MyAppVersion}-{#TargetEnv}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayIcon={app}\frankenphp\frankenphp.exe
+UninstallDisplayIcon={app}\modules\frankenphp\frankenphp.exe
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 
 [Files]
-Source: "..\dist\staging\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs; Excludes: "data\*|logs\*|*.pid"
-Source: "..\agent\*"; DestDir: "{app}\agent"; Flags: recursesubdirs
-Source: "..\installer\scripts\*"; DestDir: "{app}\installer\scripts"; Flags: recursesubdirs
+Source: "..\dist\staging\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs; Excludes: "data\*|var\*|logs\*|*.pid"
+Source: "..\agent\*"; DestDir: "{app}\modules\agent"; Flags: recursesubdirs
+Source: "..\installer\scripts\init.ps1"; DestDir: "{app}\installer\scripts"; Flags: skipifsourcedoesntexist
 Source: "..\installer\config\*"; DestDir: "{app}\installer\config"; Flags: recursesubdirs
 Source: "..\installer\templates\*"; DestDir: "{app}\installer\templates"; Flags: recursesubdirs
+Source: "..\installer\runtime\*"; DestDir: "{app}\installer\runtime"; Flags: recursesubdirs
 Source: "..\docs\*"; DestDir: "{app}\docs"; Flags: recursesubdirs
 Source: "..\README.md"; DestDir: "{app}\docs"; Flags: isreadme
 Source: "..\LICENSE"; DestDir: "{app}"
@@ -46,18 +47,21 @@ Name: "{group}\卸载 FRAMPP"; Filename: "{uninstallexe}"
 
 [Run]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer\scripts\init.ps1"" -RuntimeDir ""{app}"""; Flags: runhidden; StatusMsg: "正在初始化 FRAMPP 运行时..."
-Filename: "{app}\frankenphp\frankenphp.exe"; Parameters: "php-cli ""{app}\control-panel\bin\frampp"" start all --home ""{app}"""; Flags: runhidden nowait; StatusMsg: "正在启动服务..."
+Filename: "{app}\modules\frankenphp\frankenphp.exe"; Parameters: "php-cli ""{app}\modules\control-panel\bin\frampp"" start all --home ""{app}"""; Flags: runhidden nowait; StatusMsg: "正在启动服务..."
 Filename: "http://127.0.0.1:8081/"; Description: "打开控制面板"; Flags: postinstall nowait shellexec skipifsilent
 
 [UninstallRun]
-Filename: "{app}\frankenphp\frankenphp.exe"; Parameters: "php-cli ""{app}\control-panel\bin\frampp"" stop all --home ""{app}"""; Flags: runhidden
+Filename: "{app}\modules\frankenphp\frankenphp.exe"; Parameters: "php-cli ""{app}\modules\control-panel\bin\frampp"" stop all --home ""{app}"""; Flags: runhidden
 Filename: "taskkill.exe"; Parameters: "/IM frankenphp.exe /F"; Flags: runhidden
 Filename: "taskkill.exe"; Parameters: "/IM mariadbd.exe /F"; Flags: runhidden
 Filename: "taskkill.exe"; Parameters: "/IM redis-server.exe /F"; Flags: runhidden
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{app}\data"
+Type: filesandordirs; Name: "{app}\var"
 Type: filesandordirs; Name: "{app}\logs"
-Type: files; Name: "{app}\Caddyfile"
-Type: files; Name: "{app}\frankenphp\php.ini"
-Type: files; Name: "{app}\redis\redis.conf"
+Type: files; Name: "{app}\etc\Caddyfile"
+Type: files; Name: "{app}\etc\php.ini"
+Type: files; Name: "{app}\etc\redis.conf"
+Type: files; Name: "{app}\etc\access.json"
+Type: files; Name: "{app}\etc\access-filter.rules"
+Type: files; Name: "{app}\etc\access-filter.caddy"

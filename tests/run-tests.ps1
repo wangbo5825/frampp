@@ -98,6 +98,7 @@ Assert-True ($caddy -match 'try_files \{path\} \{path\}/index\.php index\.php') 
 Assert-True ($caddy -match '\n\s*php\s*\n') "Caddyfile uses php handler"
 Assert-True ($caddy -match '\n\s*file_server\s*\n') "Caddyfile uses file_server"
 Assert-True ($caddy -match '127\.0\.0\.1:8081') "Caddyfile exposes panel on 8081"
+Assert-True ($caddy -match '\{\{ACCESS_IMPORT\}\}') "Caddyfile template has access-filter import placeholder"
 
 # 4. 安装器资产（Windows + Linux）
 $setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/setup.iss")
@@ -112,17 +113,24 @@ Assert-True (Test-Path -LiteralPath (Join-Path $Root "docker-compose.yml")) "doc
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/build-docker.ps1")) "build-docker.ps1 exists"
 foreach ($linuxScript in @(
     "installer/scripts/linux/init.sh",
-    "installer/scripts/linux/install.sh",
-    "installer/scripts/linux/uninstall.sh",
     "installer/scripts/linux/build-redis.sh",
-    "installer/scripts/linux/frampp-wrapper.sh",
     "installer/scripts/linux/docker-entrypoint.sh",
-    "installer/scripts/linux/docker-healthcheck.sh"
+    "installer/scripts/linux/docker-healthcheck.sh",
+    "installer/runtime/bin/frampp",
+    "installer/runtime/bin/php",
+    "installer/runtime/bin/composer",
+    "installer/runtime/bin/python",
+    "installer/runtime/bin/pip",
+    "installer/runtime/bin/env",
+    "installer/runtime/bin/uninstall",
+    "installer/runtime/bin/framppd",
+    "installer/runtime/bin/install-systemd",
+    "installer/runtime/frampp.service.template"
 )) {
     Assert-True (Test-Path -LiteralPath (Join-Path $Root $linuxScript)) "$linuxScript exists"
 }
-$installScript = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/install.sh")
-Assert-True ($installScript -match '\-\-skip-start') "install.sh supports --skip-start"
+$framppWrapper = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/runtime/bin/frampp")
+Assert-True ($framppWrapper -match '\binit\b') "bin/frampp wrapper supports init"
 $runHeader = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/frampp-installer.sh")
 Assert-True ($runHeader -match '\-\-extract-only') "frampp-installer.sh supports --extract-only"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/config/channels.json")) "channels.json exists"
@@ -143,13 +151,13 @@ if ($php) {
 
     # 构造一个假的运行时目录验证 CLI status 输出
     $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("frampp-test-" + [guid]::NewGuid().ToString("N"))
-    New-Item -ItemType Directory -Force -Path (Join-Path $tmp "data"), (Join-Path $tmp "logs") | Out-Null
-    Write-JsonNoBom (Join-Path $tmp "data/runtime.json") @{
+    New-Item -ItemType Directory -Force -Path (Join-Path $tmp "var"), (Join-Path $tmp "logs") | Out-Null
+    Write-JsonNoBom (Join-Path $tmp "var/runtime.json") @{
         created_at = (Get-Date -Format o)
         root = $tmp
         ports = @{ http = 8080; panel = 8081; mysql = 3306; redis = 6379 }
     }
-    Write-JsonNoBom (Join-Path $tmp "data/secrets.json") @{
+    Write-JsonNoBom (Join-Path $tmp "var/secrets.json") @{
         panel_token = "test-token"
         mariadb_root_password = "x"
         redis_password = "y"

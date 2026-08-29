@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.6（2026-08-24，M1 组件定版 + Linux x86_64 / Docker 变体定版 + 0.3.0 组件精简 + 0.4.0 Caddy access-filter 集成 + 0.5.0 Docker 单镜像）
+> 状态：设计稿 v1.7（2026-08-29，0.6.0 布局重构 / 命令统一 / systemd / IP 访问控制决策）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -64,7 +64,7 @@
 ### 2.6 Linux x86_64 变体决策（v1.3，2026-08-20）
 
 - **目标**：与 XAMPP Linux 形态一致的**自包含一键安装包**，避开系统包管理器依赖；本机无 Linux 时由 CI（ubuntu）构建与冒烟验证。
-- **发布形态**：`frampp-setup-<channel>-<version>-linux-x86_64.run`（XAMPP 风格单文件自解压安装器；内部载荷为暂存目录内容的 tar.gz，运行时自动校验、解压到目标目录并执行 `./install.sh` 就地初始化与启动；目录可整体移动，卸载用 `./uninstall.sh`）。
+- **发布形态**：`frampp-setup-<channel>-<version>-linux-x86_64.run`（XAMPP 风格单文件自解压安装器；内部载荷为暂存目录内容的 tar.gz，运行时自动校验、解压到目标目录并执行 `bin/frampp init` 就地初始化与启动；目录可整体移动，卸载用 `bin/uninstall`）。
 - **组件矩阵（环境级版本清单 `installer/config/versions-linux-x86_64.json`）**：
   - **FrankenPHP**：官方静态构建 `frankenphp-linux-x86_64`（musl，无 glibc 依赖）；官方默认扩展集**内置 APCu / redis / mysqli / pdo_mysql / mbstring / openssl / xml / zip / intl** 等，Linux 无需单独 APCu 扩展。
   - **MariaDB**：官方 bintar `mariadb-12.3.2-linux-systemd-x86_64.tar.gz`（自包含目录树；安装/运行均加 `--no-defaults` 隔离系统 `/etc/my.cnf`）。
@@ -96,7 +96,7 @@
 
 - **背景**：`caddy-access-filter` 是 FRAMPP 作者维护的通用 Caddy 中间件，模块 ID `http.handlers.access_filter`，Caddyfile 指令为 `access` / `filter`；在 `reverse_proxy` 前后提供可编程 access/filter 钩子，处理器与语言无关，可对接本地 FrankenPHP worker、PHP / Node / Python / Go 服务或云函数。
 - **集成范围**：加入 Linux x86_64 FrankenPHP 定制构建的 `xcaddy` 模块清单，锁定 `github.com/wangbo5825/caddy-access-filter@v1.0.0`。Windows 变体仍使用官方预编译 FrankenPHP，本轮不做自定义 Caddy 模块构建。
-- **默认行为**：不向默认 `Caddyfile` 注入 `access` / `filter` 配置；未配置 processor 时模块为透明透传，不影响现有路由。
+- **默认行为**：v0.4.0 起不注入处理器配置；v0.6.0 起 Linux 默认启用本地规则模式（`default_action allow`，规则文件为空时等同放行）。
 - **版本定位**：FRAMPP `VERSION` 提升至 `0.4.0`；Linux `.run` 与 Windows `.exe` 的 FRAMPP 版本号均为 `0.4.0`，组件矩阵不变。
 
 ### 2.8 Gitee 镜像方式决策（v1.4，2026-08-21）
@@ -123,6 +123,48 @@
 - **卷与端口**：默认暴露 `data/`、`logs/`、`htdocs/` 三个卷；发布 8080（站点）/ 8081（控制面板），3306 / 6379 默认不发布（延续 localhost 安全基线）。
 - **发布**：CI `linux-package` 作业生成 `.run` 后，`docker` 作业复用产物构建并冒烟测试；推送 `v*` tag 时发布到 `ghcr.io/wangbo5825/frampp`（版本 tag + `latest`）。本地可用 `installer/scripts/build-docker.ps1` 构建。
 - **版本定位**：FRAMPP `VERSION` 提升至 `0.5.0`；Windows `.exe`、Linux `.run` 与 Docker 镜像共享同一版本号。
+
+### 2.11 v0.6.0 布局重构与功能决策（v1.7，2026-08-29）
+
+- **目标**：让安装后的 FRAMPP 根目录更像标准 Linux 布局：`bin/` 放用户命令、`etc/` 放配置、
+  `var/` 放运行时数据、`modules/` 放软件模块，并清理正式使用中不再需要的安装脚本。
+- **安装后布局**：
+
+  ```text
+  FRAMPP_HOME/
+  ├─ bin/                 # 用户命令：frampp、php、composer、python、pip、mysql、redis-cli、env、uninstall、framppd
+  ├─ etc/                 # 集中配置：Caddyfile、php.ini、redis.conf、access.json、access-filter.rules、frampp.service
+  ├─ modules/             # 软件模块（各自独立）
+  │  ├─ frankenphp/
+  │  ├─ mariadb/
+  │  ├─ redis/
+  │  ├─ python/
+  │  ├─ agent/            # MCP 服务器
+  │  ├─ control-panel/    # 控制面板（web + CLI + PHP 源码）
+  │  └─ templates/        # new-project 离线项目模板
+  ├─ htdocs/              # 默认站点与用户项目
+  ├─ logs/                # 统一日志
+  ├─ var/                 # 运行时数据：mariadb/、redis/、secrets.json、runtime.json、*.pid
+  ├─ docs/ VERSION README LICENSE
+  └─ installer/           # 仅保留运行时需要的 init / docker / systemd 脚本、配置与模板
+  ```
+
+- **命令统一**：`bin/` 收集必要命令；Linux 对 `modules/` 内命令建立符号链接，Windows 用 `.cmd`
+  包装器。新增 `php`（`frankenphp php-cli` 兼容标准 PHP CLI）、`composer`、`python`、`pip`、
+  `mysql`、`redis-cli` 等，并提供 `env` 脚本统一设置 `PATH` / `FRAMPP_HOME` / `PHPRC`。
+- **安装脚本清理**：安装包运行时不再包含 `install.sh` 与构建脚本；`.run` 解压后直接调用
+  `bin/frampp init`。`uninstall.sh` 移入 `bin/uninstall`。`installer/` 只保留运行时必要的
+  `init` / Docker / systemd 脚本、版本清单与配置模板。安装提示统一中英双语。
+- **配置集中**：`Caddyfile`、`php.ini`、`redis.conf`、IP 访问规则与 systemd unit 均生成到
+  `etc/`；运行时清单与密钥在 `var/`。
+- **systemd 集成（Linux）**：新增 `bin/framppd`（启动三件套并保持前台）、
+  `etc/frampp.service`（由模板生成）与 `installer/scripts/linux/install-systemd.sh`
+  （安装 / 启用 / 启动服务；卸载时可用 `--remove`）。
+- **caddy-access-filter v1.2.0**：Linux 定制 FrankenPHP 构建升级到
+  `github.com/wangbo5825/caddy-access-filter@v1.2.0`，启用本地规则模式：
+  精确 IP、CIDR、`code:<国家/地区码>` 规则（配合 GeoIP 数据库）；控制面板新增
+  IP 访问控制页，规则写入 `etc/access-filter.rules`，并通过 Caddy admin API 热重载。
+  Windows 官方预编译 FrankenPHP 暂不内置该模块，控制面板在 Windows 上提示不支持。
 
 ---
 
@@ -194,15 +236,12 @@ frampp/
 
 ```text
 frampp/
-├─ frankenphp/            # 应用服务器 + PHP
-├─ mariadb/               # 数据库（MariaDB）
-├─ redis/                 # 缓存 / 队列
-├─ python/                # Python 运行时（可选）
-├─ agent/                 # MCP 服务器
-├─ bin/                   # 内置 CLI 工具（composer.phar 等）
+├─ bin/                   # 用户命令：frampp、php、composer、python、pip、mysql、uninstall、env
+├─ etc/                   # 集中配置：Caddyfile、php.ini、redis.conf、access-filter.rules
+├─ modules/               # 软件模块（frankenphp / mariadb / redis / python / agent / control-panel / templates）
 ├─ htdocs/                # 默认站点目录
 ├─ logs/                  # 统一日志
-├─ data/                  # 数据与配置
+├─ var/                   # 运行时数据：MariaDB / Redis 数据、secrets.json、runtime.json、PID
 └─ FRAMPP Control Panel.exe
 ```
 
@@ -318,7 +357,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 | M2 Agent v0.1 | MCP 服务器 + MariaDB / Redis / 日志 / 环境工具 + 安全边界 | Claude Code / Cursor 可调用工具 |
 | M3 开发体验 | Adminer、本地域名 / HTTPS、API Platform starter、项目一键创建 | ✅ 2026-08-20 完成并验证：Adminer 随包安装；`frampp new-project`（minimal 离线模板 / symfony / api-platform = symfony/skeleton + api-platform/core），api-demo 实测 `/api` 返回 Entrypoint JSON-LD；本地域名 / HTTPS 暂缓（仅测试用途、无用户价值，必要时再加） |
 | M4 生产模式 | 安装器 / 升级流程、代码签名、多用户文档（Authelia 已移除：属应用开发范畴） | 可对外正式发布（2026-08-20 已实现：Inno Setup 安装器 + 自动初始化/自启 + 卸载清理 + 升级文档；代码签名待证书采购，属成本项） |
-| M5 生态 | A2A 路线图、Linux / macOS / Docker 变体、社区贡献指南 | ✅ Linux x86_64 变体已实现（2026-08-20：版本清单 / init.sh / install.sh / build-linux-package.ps1 / CI 冒烟）；✅ Docker 单镜像已实现（2026-08-24：Dockerfile / docker-compose / build-docker.ps1 / CI 构建冒烟）；macOS 与 A2A 待做 |
+| M5 生态 | A2A 路线图、Linux / macOS / Docker 变体、社区贡献指南 | ✅ Linux x86_64 变体已实现（2026-08-20：版本清单 / init.sh / bin/frampp init / build-linux-package.ps1 / CI 冒烟）；✅ Docker 单镜像已实现（2026-08-24：Dockerfile / docker-compose / build-docker.ps1 / CI 构建冒烟）；macOS 与 A2A 待做 |
 
 ---
 
@@ -341,4 +380,5 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 3. ✅ M1：FrankenPHP + MariaDB + Redis + APCu 打包（download.ps1 / init.ps1）+ 控制面板 MVP（启停 / 状态 / 端口 / 日志），本机端到端验证通过
 4. ✅ M2/M3/M4：Agent v0.1、开发体验（Adminer / 项目创建）、生产模式（Windows / Linux 安装器）已实现
 5. ✅ M5 部分：Linux x86_64 `.run` 与 Docker 单镜像已实现
-6. 下一步：发布 **v0.5.0**（Windows .exe + Linux .run + Docker 镜像），或 macOS / A2A 变体
+6. ✅ v0.6.0：布局重构（bin / etc / var / modules）、统一命令、systemd、IP 访问控制
+7. 下一步：发布 **v0.6.0**（Windows .exe + Linux .run + Docker 镜像），或 macOS / A2A 变体

@@ -35,22 +35,22 @@ powershell -ExecutionPolicy Bypass -File installer/scripts/download.ps1
 powershell -ExecutionPolicy Bypass -File installer/scripts/init.ps1
 
 # 3. 查看 / 启动服务
-php control-panel/bin/frampp status
-php control-panel/bin/frampp start all
-php control-panel/bin/frampp stop all
+bin/frampp status
+bin/frampp start all
+bin/frampp stop all
 ```
 
 ## 构建安装器与镜像（M4 / M5）
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/scripts/build-installer.ps1
-# Windows 产物：dist/installer/frampp-setup-8.5-0.5.0-windows-x64.exe
+# Windows 产物：dist/installer/frampp-setup-8.5-0.6.0-windows-x64.exe
 
 pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
-# Linux 产物：dist/installer/frampp-setup-8.5-0.5.0-linux-x86_64.run
+# Linux 产物：dist/installer/frampp-setup-8.5-0.6.0-linux-x86_64.run
 
 pwsh -File installer/scripts/build-docker.ps1 -ImageName frampp
-# Docker 产物：frampp:0.5.0 镜像（复用上面的 .run 载荷）
+# Docker 产物：frampp:0.6.0 镜像（复用上面的 .run 载荷）
 ```
 
 ### Docker 镜像
@@ -62,10 +62,10 @@ Dockerfile 复用 Linux `.run` 产物，`--extract-only` 解压而不初始化�
 ```bash
 docker run -d --name frampp \
   -p 8080:8080 -p 8081:8081 \
-  -v frampp-data:/opt/frampp/data \
+  -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  frampp:0.5.0
+  frampp:0.6.0
 ```
 
 详细卷、端口与发布说明见 [docs/docker.md](../docs/docker.md)。
@@ -73,12 +73,12 @@ docker run -d --name frampp \
 安装器行为：
 
 - 打包干净运行时（不含开发机数据/密钥），安装时自动运行 `init.ps1` 生成配置、密钥与 MariaDB 数据目录，并启动三件套
-- 卸载时先停止服务再删除（含 `data/`、`logs/` 与 init 生成的配置）
+- 卸载时先停止服务再删除（Linux 运行 `bin/uninstall`，含 `var/`、`logs/` 与 init 生成的配置）
 - 安装 / 升级 / 卸载流程见 [docs/upgrade.md](../docs/upgrade.md)
 
 ## 安全与供应链
 
 - 所有第三方二进制固定版本并校验 SHA-256；`dist/binaries/` 不入库（见 `.gitignore`）
-- 服务默认仅绑定 `127.0.0.1`；数据库 / Redis 密码与控制面板令牌由 `init.ps1` 随机生成，存于 `data/secrets.json`
+- 服务默认仅绑定 `127.0.0.1`；数据库 / Redis 密码与控制面板令牌由 `init.ps1` 随机生成，存于 `var/secrets.json`
 - 控制面板 Web 端（127.0.0.1:8081）的启停操作必须携带面板令牌
 - 代码签名列为里程碑 M4 的成本项（证书采购），当前安装器未签名，SmartScreen 可能提示

@@ -9,8 +9,8 @@ namespace Frampp\ControlPanel;
  *
  * 安全基线：
  *   - 所有服务仅绑定 127.0.0.1；
- *   - Web 端变更操作必须携带 data/secrets.json 中的 panel_token；
- *   - 进程 PID 写入 data/*.pid，由控制面板统一管理。
+ *   - Web 端变更操作必须携带 var/secrets.json 中的 panel_token；
+ *   - 进程 PID 写入 var/*.pid，由控制面板统一管理。
  */
 final class ServiceManager
 {
@@ -145,21 +145,21 @@ final class ServiceManager
 
     private function startFrankenphp(): ?int
     {
-        $exe = $this->config->bin('frankenphp') . DIRECTORY_SEPARATOR . $this->exeName('frankenphp');
+        $exe = $this->config->module('frankenphp') . DIRECTORY_SEPARATOR . $this->exeName('frankenphp');
         if (!is_file($exe)) {
             throw new \RuntimeException("缺少 FrankenPHP 可执行文件: $exe");
         }
-        $args = ['run', '--config', $this->config->root . DIRECTORY_SEPARATOR . 'Caddyfile'];
+        $args = ['run', '--config', $this->config->etcDir('Caddyfile')];
         return $this->startDetached($exe, $args, $this->config->root, 'frankenphp');
     }
 
     private function startMariadb(): ?int
     {
-        $exe = $this->config->bin('mariadb') . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . $this->exeName('mariadbd');
+        $exe = $this->config->module('mariadb') . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . $this->exeName('mariadbd');
         if (!is_file($exe)) {
             throw new \RuntimeException("缺少 MariaDB 可执行文件: $exe");
         }
-        $datadir = $this->config->dataDir('mariadb');
+        $datadir = $this->config->varDir('mariadb');
         $log = $this->config->logsDir() . DIRECTORY_SEPARATOR . 'mariadb.log';
         $args = [
             '--no-defaults',
@@ -182,17 +182,16 @@ final class ServiceManager
 
     private function startRedis(): ?int
     {
-        $exe = $this->config->bin('redis') . DIRECTORY_SEPARATOR . $this->exeName('redis-server');
+        $exe = $this->config->module('redis') . DIRECTORY_SEPARATOR . $this->exeName('redis-server');
         if (!is_file($exe)) {
             throw new \RuntimeException("缺少 Redis 可执行文件: $exe");
         }
-        // msys2 构建会按 POSIX 路径解析绝对路径参数；必须在其目录内用相对路径启动
-        // Linux 静态构建行为一致：相对路径启动 redis.conf 最稳妥
-        $redisDir = $this->config->bin('redis');
-        if (!is_dir($this->config->dataDir('redis'))) {
-            mkdir($this->config->dataDir('redis'), 0777, true);
+        // 配置统一在 etc/ 下，直接以该目录为工作目录加载 redis.conf
+        $redisCwd = $this->config->etcDir();
+        if (!is_dir($this->config->varDir('redis'))) {
+            mkdir($this->config->varDir('redis'), 0777, true);
         }
-        return $this->startDetached($exe, ['redis.conf'], $redisDir, 'redis');
+        return $this->startDetached($exe, ['redis.conf'], $redisCwd, 'redis');
     }
 
     /**
@@ -226,7 +225,7 @@ final class ServiceManager
 
     private function readPid(string $name): ?int
     {
-        $file = $this->config->dataDir($name . '.pid');
+        $file = $this->config->varDir($name . '.pid');
         if (!is_file($file)) {
             return null;
         }
@@ -236,12 +235,12 @@ final class ServiceManager
 
     private function writePid(string $name, int $pid): void
     {
-        file_put_contents($this->config->dataDir($name . '.pid'), (string) $pid);
+        file_put_contents($this->config->varDir($name . '.pid'), (string) $pid);
     }
 
     private function removePid(string $name): void
     {
-        $file = $this->config->dataDir($name . '.pid');
+        $file = $this->config->varDir($name . '.pid');
         if (is_file($file)) {
             @unlink($file);
         }

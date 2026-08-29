@@ -21,7 +21,8 @@ final class EnvTools
         if (!$this->config->runtimeReady()) {
             throw new \RuntimeException('FRAMPP 运行时不可用');
         }
-        $bin = $this->config->runtimeDir() . DIRECTORY_SEPARATOR . 'frankenphp' . DIRECTORY_SEPARATOR . 'php.exe';
+        $bin = $this->config->runtimeDir() . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'frankenphp'
+            . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'frankenphp.exe' : 'frankenphp');
         return is_file($bin) ? $bin : 'php';
     }
 
@@ -54,7 +55,7 @@ final class EnvTools
     #[AsTool('env.php_version', '查看 PHP 版本与环境信息（只读）')]
     public function phpVersion(array $args = []): array
     {
-        $text = $this->execTemplate('{php} -v', ['php' => $this->phpBin()]);
+        $text = $this->execTemplate('{php} php-cli -v', ['php' => $this->phpBin()]);
         return ['text' => $text];
     }
 
@@ -67,13 +68,14 @@ final class EnvTools
         if ($this->config->projectDir === null) {
             return ['text' => '未配置 project 目录（agent/config/frampp-mcp.json）'];
         }
-        $composer = $this->config->runtimeDir() . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'composer.phar';
+        $composer = $this->config->runtimeDir() . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'composer'
+            . DIRECTORY_SEPARATOR . 'composer.phar';
         if (!is_file($composer)) {
             return ['isError' => true, 'text' => '缺少 composer.phar'];
         }
         $flag = !empty($args['direct_only']) ? ' --direct' : '';
         $text = $this->execTemplate(
-            '{php} {composer} show --no-ansi --no-interaction' . $flag,
+            '{php} php-cli {composer} show --no-ansi --no-interaction' . $flag,
             ['php' => $this->phpBin(), 'composer' => $composer],
             $this->config->projectDir
         );
@@ -83,7 +85,8 @@ final class EnvTools
     #[AsTool('env.services_status', '查看 FRAMPP 三件套服务状态（只读）')]
     public function servicesStatus(array $args = []): array
     {
-        $cli = $this->config->runtimeDir() . DIRECTORY_SEPARATOR . 'control-panel' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'frampp';
+        $cli = $this->config->runtimeDir() . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'control-panel'
+            . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'frampp';
         if (!is_file($cli)) {
             $cli = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'control-panel' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'frampp';
         }
@@ -91,7 +94,7 @@ final class EnvTools
             return ['isError' => true, 'text' => '未找到控制面板 CLI'];
         }
         $text = $this->execTemplate(
-            '{php} {cli} status --json --home {home}',
+            '{php} php-cli {cli} status --json --home {home}',
             ['php' => $this->phpBin(), 'cli' => $cli, 'home' => $this->config->runtimeDir()]
         );
         return ['text' => $text];

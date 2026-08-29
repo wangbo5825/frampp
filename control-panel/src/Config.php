@@ -9,8 +9,8 @@ namespace Frampp\ControlPanel;
  *
  * 查找顺序：
  *   1. 环境变量 FRAMPP_HOME
- *   2. 安装布局：<runtime>/control-panel/src/../.. 下存在 data/runtime.json
- *   3. 开发布局：<repo>/dist/runtime
+ *   2. 安装布局：<runtime>/modules/control-panel/src/../.. 下存在 var/runtime.json
+ *   3. 开发布局：<repo>/dist/runtime（兼容旧 data/runtime.json）
  */
 final class Config
 {
@@ -35,13 +35,15 @@ final class Config
         $root = $home ?? getenv('FRAMPP_HOME') ?: null;
 
         if ($root === null) {
-            $base = dirname(__DIR__, 2);
             $candidates = [
-                $base,                                  // 安装布局：<runtime>
-                $base . DIRECTORY_SEPARATOR . 'dist' . DIRECTORY_SEPARATOR . 'runtime', // 开发布局
+                dirname(__DIR__, 3),                    // 安装布局：<runtime>/modules/control-panel/src
+                dirname(__DIR__, 2),                    // 开发布局：<repo>/control-panel/src
+                dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'dist' . DIRECTORY_SEPARATOR . 'runtime', // 开发运行时
+                dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'dist' . DIRECTORY_SEPARATOR . 'runtime',
             ];
             foreach ($candidates as $candidate) {
-                if (is_file($candidate . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime.json')) {
+                if (is_file($candidate . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'runtime.json')
+                    || is_file($candidate . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime.json')) {
                     $root = $candidate;
                     break;
                 }
@@ -54,8 +56,14 @@ final class Config
             );
         }
 
-        $runtimeFile = $root . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime.json';
-        $secretsFile = $root . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'secrets.json';
+        $runtimeFile = $root . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'runtime.json';
+        $secretsFile = $root . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'secrets.json';
+        if (!is_file($runtimeFile)) {
+            $runtimeFile = $root . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime.json';
+        }
+        if (!is_file($secretsFile)) {
+            $secretsFile = $root . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'secrets.json';
+        }
 
         if (!is_file($runtimeFile)) {
             throw new \RuntimeException("缺少运行时清单: {$runtimeFile}（请先运行 init.ps1）");
@@ -72,12 +80,22 @@ final class Config
 
     public function bin(string $component): string
     {
-        return $this->root . DIRECTORY_SEPARATOR . $component;
+        return $this->root . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . $component;
     }
 
-    public function dataDir(string $sub = ''): string
+    public function module(string $name): string
     {
-        return $this->root . DIRECTORY_SEPARATOR . 'data' . ($sub !== '' ? DIRECTORY_SEPARATOR . $sub : '');
+        return $this->root . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . $name;
+    }
+
+    public function etcDir(string $sub = ''): string
+    {
+        return $this->root . DIRECTORY_SEPARATOR . 'etc' . ($sub !== '' ? DIRECTORY_SEPARATOR . $sub : '');
+    }
+
+    public function varDir(string $sub = ''): string
+    {
+        return $this->root . DIRECTORY_SEPARATOR . 'var' . ($sub !== '' ? DIRECTORY_SEPARATOR . $sub : '');
     }
 
     public function logsDir(): string

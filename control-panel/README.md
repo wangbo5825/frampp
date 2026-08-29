@@ -7,9 +7,9 @@
 ## 组成
 
 - `bin/frampp`：PHP CLI 入口（`status` / `start` / `stop` / `logs` / `ports`）
-- `bin/start-service.ps1`：Windows 进程拉起适配层（隐藏窗口 + PID 落盘）
 - `src/Config.php`：运行时定位（`FRAMPP_HOME` → 安装布局 → `dist/runtime`）
 - `src/ServiceManager.php`：服务启停 / 状态 / 端口 / 日志核心
+- `src/AccessManager.php`：IP 访问控制（规则文件、GeoIP、Caddy 热重载）
 - `web/`：浏览器 UI，由 FrankenPHP 在 `127.0.0.1:8081` 提供服务
 
 ## CLI 用法
@@ -25,6 +25,10 @@ php control-panel/bin/frampp new-project my-app minimal   # 一键创建项目
 php control-panel/bin/frampp new-project api minimal      # 别名：minimal 离线模板
 php control-panel/bin/frampp new-project app symfony      # composer create-project symfony/skeleton
 php control-panel/bin/frampp new-project app api-platform # symfony/skeleton + composer require api-platform/core
+php control-panel/bin/frampp ip-access status             # IP 访问控制状态与规则
+php control-panel/bin/frampp ip-access add 203.0.113.10 block
+php control-panel/bin/frampp ip-access default block
+php control-panel/bin/frampp ip-access reload
 ```
 
 项目创建到 `htdocs/<name>`；`minimal` 为离线模板（无需网络），`symfony` / `api-platform` 依赖网络与内置 Composer。
@@ -32,5 +36,6 @@ php control-panel/bin/frampp new-project app api-platform # symfony/skeleton + c
 
 ## 安全
 
-- Web 端仅绑定 `127.0.0.1`；启停操作需 `data/secrets.json` 中的 `panel_token`
-- 服务 PID 由控制面板统一管理（`data/*.pid`），不注册系统服务
+- Web 端仅绑定 `127.0.0.1`；启停操作需 `var/secrets.json` 中的 `panel_token`
+- 服务 PID 由控制面板统一管理（`var/*.pid`），不注册系统服务
+- IP 访问控制仅 Linux 定制构建可用（Windows 官方构建未内置 `caddy-access-filter`）

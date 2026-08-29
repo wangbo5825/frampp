@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+#
+# FRAMPP pip：调用随包 Python 的 pip 模块。
+#
+set -e
+
+FRAMPP_HOME=$(cd "$(dirname "$0")/.." && pwd)
+exec "$FRAMPP_HOME/modules/python/bin/python3" -m pip "$@"

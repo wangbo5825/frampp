@@ -228,7 +228,7 @@
 <script>
 "use strict";
 
-var VERSION = "0.5.0";
+var VERSION = "0.6.0";
 var CHANNEL = "8.5";
 
 var REPO = "https://github.com/wangbo5825/frampp";
@@ -279,7 +279,7 @@ var I18N = {
             sub: "面向普通用户的一键安装体验，同时保留开发者需要的全部能力。",
             items: [
                 ["⚡", "一键安装", "下载 → 运行 → 开始开发。安装器自动校验完整性、初始化（随机密钥、MariaDB 数据目录）并启动全部服务。"],
-                ["📦", "完全自包含", "无需 root / 管理员权限，不依赖系统包管理器；目录可整体移动，移动后重跑 install.sh 即可。"],
+                ["📦", "完全自包含", "无需 root / 管理员权限，不依赖系统包管理器；目录可整体移动，移动后运行 bin/frampp init 即可。"],
                 ["🤖", "内置 AI Agent", "内置 MCP 服务器，为 AI Agent 提供数据库与运行时工具的标准化接入层，开箱即用。"],
                 ["🚀", "生产级应用服务器", "FrankenPHP 内置 Caddy：自动 HTTPS、worker 模式、热重载，支持现代 PHP 8.5。"],
                 ["🔒", "安全基线", "服务仅绑定 127.0.0.1，随机生成密钥，MariaDB 只读账号，控制面板操作需令牌。"],
@@ -321,7 +321,7 @@ var I18N = {
                 ["c", "# 一键启动 / one-click start"],
                 ["", "docker run -d --name frampp \\"],
                 ["", "  -p 8080:8080 -p 8081:8081 \\"],
-                ["", "  -v frampp-data:/opt/frampp/data \\"],
+                ["", "  -v frampp-data:/opt/frampp/var \\"],
                 ["", "  -v frampp-logs:/opt/frampp/logs \\"],
                 ["", "  -v frampp-htdocs:/opt/frampp/htdocs \\"],
                 ["", "  ghcr.io/wangbo5825/frampp:" + VERSION],
@@ -334,10 +334,10 @@ var I18N = {
                 ["c", "# 方式二：从源码运行 / or run from source"],
                 ["", "powershell -ExecutionPolicy Bypass -File installer/scripts/download.ps1"],
                 ["", "powershell -ExecutionPolicy Bypass -File installer/scripts/init.ps1"],
-                ["", "php control-panel/bin/frampp start all"],
-                ["", "php control-panel/bin/frampp status"],
+                ["", "bin/frampp start all"],
+                ["", "bin/frampp status"],
                 ["c", "# 密码与密钥 / secrets & passwords"],
-                ["", "# 安装目录 data/secrets.json"]
+                ["", "# 安装目录 var/secrets.json"]
             ],
             urls: "默认站点 / Default site: http://127.0.0.1:8080/ · 控制面板 / Control panel: http://127.0.0.1:8081/ · 目录可整体移动 / relocatable"
         },
@@ -346,10 +346,10 @@ var I18N = {
             sub: "从下载到开始开发，全程自动化，四步完成。",
             steps: [
                 ["运行安装器", "Linux .run 自动校验并解压；Windows 安装器就地部署。"],
-                ["自动初始化", "生成配置（php.ini / redis.conf / Caddyfile）、随机密钥，初始化 MariaDB 数据目录与只读账号。"],
+                ["自动初始化", "生成配置（etc/php.ini / etc/redis.conf / etc/Caddyfile）、随机密钥，初始化 MariaDB 数据目录与只读账号。"],
                 ["启动服务", "启动 FrankenPHP（8080 / 8081）、MariaDB（3306）、Redis（6379），全部仅绑定本机。"],
                 ["开始开发", "访问默认站点与控制面板，用 bin/frampp 管理服务，创建新项目。"],
-                ["一键卸载", "Linux 运行 uninstall.sh；Windows 使用卸载程序，自动停服并清理。"]
+                ["一键卸载", "Linux 运行 bin/uninstall；Windows 使用卸载程序，自动停服并清理。"]
             ]
         },
         faq: {
@@ -359,9 +359,9 @@ var I18N = {
                 ["需要 root / 管理员权限吗？", "不需要。FRAMPP 完全自包含，普通用户即可安装运行；Windows 安装器不要求管理员提权。"],
                 ["默认安装到哪里？", "Linux 默认安装到 ~/frampp，可用 --prefix 指定目录；Windows 默认 C:\\Program Files\\FRAMPP。"],
                 ["端口冲突怎么办？", "默认端口：HTTP 8080、控制面板 8081、MariaDB 3306、Redis 6379。可通过 runtime.json / 配置调整。"],
-                ["安装目录可以移动吗？", "可以。整个目录可移动，移动后重新运行 install.sh（自动复用 data/ 与密钥，幂等）。"],
-                ["如何升级？", "先备份 data/ 与 htdocs/，停止服务后用新版本安装器覆盖安装到同一目录；初始化会复用已有密钥与数据。"],
-                ["如何卸载？", "Linux 运行 uninstall.sh（可保留或删除 data/、logs/）；Windows 使用“卸载 FRAMPP”或 unins000.exe。"],
+                ["安装目录可以移动吗？", "可以。整个目录可移动，移动后重新运行 bin/frampp init（自动复用 var/ 与密钥，幂等）。"],
+                ["如何升级？", "先备份 var/ 与 htdocs/，停止服务后用新版本安装器覆盖安装到同一目录；初始化会复用已有密钥与数据。"],
+                ["如何卸载？", "Linux 运行 bin/uninstall（可保留或删除 var/、logs/）；Windows 使用“卸载 FRAMPP”或 unins000.exe。"],
                 ["支持多 PHP 版本并存吗？", "不提供 Laragon / Herd 式多版本并存。类似 XAMPP，按 FRAMPP 版本 × 通道 × 环境发布安装包。"],
                 ["系统里需要预装 PHP / MySQL 吗？", "不需要。FrankenPHP（含 PHP 8.5）、MariaDB、Redis 全部随包提供，不依赖系统包管理器。"]
             ]
@@ -372,8 +372,8 @@ var I18N = {
             items: [
                 {
                     ver: "v" + VERSION,
-                    date: "2026-08-24",
-                    desc: "Linux .run 与 Windows 安装包；新增单镜像 Docker 变体；README / 发布说明双语化。",
+                    date: "2026-08-29",
+                    desc: "标准布局（bin / etc / var / modules）、统一命令、systemd 服务与 IP 访问控制。",
                     links: [
                         ["Linux .run", LINUX_RUN],
                         ["Windows .exe", WINDOWS_EXE],
@@ -452,7 +452,7 @@ var I18N = {
             sub: "One-click installation for everyday users, without giving up what developers need.",
             items: [
                 ["⚡", "One-click Install", "Download, run, and start coding. The installer verifies integrity, initializes (random secrets, MariaDB datadir) and starts every service."],
-                ["📦", "Fully Self-contained", "No root/admin required, no system package manager dependencies; the directory is relocatable (re-run install.sh after moving)."],
+                ["📦", "Fully Self-contained", "No root/admin required, no system package manager dependencies; the directory is relocatable (run bin/frampp init after moving)."],
                 ["🤖", "AI Agent Built-in", "A built-in MCP server exposes database & runtime tools to AI agents through a standard interface, ready to use."],
                 ["🚀", "Production-grade Server", "FrankenPHP embeds Caddy: automatic HTTPS, worker mode, hot reload, and modern PHP 8.5 support."],
                 ["🔒", "Security Baseline", "Services bind to 127.0.0.1 only, random secrets, a read-only MariaDB account, and token-protected control panel actions."],
@@ -494,7 +494,7 @@ var I18N = {
                 ["c", "# one-click start"],
                 ["", "docker run -d --name frampp \\"],
                 ["", "  -p 8080:8080 -p 8081:8081 \\"],
-                ["", "  -v frampp-data:/opt/frampp/data \\"],
+                ["", "  -v frampp-data:/opt/frampp/var \\"],
                 ["", "  -v frampp-logs:/opt/frampp/logs \\"],
                 ["", "  -v frampp-htdocs:/opt/frampp/htdocs \\"],
                 ["", "  ghcr.io/wangbo5825/frampp:" + VERSION],
@@ -507,10 +507,10 @@ var I18N = {
                 ["c", "# Option 2: run from source"],
                 ["", "powershell -ExecutionPolicy Bypass -File installer/scripts/download.ps1"],
                 ["", "powershell -ExecutionPolicy Bypass -File installer/scripts/init.ps1"],
-                ["", "php control-panel/bin/frampp start all"],
-                ["", "php control-panel/bin/frampp status"],
+                ["", "bin/frampp start all"],
+                ["", "bin/frampp status"],
                 ["c", "# secrets & passwords"],
-                ["", "# data/secrets.json under the install directory"]
+                ["", "# var/secrets.json under the install directory"]
             ],
             urls: "Default site: http://127.0.0.1:8080/ · Control panel: http://127.0.0.1:8081/ · Directory is relocatable"
         },
@@ -519,10 +519,10 @@ var I18N = {
             sub: "From download to development, fully automated in four steps.",
             steps: [
                 ["Run the Installer", "The Linux .run verifies and extracts itself; the Windows installer deploys in place."],
-                ["Automatic Init", "Generates configs (php.ini / redis.conf / Caddyfile), random secrets, and initializes the MariaDB datadir & read-only account."],
+                ["Automatic Init", "Generates configs (etc/php.ini / etc/redis.conf / etc/Caddyfile), random secrets, and initializes the MariaDB datadir & read-only account."],
                 ["Services Start", "Starts FrankenPHP (8080 / 8081), MariaDB (3306) and Redis (6379), all bound to localhost only."],
                 ["Start Developing", "Open the default site and control panel, manage services with bin/frampp, and create new projects."],
-                ["One-click Uninstall", "Linux: run uninstall.sh; Windows: use the uninstaller. Services are stopped and cleaned up automatically."]
+                ["One-click Uninstall", "Linux: run bin/uninstall; Windows: use the uninstaller. Services are stopped and cleaned up automatically."]
             ]
         },
         faq: {
@@ -532,9 +532,9 @@ var I18N = {
                 ["Do I need root / admin rights?", "No. FRAMPP is fully self-contained and runs as a normal user; the Windows installer does not require elevation."],
                 ["Where is it installed?", "Linux defaults to ~/frampp (use --prefix to change); Windows defaults to C:\\Program Files\\FRAMPP."],
                 ["What if a port is already in use?", "Default ports: HTTP 8080, panel 8081, MariaDB 3306, Redis 6379. They can be adjusted via runtime.json / configs."],
-                ["Can I move the install directory?", "Yes. The whole directory is relocatable; re-run install.sh after moving (data/ and secrets are reused idempotently)."],
-                ["How do I upgrade?", "Back up data/ and htdocs/ first, stop services, then run the new installer over the same directory; init reuses existing secrets and data."],
-                ["How do I uninstall?", "Linux: run uninstall.sh (optionally delete data/ and logs/); Windows: use \"Uninstall FRAMPP\" or unins000.exe."],
+                ["Can I move the install directory?", "Yes. The whole directory is relocatable; run bin/frampp init after moving (var/ and secrets are reused idempotently)."],
+                ["How do I upgrade?", "Back up var/ and htdocs/ first, stop services, then run the new installer over the same directory; init reuses existing secrets and data."],
+                ["How do I uninstall?", "Linux: run bin/uninstall (optionally delete var/ and logs/); Windows: use \"Uninstall FRAMPP\" or unins000.exe."],
                 ["Do you support multiple PHP versions?", "No — we do not provide Laragon / Herd-style coexistence. Like XAMPP, installers are published per FRAMPP version × channel × environment."],
                 ["Do I need PHP / MySQL pre-installed?", "No. FrankenPHP (with PHP 8.5), MariaDB and Redis are all bundled; no system package manager is required."]
             ]
@@ -545,8 +545,8 @@ var I18N = {
             items: [
                 {
                     ver: "v" + VERSION,
-                    date: "2026-08-24",
-                    desc: "Linux .run and Windows installers; new single-image Docker variant; bilingual README & release notes.",
+                    date: "2026-08-29",
+                    desc: "Standard layout (bin / etc / var / modules), unified commands, systemd service and IP access control.",
                     links: [
                         ["Linux .run", LINUX_RUN],
                         ["Windows .exe", WINDOWS_EXE],

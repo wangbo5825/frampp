@@ -62,7 +62,7 @@ final class RespClient
         $port = (int) ($this->config->runtime['ports']['redis'] ?? 6379);
         $pass = $this->config->secret('redis_password');
         if ($pass === null) {
-            throw new \RuntimeException('缺少 Redis 密码（data/secrets.json 无 redis_password）');
+            throw new \RuntimeException('缺少 Redis 密码（var/secrets.json 无 redis_password）');
         }
         $errno = 0;
         $errstr = '';

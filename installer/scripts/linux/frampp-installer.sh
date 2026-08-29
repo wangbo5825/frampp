@@ -3,10 +3,10 @@
 # FRAMPP 一键安装包（Linux x86_64）/ FRAMPP One-Click Installer (Linux x86_64)
 #
 # 单文件自解压安装器：本文件头部为安装脚本，尾部追加压缩载荷（tar.gz）。
-# 运行后自动校验完整性、解压到目标目录并执行 install.sh（初始化 + 启动）。
+# 运行后自动校验完整性、解压到目标目录并执行 bin/frampp init（初始化 + 启动）。
 # Single-file self-extracting installer: this header is the launcher script,
 # the tar.gz payload is appended at the end. It verifies integrity, extracts
-# into the target directory and runs install.sh (init + start).
+# into the target directory and runs bin/frampp init (init + start).
 #
 # 用法 / Usage:
 #   ./frampp-setup-__CHANNEL__-__APP_VERSION__-linux-x86_64.run [--prefix <dir>] [--extract-only] [--skip-start] [--help]
@@ -33,7 +33,7 @@ FRAMPP $APP_VERSION 一键安装包 / One-Click Installer (channel: $CHANNEL)
 
 选项 / Options:
    --prefix <dir>    安装目录 / installation directory（默认 / default: $DEFAULT_PREFIX）
-   --extract-only    仅解压载荷，不执行 install.sh / extract payload only
+   --extract-only    仅解压载荷，不执行初始化 / extract payload only, skip init
    --skip-start      安装时不启动服务 / initialize but do not start services
    --version         显示版本 / show version
    --help, -h        显示帮助 / show this help
@@ -109,7 +109,7 @@ echo "==> 目标目录 / target directory: $PREFIX"
 
 verify_payload
 
-# 解压载荷到目标目录（幂等：已初始化则 install.sh 自动跳过初始化）
+# 解压载荷到目标目录（幂等：已初始化则 init 自动跳过）
 # Extract payload into the target directory (idempotent)
 mkdir -p "$PREFIX"
 tail -c +"$PAYLOAD_OFFSET" "$0" | tar -xzf - -C "$PREFIX"
@@ -117,15 +117,17 @@ tail -c +"$PAYLOAD_OFFSET" "$0" | tar -xzf - -C "$PREFIX"
 cd "$PREFIX"
 if [ "$EXTRACT_ONLY" -eq 1 ]; then
     echo "==> 载荷已解压到 / payload extracted to: $PREFIX"
-    echo "==> 已跳过 install.sh / install.sh skipped (--extract-only)."
-elif [ -x "./install.sh" ]; then
+    echo "==> 已跳过初始化 / init skipped (--extract-only)."
+elif [ -x "./bin/frampp" ]; then
+    ./bin/frampp init
     if [ "$SKIP_START" -eq 1 ]; then
-        ./install.sh --skip-start
+        echo "==> 已跳过服务启动 / service start skipped (--skip-start)."
     else
-        ./install.sh
+        ./bin/frampp start all || true
+        ./bin/frampp status || true
     fi
 else
-    echo "ERROR: 解压不完整 / extraction incomplete: install.sh not found" >&2
+    echo "ERROR: 解压不完整 / extraction incomplete: bin/frampp not found" >&2
     exit 1
 fi
 # 显式退出，避免 shell 继续读取尾部二进制载荷（makeself 惯例）

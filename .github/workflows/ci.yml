@@ -118,16 +118,18 @@ jobs:
           chmod +x "$PKG"
           ./"$PKG" --prefix "$PWD/frampp"
           cd frampp
-          echo "=== install.sh already ran inside .run; verify state ==="
-          ./install.sh
+          echo "=== init already ran inside .run; verify idempotent init ==="
+          ./bin/frampp init
           echo "=== Caddyfile ==="
-          cat Caddyfile
+          cat etc/Caddyfile
           echo "=== status ==="
           ./bin/frampp status --json || true
           echo "=== version ==="
           ./bin/frampp version || true
           echo "=== extensions ==="
-          ./frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', PHP_EOL);" || true
+          ./modules/frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s pdo_sqlite=%s simplexml=%s openssl=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', extension_loaded('pdo_sqlite')?'yes':'NO', extension_loaded('simplexml')?'yes':'NO', extension_loaded('openssl')?'yes':'NO', PHP_EOL);" || true
+          echo "=== caddy version (require >= 2.11.4) ==="
+          ./modules/frankenphp/frankenphp version | grep -E "Caddy v2\.11\.4|v2\.11\.4" || { echo "CADDY_VERSION_TOO_OLD"; exit 1; }
           echo "=== http 8080 (headers+body head) ==="
           curl -sS -i --max-time 15 http://127.0.0.1:8080/ | head -n 30 || true
           echo "=== http 8081 (headers+body head) ==="
@@ -146,25 +148,25 @@ jobs:
           fi
           echo "PANEL_OK"
           echo "=== adapted config (routes per server) ==="
-          ./frankenphp/frankenphp adapt --config Caddyfile --adapter caddyfile 2>/dev/null \
+          ./modules/frankenphp/frankenphp adapt --config etc/Caddyfile --adapter caddyfile 2>/dev/null \
             | grep -o '"handler":"[a-z_]*"' | sort | uniq -c || true
           echo "=== control-panel/web listing ==="
-          ls -la control-panel/web || true
+          ls -la modules/control-panel/web || true
           echo "=== slim checks (mariadb-test must be gone) ==="
-          du -sh mariadb python frankenphp redis || true
-          if [ -d mariadb/mariadb-test ]; then
+          du -sh modules/mariadb modules/python modules/frankenphp modules/redis || true
+          if [ -d modules/mariadb/mariadb-test ]; then
             echo "MARIADB_TEST_STILL_PRESENT"; exit 1
           fi
           echo "SLIM_OK"
           echo "=== portability checks ==="
           echo "--- FrankenPHP must be static (musl, no glibc dep) ---"
-          if file frankenphp/frankenphp | grep -qi "statically linked"; then
+          if file modules/frankenphp/frankenphp | grep -qi "statically linked"; then
             echo "FRANKENPHP_STATIC_OK"
           else
             echo "FRANKENPHP_NOT_STATIC"; exit 1
           fi
           echo "--- MariaDB glibc baseline must be <= 2.31 ---"
-          bash "$GITHUB_WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" mariadb 2.31 mariadb
+          bash "$GITHUB_WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" modules/mariadb 2.31 mariadb
           echo "PORTABLE_OK"
           echo "=== service logs ==="
           tail -n 60 logs/frankenphp.err.log 2>/dev/null || true
@@ -180,10 +182,10 @@ jobs:
             sleep 1
           done
           mysql_ready || { echo "MYSQL_PORT_NOT_READY"; exit 1; }
-          ROOT_PW="$(sed -n 's/.*"mariadb_root_password"[^"]*"\([^"]*\)".*/\1/p' data/secrets.json)"
-          REDIS_PW="$(sed -n 's/.*"redis_password"[^"]*"\([^"]*\)".*/\1/p' data/secrets.json)"
-          ./mariadb/bin/mysql --no-defaults --connect-timeout=5 -h127.0.0.1 -P3306 -uroot -p"$ROOT_PW" -e "SELECT VERSION();"
-          ./redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
+          ROOT_PW="$(sed -n 's/.*"mariadb_root_password"[^"]*"\([^"]*\)".*/\1/p' var/secrets.json)"
+          REDIS_PW="$(sed -n 's/.*"redis_password"[^"]*"\([^"]*\)".*/\1/p' var/secrets.json)"
+          ./modules/mariadb/bin/mysql --no-defaults --connect-timeout=5 -h127.0.0.1 -P3306 -uroot -p"$ROOT_PW" -e "SELECT VERSION();"
+          ./modules/redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
           echo "=== stop ==="
           ./bin/frampp stop all || true
           ./bin/frampp status --json || true

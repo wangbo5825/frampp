@@ -90,6 +90,7 @@ $layout = @(
     (Join-Path $StagingDir "htdocs"),
     (Join-Path $StagingDir "logs"),
     (Join-Path $StagingDir "installer/scripts"),
+    (Join-Path $StagingDir "installer/scripts/linux"),
     (Join-Path $StagingDir "installer/config"),
     (Join-Path $StagingDir "installer/templates"),
     (Join-Path $StagingDir "installer/runtime"),

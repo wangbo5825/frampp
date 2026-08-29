@@ -136,6 +136,7 @@ $runHeader = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/l
 Assert-True ($runHeader -match '\-\-extract-only') "frampp-installer.sh supports --extract-only"
 $buildLinux = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/build-linux-package.ps1")
 Assert-True ($buildLinux -match 'installer/scripts/linux') "build-linux-package.ps1 stages runtime scripts under installer/scripts/linux"
+Assert-True ($buildLinux -match '\(Join-Path \$StagingDir "installer/scripts/linux"\)') "build-linux-package.ps1 layout pre-creates installer/scripts/linux dir"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/config/channels.json")) "channels.json exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/upgrade.md")) "docs/upgrade.md exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/releases.md")) "docs/releases.md exists"

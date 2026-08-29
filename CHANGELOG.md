@@ -17,6 +17,14 @@ All notable changes to FRAMPP are documented here.
 - Upgraded `caddy-access-filter` to v1.2.0 with local IP / CIDR / country-code
   rules and GeoIP databases; the control panel now manages IP access control
   (rules, default policy, hot reload).
+- Added a site manager to the control panel (`/sites.php`): create, edit and
+  delete sites as `etc/caddy.d/*.caddy` fragments, then hot-reload the full
+  Caddyfile through the Caddy admin API (`/load`, `text/caddyfile`). Supports
+  PHP, static and reverse-proxy sites.
+- Added a site manager to the control panel (`/sites.php`): create, edit and
+  delete sites as `etc/caddy.d/*.caddy` fragments, then hot-reload the full
+  Caddyfile through the Caddy admin API (`/load`, `text/caddyfile`). Supports
+  PHP, static and reverse-proxy sites.
 
 ### Changed
 

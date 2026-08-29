@@ -190,7 +190,7 @@ Copy-Item -LiteralPath (Join-Path $Root "control-panel/bin") -Destination (Join-
 Copy-Item -LiteralPath (Join-Path $Root "agent") -Destination (Join-Path $moduleDir "agent") -Recurse -Force
 # 只复制运行时需要的脚本；构建脚本不进安装包
 foreach ($runtimeScript in @("init.sh", "docker-entrypoint.sh", "docker-healthcheck.sh")) {
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/$runtimeScript") -Destination (Join-Path $StagingDir "installer/scripts")
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/$runtimeScript") -Destination (Join-Path $StagingDir "installer/scripts/linux")
 }
 Copy-Item -Path (Join-Path $Root "installer/config/*") -Destination (Join-Path $StagingDir "installer/config") -Recurse -Force
 Copy-Item -Path (Join-Path $Root "installer/templates/*") -Destination (Join-Path $StagingDir "installer/templates") -Recurse -Force

@@ -5,19 +5,23 @@ declare(strict_types=1);
 require __DIR__ . '/../src/Config.php';
 require __DIR__ . '/../src/ServiceManager.php';
 require __DIR__ . '/../src/AccessManager.php';
+require __DIR__ . '/../src/SiteManager.php';
 
 use Frampp\ControlPanel\Config;
 use Frampp\ControlPanel\ServiceManager;
 use Frampp\ControlPanel\AccessManager;
+use Frampp\ControlPanel\SiteManager;
 
 $config = Config::discover();
 $mgr = new ServiceManager($config);
 $access = new AccessManager($config);
+$sites = new SiteManager($config);
 $status = $mgr->status();
 $ports = $mgr->ports();
 $log = $mgr->tailLog('frankenphp', 40);
 $accessCfg = $access->config();
 $accessRules = $access->rules();
+$siteCount = count($sites->sites());
 $token = (string) $config->secret('panel_token');
 
 function badge(bool $ok): string
@@ -50,6 +54,7 @@ function badge(bool $ok): string
 <main>
     <h1>FRAMPP 控制面板</h1>
     <p class="meta">运行时：<?= htmlspecialchars($config->root) ?></p>
+    <p><a href="sites.php" style="color:#0969da;font-size:14px">站点管理 / Site Manager（<?= $siteCount ?>）</a></p>
 
     <div class="card">
         <table>

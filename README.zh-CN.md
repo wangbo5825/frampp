@@ -31,7 +31,7 @@ FRAMPP 把 PHP 应用服务器、MariaDB 和 Redis 打包成自包含的 XAMPP �
 - **AI 就绪** — 内置 Agent / MCP 服务器，将 MySQL、Redis、日志和环境信息开放
   给主流 AI 编码工具。
 - **一条命令管理** — `frampp {status|start|stop|logs|new-project|ip-access}`，并提供 Web
-  控制面板。
+  控制面板（服务、IP 访问控制、站点管理）。
 - **标准布局与命令** — `bin/` 统一命令、`etc/` 集中配置、`var/` 运行时数据、
   `modules/` 软件模块；Linux 目录可整体移动，移动后运行 `bin/frampp init`。
 - **默认安全** — 服务仅监听 localhost、每次安装生成随机密钥、使用只读数据库
@@ -69,7 +69,7 @@ chmod +x frampp-setup-8.5-0.6.0-linux-x86_64.run
 安装完成后：
 
 - 默认站点：<http://127.0.0.1:8080/>
-- 控制面板：<http://127.0.0.1:8081/>
+- 控制面板：<http://127.0.0.1:8081/>——服务、IP 访问控制与站点管理（`sites.php`），支持 PHP / 静态 / 反向代理站点并热重载。
 - 管理命令：`~/frampp/bin/frampp {status|start|stop|logs|new-project|ip-access}`
 - 标准命令：`bin/php`、`bin/composer`、`bin/python`、`bin/pip`、`bin/mysql`、
   `bin/redis-cli`；环境变量可 `source bin/env` 一次性配置。

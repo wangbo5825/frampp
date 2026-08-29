@@ -166,6 +166,15 @@
   精确 IP、CIDR、`code:<国家/地区码>` 规则（配合 GeoIP 数据库）；控制面板新增
   IP 访问控制页，规则写入 `etc/access-filter.rules`，并通过 Caddy admin API 热重载。
   Windows 官方预编译 FrankenPHP 暂不内置该模块，控制面板在 Windows 上提示不支持。
+- **站点管理 UI（PHP 原生实现，2026-08-29 定版）**：调研 CaddyDash / CaddyManager /
+  caddyproxymanager / CaddyUI 等第三方 Caddy 管理面板后，否决引入 Node/Python/Go 面板
+  的方案（新增运行时、与 FrankenPHP 内嵌 Caddy 的进程模型冲突、DB 与文件式配置漂移）。
+  控制面板以 PHP 原生实现站点管理（`control-panel/src/SiteManager.php` +
+  `web/sites.php`）：站点以 `etc/caddy.d/<name>.caddy` 片段落盘（保持文件式为唯一事实来源，
+  与 access-filter / Souin / caddy.d 语义一致），保存后重建 Caddyfile 并 POST 到
+  Caddy admin API `http://127.0.0.1:2019/load`（`Content-Type: text/caddyfile`）热重载；
+  Caddy 先适配并校验，非法配置返回 4xx 且保持旧配置运行，控制面板展示错误信息。
+  支持 PHP / 静态 / 反向代理三种站点形态。
 
 ---
 

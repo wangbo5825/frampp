@@ -14,7 +14,7 @@ param(
     [string]$StagingDir,
     [string]$ToolsDir,
     [string]$InnoVersion = "7.1.0-x64",
-    [string]$AppVersion = "0.1.0",
+    [string]$AppVersion,
     [string]$Channel = "8.5",
     [string]$Env = "windows-x64"
 )
@@ -23,6 +23,7 @@ if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path 
 if (-not $CacheDir) { $CacheDir = Join-Path $Root "dist\binaries" }
 if (-not $StagingDir) { $StagingDir = Join-Path $Root "dist\staging" }
 if (-not $ToolsDir) { $ToolsDir = Join-Path $Root "dist\tools" }
+if (-not $AppVersion) { $AppVersion = (Get-Content -LiteralPath (Join-Path $Root "VERSION") -Raw).Trim() }
 
 $ErrorActionPreference = "Stop"
 

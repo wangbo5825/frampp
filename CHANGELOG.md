@@ -21,6 +21,18 @@ All notable changes to FRAMPP are documented here.
   delete sites as `etc/caddy.d/*.caddy` fragments, then hot-reload the full
   Caddyfile through the Caddy admin API (`/load`, `text/caddyfile`). Supports
   PHP, static and reverse-proxy sites.
+- Added process attribution and orphan cleanup: PID files now record the
+  launcher (daemon/CLI) and start time; `frampp status` flags services left
+  running by an exited `framppd` daemon as `ORPHAN`, and `frampp cleanup`
+  (also available in the control panel) reaps orphaned process trees and
+  removes stale PID files. Windows process checks use `Get-Process` instead of
+  `tasklist /FI` for broader permission compatibility.
+- Added process attribution and orphan cleanup: PID files now record the
+  launcher (daemon/CLI) and start time; `frampp status` flags services left
+  running by an exited `framppd` daemon as `ORPHAN`, and `frampp cleanup`
+  (also available in the control panel) reaps orphaned process trees and
+  removes stale PID files. Windows process checks use `Get-Process` instead of
+  `tasklist /FI` for broader permission compatibility.
 - Added a site manager to the control panel (`/sites.php`): create, edit and
   delete sites as `etc/caddy.d/*.caddy` fragments, then hot-reload the full
   Caddyfile through the Caddy admin API (`/load`, `text/caddyfile`). Supports

@@ -36,6 +36,7 @@ try {
     $result = match ($action) {
         'start' => $mgr->start($service),
         'stop'  => $mgr->stop($service),
+        'cleanup' => $mgr->cleanupOrphans(),
         'site-save' => $sites->saveSite((string) ($_POST['name'] ?? ''), [
             'address' => (string) ($_POST['address'] ?? ''),
             'type'    => (string) ($_POST['type'] ?? 'php'),

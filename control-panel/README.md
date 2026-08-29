@@ -18,6 +18,7 @@
 php control-panel/bin/frampp status          # 三件套状态
 php control-panel/bin/frampp start all       # 启动全部
 php control-panel/bin/frampp stop mariadb    # 停止单个服务
+php control-panel/bin/frampp cleanup         # 回收孤儿进程（framppd 异常退出后的残留）并清理过期 PID 文件
 php control-panel/bin/frampp logs redis 100  # 最近 100 行日志
 php control-panel/bin/frampp ports --json
 php control-panel/bin/frampp version        # 版本与组件版本

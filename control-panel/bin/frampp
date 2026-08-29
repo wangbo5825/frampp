@@ -37,6 +37,7 @@ try {
         'status' => $mgr->status(),
         'start'  => self_start($mgr, $args[1] ?? 'all'),
         'stop'   => self_stop($mgr, $args[1] ?? 'all'),
+        'cleanup' => $mgr->cleanupOrphans(),
         'logs'   => $mgr->tailLog($args[1] ?? 'frankenphp', max(1, (int) ($args[2] ?? 50))),
         'ports'  => $mgr->ports(),
         'version' => [
@@ -46,7 +47,7 @@ try {
         'new-project' => (new ProjectCreator($config))->create((string) ($args[1] ?? ''), (string) ($args[2] ?? 'minimal')),
         'ip-access' => self_ip_access($access, array_slice($args, 1)),
         default  => throw new \InvalidArgumentException(
-            "未知命令: $cmd（支持 status|start|stop|logs|ports|version|new-project|ip-access）"
+            "未知命令: $cmd（支持 status|start|stop|cleanup|logs|ports|version|new-project|ip-access）"
         ),
     };
 
@@ -84,6 +85,18 @@ function self_stop(ServiceManager $mgr, string $target): array
 
 function renderText(string $cmd, array $data): void
 {
+    if ($cmd === 'cleanup') {
+        $cleaned = $data['cleaned'] ?? [];
+        $skipped = $data['skipped'] ?? [];
+        printf("cleanup: 已回收 %d 个孤儿进程 / orphan(s) cleaned: %d%s", count($cleaned), count($cleaned), PHP_EOL);
+        foreach ($cleaned as $name) {
+            echo "  - {$name}", PHP_EOL;
+        }
+        if ($skipped) {
+            printf("过期 PID 文件已清理 / stale pid files removed: %s%s", implode(', ', $skipped), PHP_EOL);
+        }
+        return;
+    }
     if ($cmd === 'ports') {
         foreach ($data as $name => $info) {
             printf("%-10s %-6d %s%s", $name, $info['port'], $info['open'] ? 'OPEN' : 'closed', PHP_EOL);
@@ -99,13 +112,15 @@ function renderText(string $cmd, array $data): void
     }
     foreach ($data as $name => $info) {
         if (isset($info['running'])) {
+            $mark = ($info['orphan'] ?? false) ? ' ORPHAN' : '';
             printf(
-                "%-10s %-8s pid=%-6s port=%s(%s)%s",
+                "%-10s %-8s pid=%-6s port=%s(%s)%s%s",
                 $name,
                 $info['running'] ? 'RUNNING' : 'STOPPED',
                 (string) ($info['pid'] ?? '-'),
                 (string) ($info['port'] ?? '-'),
                 ($info['port_open'] ?? false) ? 'OPEN' : 'closed',
+                $mark,
                 PHP_EOL
             );
         } else {

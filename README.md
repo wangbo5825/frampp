@@ -32,7 +32,7 @@ Key characteristics:
 - **Standard layout & commands** — `bin/` for commands, `etc/` for configs,
   `var/` for runtime data, `modules/` for components; the directory is
   relocatable and `bin/frampp init` re-initializes after moving.
-- **One-command management** — `frampp {status|start|stop|logs|new-project|ip-access}` plus a web control panel (services, IP access control, site manager).
+- **One-command management** — `frampp {status|start|stop|cleanup|logs|new-project|ip-access}` plus a web control panel (services, IP access control, site manager).
 - **AI-ready** — a built-in Agent (MCP) layer lets AI assistants interact with your local stack through standard MCP tools.
 - **Secure by default** — services bind to localhost, runtime secrets are generated per installation, read-only database accounts are used where applicable, and audit logs are kept.
 - **Separate bilingual docs** — English and Chinese root README / changelog files.
@@ -79,7 +79,7 @@ After install, visit:
 
 - Default site: <http://127.0.0.1:8080/>
 - Control panel: <http://127.0.0.1:8081/> — services, IP access control and a site manager (`sites.php`) for PHP / static / reverse-proxy sites with hot reload.
-- Manage: `~/frampp/bin/frampp {status|start|stop|logs|new-project|ip-access}`
+- Manage: `~/frampp/bin/frampp {status|start|stop|cleanup|logs|new-project|ip-access}`
 - Standard commands: `bin/php`, `bin/composer`, `bin/python`, `bin/pip`,
   `bin/mysql`, `bin/redis-cli`; `source bin/env` sets `PATH` / `PHPRC`.
 - systemd: `sudo bin/install-systemd` installs a boot service.

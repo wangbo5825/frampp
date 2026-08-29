@@ -5,6 +5,7 @@
 set -euo pipefail
 
 FRAMPP_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export FRAMPP_DAEMON=1
 
 stop_all() {
     "$FRAMPP_HOME/bin/frampp" stop all || true

@@ -65,7 +65,7 @@ function badge(bool $ok): string
             <?php foreach ($status as $name => $s): ?>
                 <tr>
                     <td><?= htmlspecialchars($name) ?></td>
-                    <td><?= badge($s['running']) ?></td>
+                    <td><?= badge($s['running']) ?><?= !empty($s['orphan']) ? ' <span style="color:#9a6700;font-weight:600">孤儿 / orphan</span>' : '' ?></td>
                     <td><?= $s['pid'] ?? '-' ?></td>
                     <td><?= $s['port'] ? $s['port'] . '（' . ($s['port_open'] ? '开放' : '关闭') . '）' : '-' ?></td>
                     <td>
@@ -89,6 +89,15 @@ function badge(bool $ok): string
             <?php endforeach; ?>
             </tbody>
         </table>
+        <?php if (array_filter($status, static fn (array $s): bool => !empty($s['orphan']))): ?>
+            <form method="post" action="action.php" style="margin-top:12px">
+                <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+                <input type="hidden" name="action" value="cleanup">
+                <button type="submit">清理孤儿进程 / Cleanup orphan processes</button>
+            </form>
+            <p class="meta">以下服务由已退出的 frampp 守护进程启动，仍在运行：可用上方按钮一键回收。
+                Services started by an exited frampp daemon are still running; use the button to reap them.</p>
+        <?php endif; ?>
     </div>
 
     <div class="card">

@@ -178,6 +178,12 @@
   Caddy admin API `http://127.0.0.1:2019/load`（`Content-Type: text/caddyfile`）热重载；
   Caddy 先适配并校验，非法配置返回 4xx 且保持旧配置运行，控制面板展示错误信息。
   支持 PHP / 静态 / 反向代理三种站点形态。
+- **进程归因与孤儿清理（2026-08-29 定版）**：服务 PID 文件由纯整数升级为 JSON 元数据
+  （`pid` / `launcher_pid` / `launcher_type` / `started_at`，兼容旧格式），
+  `framppd` 启动服务时标记 `launcher_type=daemon`；`frampp status` 对「daemon 启动者已退出
+  但服务仍存活」的进程标记 `ORPHAN`，`frampp cleanup`（CLI 与控制面板按钮）按进程树回收
+  并删除过期 PID 文件。Windows 进程探测改用 `Get-Process`（`tasklist /FI` 在受限环境会被拒绝）。
+  独立常驻 worker 脚本后续接入时沿用同一进程归因模型，作为独立进程由 ServiceManager 统一管理。
 
 ---
 

@@ -32,7 +32,7 @@ final class ServiceManager
     }
 
     /**
-     * @return array<string,array{name:string,running:bool,pid:?int,port:?int,port_open:bool,error:?string}>
+     * @return array<string,array{name:string,running:bool,pid:?int,port:?int,port_open:bool,orphan:bool,error:?string}>
      */
     public function status(?string $only = null): array
     {
@@ -41,7 +41,8 @@ final class ServiceManager
             if ($only !== null && $only !== $name) {
                 continue;
             }
-            $pid = $this->readPid($name);
+            $metaInfo = $this->pidMeta($name);
+            $pid = $metaInfo['pid'] ?? null;
             $port = $this->config->port($meta['port']);
             $alive = $pid !== null && $this->isProcessAlive($pid);
             $result[$name] = [
@@ -50,6 +51,7 @@ final class ServiceManager
                 'pid'       => $pid,
                 'port'      => $port,
                 'port_open' => $this->isPortOpen('127.0.0.1', $port),
+                'orphan'    => $alive && $this->isOrphan($metaInfo),
                 'error'     => null,
             ];
         }
@@ -81,7 +83,8 @@ final class ServiceManager
         }
 
         if ($pid !== null) {
-            $this->writePid($name, $pid);
+            $launcherType = getenv('FRAMPP_DAEMON') === '1' ? 'daemon' : 'cli';
+            $this->writePidMeta($name, $pid, $launcherType);
         }
         return ['name' => $name, 'started' => true, 'pid' => $pid];
     }
@@ -97,12 +100,8 @@ final class ServiceManager
             return ['name' => $name, 'stopped' => false, 'message' => '未在运行'];
         }
 
-        // 先优雅终止，超时再强杀
-        if (self::WINDOWS) {
-            exec('taskkill /PID ' . (int) $pid . ' /T 2>NUL');
-        } else {
-            exec('kill ' . (int) $pid . ' 2>/dev/null');
-        }
+        // 先优雅终止进程树，超时再强杀
+        $this->killProcessTree($pid, false);
         for ($i = 0; $i < 20; $i++) {
             if (!$this->isProcessAlive($pid)) {
                 break;
@@ -110,14 +109,41 @@ final class ServiceManager
             usleep(250_000);
         }
         if ($this->isProcessAlive($pid)) {
-            if (self::WINDOWS) {
-                exec('taskkill /PID ' . (int) $pid . ' /T /F 2>NUL');
-            } else {
-                exec('kill -9 ' . (int) $pid . ' 2>/dev/null');
-            }
+            $this->killProcessTree($pid, true);
         }
         $this->removePid($name);
         return ['name' => $name, 'stopped' => true];
+    }
+
+    /**
+     * 清理孤儿服务：daemon（framppd）启动且启动者已退出的残留进程，
+     * 按进程树终止并删除 PID 文件。
+     *
+     * @return array{cleaned:list<string>,skipped:list<string>}
+     */
+    public function cleanupOrphans(): array
+    {
+        $cleaned = [];
+        $skipped = [];
+        foreach (self::SERVICES as $name => $meta) {
+            $info = $this->pidMeta($name);
+            $pid = $info['pid'] ?? null;
+            if ($pid === null) {
+                continue;
+            }
+            if (!$this->isProcessAlive($pid)) {
+                // 进程已不存在，仅清理过期 PID 文件
+                $this->removePid($name);
+                $skipped[] = $name;
+                continue;
+            }
+            if ($this->isOrphan($info)) {
+                $this->killProcessTree($pid, true);
+                $this->removePid($name);
+                $cleaned[] = $name;
+            }
+        }
+        return ['cleaned' => $cleaned, 'skipped' => $skipped];
     }
 
     public function tailLog(string $name, int $lines = 50): array
@@ -225,17 +251,68 @@ final class ServiceManager
 
     private function readPid(string $name): ?int
     {
-        $file = $this->config->varDir($name . '.pid');
-        if (!is_file($file)) {
-            return null;
-        }
-        $pid = (int) trim((string) file_get_contents($file));
-        return $pid > 0 ? $pid : null;
+        return $this->pidMeta($name)['pid'] ?? null;
     }
 
-    private function writePid(string $name, int $pid): void
+    /**
+     * 读取 PID 元数据。兼容旧格式（纯整数 PID）。
+     *
+     * @return array{pid:?int,launcher_pid:?int,launcher_type:string,started_at:?string}
+     */
+    private function pidMeta(string $name): array
     {
-        file_put_contents($this->config->varDir($name . '.pid'), (string) $pid);
+        $file = $this->config->varDir($name . '.pid');
+        if (!is_file($file)) {
+            return ['pid' => null, 'launcher_pid' => null, 'launcher_type' => 'cli', 'started_at' => null];
+        }
+        $raw = trim((string) file_get_contents($file));
+        $data = json_decode($raw, true);
+        if (is_array($data) && isset($data['pid'])) {
+            return [
+                'pid'           => (int) $data['pid'],
+                'launcher_pid'  => isset($data['launcher_pid']) ? (int) $data['launcher_pid'] : null,
+                'launcher_type' => (string) ($data['launcher_type'] ?? 'cli'),
+                'started_at'    => isset($data['started_at']) ? (string) $data['started_at'] : null,
+            ];
+        }
+        // 旧格式：纯整数 PID
+        $pid = (int) $raw;
+        return [
+            'pid'           => $pid > 0 ? $pid : null,
+            'launcher_pid'  => null,
+            'launcher_type' => 'cli',
+            'started_at'    => null,
+        ];
+    }
+
+    /**
+     * @param array{pid:?int,launcher_pid:?int,launcher_type:string,started_at:?string} $meta
+     */
+    private function isOrphan(array $meta): bool
+    {
+        if (($meta['launcher_type'] ?? 'cli') !== 'daemon') {
+            return false;
+        }
+        $launcher = $meta['launcher_pid'] ?? null;
+        if ($launcher === null || $launcher <= 0) {
+            return false;
+        }
+        // 启动者（framppd）已退出，而服务进程仍然存活 => 残留孤儿
+        return !$this->isProcessAlive($launcher);
+    }
+
+    private function writePidMeta(string $name, int $pid, string $launcherType): void
+    {
+        $meta = [
+            'pid'           => $pid,
+            'launcher_pid'  => $launcherType === 'daemon' ? $this->parentPid() : null,
+            'launcher_type' => $launcherType,
+            'started_at'    => date(DATE_ATOM),
+        ];
+        file_put_contents(
+            $this->config->varDir($name . '.pid'),
+            json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
+        );
     }
 
     private function removePid(string $name): void
@@ -248,18 +325,66 @@ final class ServiceManager
 
     private function isProcessAlive(int $pid): bool
     {
-        if (self::WINDOWS) {
-            exec('tasklist /FI "PID eq ' . $pid . '" /NH 2>NUL', $out, $exit);
-            foreach ($out as $line) {
-                if (str_contains($line, (string) $pid)) {
-                    return true;
-                }
-            }
+        if ($pid <= 0) {
             return false;
+        }
+        if (self::WINDOWS) {
+            // tasklist /FI 在某些权限环境（如受限沙盒）会被拒绝，改用 Get-Process
+            exec(
+                'powershell -NoProfile -Command "if (Get-Process -Id ' . $pid . ' -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }" 2>NUL',
+                $out,
+                $exit
+            );
+            return $exit === 0;
         }
         // POSIX：kill -0 不发送信号，仅探测进程是否存在
         exec('kill -0 ' . $pid . ' 2>/dev/null', $out, $exit);
         return $exit === 0;
+    }
+
+    /** 当前进程（PHP CLI）的父进程 PID，用于 daemon 启动归因 */
+    private function parentPid(): ?int
+    {
+        if (self::WINDOWS) {
+            return null;
+        }
+        exec('ps -o ppid= -p ' . getmypid() . ' 2>/dev/null', $out, $exit);
+        $ppid = (int) trim(implode('', $out));
+        return $ppid > 0 ? $ppid : null;
+    }
+
+    /**
+     * 终止进程树：先后代后根，Windows 用 taskkill /T，Linux 递归收集后代。
+     */
+    private function killProcessTree(int $pid, bool $force): void
+    {
+        if (self::WINDOWS) {
+            exec('taskkill /PID ' . (int) $pid . ($force ? ' /T /F' : ' /T') . ' 2>NUL');
+            return;
+        }
+        $tree = [$pid];
+        $this->collectDescendants($pid, $tree);
+        // 从最深的后代开始终止，最后终止根进程
+        foreach (array_reverse($tree) as $p) {
+            exec('kill ' . ($force ? '-9 ' : '') . (int) $p . ' 2>/dev/null');
+        }
+    }
+
+    /**
+     * 递归收集子进程 PID（Linux：ps --ppid）。
+     *
+     * @param list<int> $result
+     */
+    private function collectDescendants(int $pid, array &$result): void
+    {
+        exec('ps -o pid= --ppid ' . (int) $pid . ' 2>/dev/null', $out);
+        foreach ($out as $line) {
+            $child = (int) trim($line);
+            if ($child > 0 && !in_array($child, $result, true)) {
+                $result[] = $child;
+                $this->collectDescendants($child, $result);
+            }
+        }
     }
 
     private function exeName(string $base): string

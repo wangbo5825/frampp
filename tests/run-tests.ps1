@@ -174,6 +174,35 @@ if ($php) {
     Assert-True ($null -ne $json.frankenphp -and $null -ne $json.mariadb -and $null -ne $json.redis) "frampp status lists three services"
     Assert-True (-not $json.frankenphp.running) "frankenphp reports stopped in empty runtime"
 
+    # 孤儿检测：daemon 启动者已退出但服务进程存活 => orphan=true（只读状态，不清理）
+    Write-JsonNoBom (Join-Path $tmp "var/redis.pid") @{
+        pid = $PID
+        launcher_pid = 999999
+        launcher_type = "daemon"
+        started_at = (Get-Date -Format o)
+    }
+    $stOut = (& php $cli status --json --home $tmp 2>&1 | Out-String)
+    $stJson = $stOut | ConvertFrom-Json
+    Assert-True ($stJson.redis.running) "orphan detection: service process alive"
+    Assert-True ($stJson.redis.orphan) "orphan detection: dead daemon launcher -> orphan"
+    Remove-Item -LiteralPath (Join-Path $tmp "var/redis.pid") -Force
+
+    # cleanup：进程已不存在的 PID 文件（JSON 新格式 + 纯整数旧格式）应被清理且不杀进程
+    Write-JsonNoBom (Join-Path $tmp "var/frankenphp.pid") @{
+        pid = 999998
+        launcher_pid = 999999
+        launcher_type = "daemon"
+        started_at = (Get-Date -Format o)
+    }
+    [System.IO.File]::WriteAllText((Join-Path $tmp "var/mariadb.pid"), "123456", (New-Object System.Text.UTF8Encoding($false)))
+    $clOut = (& php $cli cleanup --json --home $tmp 2>&1 | Out-String)
+    Assert-True ($LASTEXITCODE -eq 0) "frampp cleanup exits 0"
+    $clJson = $clOut | ConvertFrom-Json
+    Assert-True ($clJson.skipped -contains "frankenphp") "cleanup removes stale JSON pid file"
+    Assert-True ($clJson.skipped -contains "mariadb") "cleanup parses legacy integer pid file"
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $tmp "var/frankenphp.pid"))) "cleanup deleted JSON pid file"
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $tmp "var/mariadb.pid"))) "cleanup deleted legacy pid file"
+
     # new-project minimal（模板回退到仓库 installer/templates/project-minimal）
     $npOut = (& php $cli new-project demo minimal --json --home $tmp 2>&1 | Out-String)
     Assert-True ($LASTEXITCODE -eq 0) "frampp new-project exits 0"

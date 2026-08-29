@@ -104,6 +104,7 @@ $dirs = @(
     (Join-Path $RuntimeDir "modules\templates"),
     (Join-Path $RuntimeDir "bin"),
     (Join-Path $RuntimeDir "etc"),
+    (Join-Path $RuntimeDir "etc\caddy.d"),
     (Join-Path $RuntimeDir "htdocs"),
     (Join-Path $RuntimeDir "logs"),
     (Join-Path $RuntimeDir "var\mariadb"),
@@ -253,12 +254,23 @@ if (-not (Test-Path -LiteralPath $accessRulesPath)) {
 $accessCaddyPath = Join-Path $RuntimeDir "etc\access-filter.caddy"
 [System.IO.File]::WriteAllText($accessCaddyPath, "# access-filter disabled`n", (New-Object System.Text.UTF8Encoding($false)))
 
+$caddyD = Join-Path $RuntimeDir "etc\caddy.d"
+$caddyDReadme = Join-Path $caddyD "00-default.caddy"
+if (-not (Test-Path -LiteralPath $caddyDReadme)) {
+    [System.IO.File]::WriteAllText(
+        $caddyDReadme,
+        "# 在此目录放置额外的站点配置（*.caddy）`n# Place additional site configs (*.caddy) in this directory.`n",
+        (New-Object System.Text.UTF8Encoding($false))
+    )
+}
+
 $caddyFile = Join-Path $RuntimeDir "etc\Caddyfile"
 Fill-Template (Join-Path $templatesDir "Caddyfile.template") @{
     HTDOCS        = Convert-PathToForward (Join-Path $RuntimeDir "htdocs")
     PANEL_ROOT    = Convert-PathToForward (Join-Path $RuntimeDir "modules\control-panel\web")
     LOGS_DIR      = Convert-PathToForward (Join-Path $RuntimeDir "logs")
     ACCESS_IMPORT = "# access-filter disabled"
+    CADDY_D       = Convert-PathToForward $caddyD
 } $caddyFile
 
 $htdocsIndex = Join-Path $RuntimeDir "htdocs\index.php"

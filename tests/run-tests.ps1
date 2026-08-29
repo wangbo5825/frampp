@@ -99,6 +99,7 @@ Assert-True ($caddy -match '\n\s*php\s*\n') "Caddyfile uses php handler"
 Assert-True ($caddy -match '\n\s*file_server\s*\n') "Caddyfile uses file_server"
 Assert-True ($caddy -match '127\.0\.0\.1:8081') "Caddyfile exposes panel on 8081"
 Assert-True ($caddy -match '\{\{ACCESS_IMPORT\}\}') "Caddyfile template has access-filter import placeholder"
+Assert-True ($caddy -match '\{\{CADDY_D\}\}.*\.caddy') "Caddyfile template imports etc/caddy.d/*.caddy"
 
 # 4. 安装器资产（Windows + Linux）
 $setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/setup.iss")

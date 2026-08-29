@@ -104,6 +104,7 @@ mkdir -p \
     "$RUNTIME_DIR/modules/templates" \
     "$RUNTIME_DIR/bin" \
     "$RUNTIME_DIR/etc" \
+    "$RUNTIME_DIR/etc/caddy.d" \
     "$RUNTIME_DIR/htdocs" \
     "$RUNTIME_DIR/logs" \
     "$RUNTIME_DIR/var/mariadb" \
@@ -244,6 +245,11 @@ fi
 if [[ ! -f "$ACCESS_RULES" ]]; then
     printf '# FRAMPP IP 访问规则 / IP access rules\n# 格式 / format: <IP|CIDR|code:XX> <allow|block>\n' > "$ACCESS_RULES"
 fi
+CADDY_D="$RUNTIME_DIR/etc/caddy.d"
+if [[ ! -f "$CADDY_D/00-default.caddy" ]]; then
+    printf '# 在此目录放置额外的站点配置（*.caddy）\n# Place additional site configs (*.caddy) in this directory.\n' \
+        > "$CADDY_D/00-default.caddy"
+fi
 
 ACCESS_ENABLED="$(json_value "$ACCESS_CONFIG" enabled)"
 ACCESS_DEFAULT="$(json_value "$ACCESS_CONFIG" default_action)"
@@ -276,7 +282,8 @@ fill_template "$TPL_DIR/Caddyfile.template" "$RUNTIME_DIR/etc/Caddyfile" \
     HTDOCS "$RUNTIME_DIR/htdocs" \
     PANEL_ROOT "$RUNTIME_DIR/modules/control-panel/web" \
     LOGS_DIR "$RUNTIME_DIR/logs" \
-    ACCESS_IMPORT "$ACCESS_IMPORT"
+    ACCESS_IMPORT "$ACCESS_IMPORT" \
+    CADDY_D "$CADDY_D"
 
 # 运行时命令包装与符号链接
 RUNTIME_BIN_SRC="$RUNTIME_DIR/installer/runtime/bin"

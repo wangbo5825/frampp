@@ -75,6 +75,7 @@ docker run -d --name frampp \
 - 打包干净运行时（不含开发机数据/密钥），安装时自动运行 `init.ps1` 生成配置、密钥与 MariaDB 数据目录，并启动三件套
 - 卸载时先停止服务再删除（Linux 运行 `bin/uninstall`，含 `var/`、`logs/` 与 init 生成的配置）
 - 安装 / 升级 / 卸载流程见 [docs/upgrade.md](../docs/upgrade.md)
+- 额外站点配置：把 `*.caddy` 文件放入安装目录 `etc/caddy.d/`，Caddyfile 会自动导入
 
 ## 安全与供应链
 

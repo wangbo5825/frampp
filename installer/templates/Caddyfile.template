@@ -41,3 +41,7 @@ http://127.0.0.1:8081 {
 		output file {{LOGS_DIR}}/panel-access.log
 	}
 }
+
+# 用户站点配置：把 *.caddy 文件放入 etc/caddy.d/ 即可自动加载
+# User site configs: drop *.caddy files into etc/caddy.d/ to auto-load them
+import {{CADDY_D}}/*.caddy

@@ -156,7 +156,8 @@
   `bin/frampp init`。`uninstall.sh` 移入 `bin/uninstall`。`installer/` 只保留运行时必要的
   `init` / Docker / systemd 脚本、版本清单与配置模板。安装提示统一中英双语。
 - **配置集中**：`Caddyfile`、`php.ini`、`redis.conf`、IP 访问规则与 systemd unit 均生成到
-  `etc/`；运行时清单与密钥在 `var/`。
+  `etc/`；`etc/caddy.d/*.caddy` 会自动导入 Caddyfile（新增站点只需放入该目录）；
+  运行时清单与密钥在 `var/`。
 - **systemd 集成（Linux）**：新增 `bin/framppd`（启动三件套并保持前台）、
   `etc/frampp.service`（由模板生成）与 `installer/scripts/linux/install-systemd.sh`
   （安装 / 启用 / 启动服务；卸载时可用 `--remove`）。

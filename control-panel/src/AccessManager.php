@@ -156,6 +156,7 @@ final class AccessManager
             '{{PANEL_ROOT}}'    => str_replace('\\', '/', $this->config->module('control-panel') . DIRECTORY_SEPARATOR . 'web'),
             '{{LOGS_DIR}}'      => str_replace('\\', '/', $this->config->logsDir()),
             '{{ACCESS_IMPORT}}' => $import,
+            '{{CADDY_D}}'       => str_replace('\\', '/', $this->config->etcDir('caddy.d')),
         ];
         $content = str_replace(array_keys($replace), array_values($replace), $content);
         file_put_contents($this->config->etcDir('Caddyfile'), $content);

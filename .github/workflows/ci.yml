@@ -91,6 +91,16 @@ jobs:
         run: |
           pwsh -NoProfile -File tests/run-tests.ps1
 
+      - name: Cache Linux build artifacts (dist/binaries + dist/tools)
+        uses: actions/cache@v4
+        with:
+          path: |
+            dist/binaries
+            dist/tools
+          key: linux-build-${{ hashFiles('installer/config/versions-linux-x86_64.json') }}
+          restore-keys: |
+            linux-build-
+
       - name: Install Linux build dependencies (MariaDB / spc / UPX)
         shell: bash
         run: |

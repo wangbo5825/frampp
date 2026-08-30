@@ -232,12 +232,14 @@ RUN_DIR="$RUNTIME_DIR/var/run"
 ADMIN_ADDR="127.0.0.1:2019"
 UNIX_SOCKET_CONF=""
 MYSQL_SOCKET=""
+REDIS_LISTEN_PORT="$REDIS_PORT"
 if [[ "$MODE" == "sock" ]]; then
     mkdir -p "$RUN_DIR"
     ADMIN_ADDR="unix//$RUN_DIR/admin.sock"
     UNIX_SOCKET_CONF="unixsocket $RUN_DIR/redis.sock
 unixsocketperm 700"
     MYSQL_SOCKET="$RUN_DIR/mysql.sock"
+    REDIS_LISTEN_PORT="0"
 fi
 
 fill_template "$TPL_DIR/php.ini.linux.template" "$RUNTIME_DIR/etc/php.ini" \
@@ -247,7 +249,8 @@ fill_template "$TPL_DIR/redis.conf.template" "$RUNTIME_DIR/etc/redis.conf" \
     REDIS_PASSWORD "$REDIS_PW" \
     DATA_DIR "$RUNTIME_DIR/var/redis" \
     LOG_FILE "$RUNTIME_DIR/logs/redis.log" \
-    UNIX_SOCKET_CONF "$UNIX_SOCKET_CONF"
+    UNIX_SOCKET_CONF "$UNIX_SOCKET_CONF" \
+    REDIS_PORT "$REDIS_LISTEN_PORT"
 
 # IP 访问控制（Linux 定制构建内置 caddy-access-filter v1.2.0）
 ACCESS_CONFIG="$RUNTIME_DIR/etc/access.json"

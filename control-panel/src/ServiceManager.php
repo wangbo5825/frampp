@@ -331,11 +331,13 @@ final class ServiceManager
         $unixSocketConf = $redisSock !== null
             ? "unixsocket $redisSock\nunixsocketperm 700"
             : '# unix socket disabled (tcp mode)';
+        $redisListenPort = $redisSock !== null ? '0' : (string) $config->port('redis');
         $replace = [
             '{{REDIS_PASSWORD}}' => (string) ($config->secret('redis_password') ?? ''),
             '{{DATA_DIR}}'       => str_replace('\\', '/', $config->varDir('redis')),
             '{{LOG_FILE}}'       => str_replace('\\', '/', $config->logsDir() . DIRECTORY_SEPARATOR . 'redis.log'),
             '{{UNIX_SOCKET_CONF}}' => $unixSocketConf,
+            '{{REDIS_PORT}}'       => $redisListenPort,
         ];
         file_put_contents($config->etcDir('redis.conf'), str_replace(array_keys($replace), array_values($replace), $content));
     }

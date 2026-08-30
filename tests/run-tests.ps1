@@ -229,12 +229,15 @@ if ($php) {
         Assert-True ($caddy -match 'admin unix//') "Caddyfile admin uses unix socket"
         $redisConf = Get-Content -Raw -LiteralPath (Join-Path $tmp "etc/redis.conf")
         Assert-True ($redisConf -match 'unixsocket .*redis\.sock') "redis.conf enables unix socket"
+        Assert-True ($redisConf -match '(?m)^port 0') "redis.conf disables tcp listener in sock mode"
         $phpIni = Get-Content -Raw -LiteralPath (Join-Path $tmp "etc/php.ini")
         Assert-True ($phpIni -match 'mysql\.sock') "php.ini points at mysql socket"
         $tcpOut = (& php $cli mode tcp --json --home $tmp 2>&1 | Out-String)
         Assert-True ($LASTEXITCODE -eq 0) "frampp mode tcp succeeds"
         $caddy2 = Get-Content -Raw -LiteralPath (Join-Path $tmp "etc/Caddyfile")
         Assert-True ($caddy2 -match 'admin 127\.0\.0\.1:2019') "Caddyfile admin back to tcp"
+        $redisConf2 = Get-Content -Raw -LiteralPath (Join-Path $tmp "etc/redis.conf")
+        Assert-True ($redisConf2 -match '(?m)^port 6379') "redis.conf restores tcp listener"
     }
 
     # new-project minimal（模板回退到仓库 installer/templates/project-minimal）

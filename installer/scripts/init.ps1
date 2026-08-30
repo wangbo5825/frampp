@@ -231,6 +231,7 @@ Fill-Template (Join-Path $templatesDir "redis.conf.template") @{
     DATA_DIR       = Convert-PathToForward (Join-Path $RuntimeDir "var\redis")
     LOG_FILE       = Convert-PathToForward (Join-Path $RuntimeDir "logs\redis.log")
     UNIX_SOCKET_CONF = "# unix socket disabled (tcp mode; Windows)"
+    REDIS_PORT     = 6379
 } $redisConf
 
 # IP 访问控制配置（Windows 官方 FrankenPHP 暂未内置 caddy-access-filter，默认关闭）

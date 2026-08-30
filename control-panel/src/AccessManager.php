@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Frampp\ControlPanel;
 
+require_once __DIR__ . '/CaddyAdminClient.php';
+
 /**
  * IP 访问控制：管理 etc/access.json 与 etc/access-filter.rules，
  * 生成 etc/access-filter.caddy，并通过 Caddy admin API 热重载。
@@ -13,8 +15,6 @@ namespace Frampp\ControlPanel;
  */
 final class AccessManager
 {
-    private const RELOAD_URL = 'http://127.0.0.1:2019/access-filter/reload?scope=all&name=frampp_access';
-
     public function __construct(private readonly Config $config)
     {
     }
@@ -157,6 +157,7 @@ final class AccessManager
             '{{LOGS_DIR}}'      => str_replace('\\', '/', $this->config->logsDir()),
             '{{ACCESS_IMPORT}}' => $import,
             '{{CADDY_D}}'       => str_replace('\\', '/', $this->config->etcDir('caddy.d')),
+            '{{ADMIN_ADDR}}'    => $this->caddyAdminAddr(),
         ];
         $content = str_replace(array_keys($replace), array_values($replace), $content);
         file_put_contents($this->config->etcDir('Caddyfile'), $content);
@@ -167,21 +168,19 @@ final class AccessManager
         if (!$this->supported()) {
             return false;
         }
-        $ctx = stream_context_create([
-            'http' => [
-                'method'        => 'POST',
-                'ignore_errors' => true,
-                'timeout'       => 3,
-            ],
-        ]);
-        $body = @file_get_contents(self::RELOAD_URL, false, $ctx);
-        $code = 0;
-        foreach ($http_response_header ?? [] as $header) {
-            if (preg_match('#^HTTP/\S+\s+(\d+)#', $header, $m)) {
-                $code = (int) $m[1];
-            }
+        $result = (new CaddyAdminClient($this->config))
+            ->post('/access-filter/reload?scope=all&name=frampp_access', '');
+        return $result['status'] >= 200 && $result['status'] < 300;
+    }
+
+    /** Caddyfile admin 指令语法：TCP 填 127.0.0.1:2019，unix socket 填 unix//path */
+    private function caddyAdminAddr(): string
+    {
+        $address = $this->config->adminAddress();
+        if (str_starts_with($address, 'unix://')) {
+            return 'unix//' . substr($address, 7);
         }
-        return $body !== false && $code >= 200 && $code < 300;
+        return preg_replace('#^https?://#', '', $address);
     }
 
     /**

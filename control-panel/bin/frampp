@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../src/Config.php';
-require __DIR__ . '/../src/ProjectCreator.php';
-require __DIR__ . '/../src/ServiceManager.php';
-require __DIR__ . '/../src/AccessManager.php';
+require_once __DIR__ . '/../src/Config.php';
+require_once __DIR__ . '/../src/ProjectCreator.php';
+require_once __DIR__ . '/../src/ServiceManager.php';
+require_once __DIR__ . '/../src/AccessManager.php';
 
 use Frampp\ControlPanel\Config;
 use Frampp\ControlPanel\ProjectCreator;
@@ -38,6 +38,7 @@ try {
         'start'  => self_start($mgr, $args[1] ?? 'all'),
         'stop'   => self_stop($mgr, $args[1] ?? 'all'),
         'cleanup' => $mgr->cleanupOrphans(),
+        'mode'   => self_mode($config, $mgr, array_slice($args, 1)),
         'logs'   => $mgr->tailLog($args[1] ?? 'frankenphp', max(1, (int) ($args[2] ?? 50))),
         'ports'  => $mgr->ports(),
         'version' => [
@@ -47,7 +48,7 @@ try {
         'new-project' => (new ProjectCreator($config))->create((string) ($args[1] ?? ''), (string) ($args[2] ?? 'minimal')),
         'ip-access' => self_ip_access($access, array_slice($args, 1)),
         default  => throw new \InvalidArgumentException(
-            "未知命令: $cmd（支持 status|start|stop|cleanup|logs|ports|version|new-project|ip-access）"
+            "未知命令: $cmd（支持 status|start|stop|cleanup|mode|logs|ports|version|new-project|ip-access）"
         ),
     };
 
@@ -85,6 +86,20 @@ function self_stop(ServiceManager $mgr, string $target): array
 
 function renderText(string $cmd, array $data): void
 {
+    if ($cmd === 'mode') {
+        if (isset($data['changed'])) {
+            echo $data['message'], PHP_EOL;
+        }
+        printf(
+            "mode=%s admin=%s mysql=%s redis=%s%s",
+            $data['mode'] ?? '-',
+            $data['admin'] ?? '-',
+            $data['mysql'] ?? '-',
+            $data['redis'] ?? '-',
+            PHP_EOL
+        );
+        return;
+    }
     if ($cmd === 'cleanup') {
         $cleaned = $data['cleaned'] ?? [];
         $skipped = $data['skipped'] ?? [];
@@ -195,4 +210,26 @@ function self_ip_access(AccessManager $access, array $args): array
     $access->renderCaddyfile();
     $reloaded = $access->reload();
     return ['config' => $access->config(), 'rules' => $access->rules(), 'caddyfile_rendered' => true, 'reloaded' => $reloaded];
+}
+
+function self_mode(Config $config, ServiceManager $mgr, array $args): array
+{
+    $sub = $args[0] ?? 'status';
+    if ($sub === 'status') {
+        return [
+            'mode'  => $config->mode(),
+            'admin' => $config->adminAddress(),
+            'mysql' => $config->socket('mysql') ?? 'tcp://127.0.0.1:' . $config->port('mysql'),
+            'redis' => $config->socket('redis') ?? 'tcp://127.0.0.1:' . $config->port('redis'),
+        ];
+    }
+    if (!in_array($sub, ['sock', 'tcp'], true)) {
+        throw new \InvalidArgumentException('用法: frampp mode [status|sock|tcp]');
+    }
+    $result = $mgr->switchMode($sub);
+    $config = Config::discover($config->root);
+    $result['admin'] = $config->adminAddress();
+    $result['mysql'] = $config->socket('mysql') ?? 'tcp://127.0.0.1:' . $config->port('mysql');
+    $result['redis'] = $config->socket('redis') ?? 'tcp://127.0.0.1:' . $config->port('redis');
+    return $result;
 }

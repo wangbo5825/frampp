@@ -108,6 +108,44 @@ final class Config
         return (int) ($this->runtime['ports'][$name] ?? 0);
     }
 
+    /**
+     * 内部传输模式：'tcp'（默认）或 'sock'（unix socket，仅 Linux）。
+     */
+    public function mode(): string
+    {
+        return ($this->runtime['mode'] ?? 'tcp') === 'sock' ? 'sock' : 'tcp';
+    }
+
+    /**
+     * unix socket 路径（mode=sock 时有效；返回绝对路径）。
+     */
+    public function socket(string $name): ?string
+    {
+        if ($this->mode() !== 'sock') {
+            return null;
+        }
+        $rel = (string) ($this->runtime['sockets'][$name] ?? '');
+        if ($rel === '') {
+            return null;
+        }
+        // 支持绝对路径或相对 root 的路径
+        return str_starts_with($rel, '/') || preg_match('/^[A-Za-z]:[\\\\\/]/', $rel)
+            ? str_replace('\\', '/', $rel)
+            : $this->root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+    }
+
+    /**
+     * Caddy admin API 地址：TCP 为 http://127.0.0.1:2019，unix socket 为 unix:///path。
+     */
+    public function adminAddress(): string
+    {
+        $sock = $this->socket('admin');
+        if ($sock !== null) {
+            return 'unix://' . $sock;
+        }
+        return 'http://127.0.0.1:2019';
+    }
+
     public function secret(string $name): ?string
     {
         return $this->secrets[$name] ?? null;

@@ -59,15 +59,18 @@ final class RespClient
         if (!$this->config->runtimeReady()) {
             throw new \RuntimeException('FRAMPP 运行时不可用');
         }
-        $port = (int) ($this->config->runtime['ports']['redis'] ?? 6379);
         $pass = $this->config->secret('redis_password');
         if ($pass === null) {
             throw new \RuntimeException('缺少 Redis 密码（var/secrets.json 无 redis_password）');
         }
         $errno = 0;
         $errstr = '';
+        $redisSock = $this->config->socket('redis');
+        $target = $redisSock !== null
+            ? 'unix://' . $redisSock
+            : 'tcp://127.0.0.1:' . (int) ($this->config->runtime['ports']['redis'] ?? 6379);
         $stream = @stream_socket_client(
-            "tcp://127.0.0.1:$port",
+            $target,
             $errno,
             $errstr,
             3,

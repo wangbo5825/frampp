@@ -1,6 +1,7 @@
 # FRAMPP Caddyfile（由 init.sh / init.ps1 生成）
 {
 	frankenphp
+	admin {{ADMIN_ADDR}}
 	auto_https off
 	# Souin HTTP 缓存（FrankenPHP 定制构建已内置该模块）。
 	# 生产站点可取消注释启用；开发模式建议保持注释，避免缓存干扰调试。

@@ -112,4 +112,22 @@ final class AgentConfig
     {
         return (int) ($this->raw[$key] ?? $default);
     }
+
+    /**
+     * unix socket 路径（runtime mode=sock 时有效；返回绝对路径），否则返回 null。
+     */
+    public function socket(string $name): ?string
+    {
+        if (($this->runtime['mode'] ?? 'tcp') !== 'sock') {
+            return null;
+        }
+        $path = (string) ($this->runtime['sockets'][$name] ?? '');
+        if ($path === '') {
+            return null;
+        }
+        if (!str_starts_with($path, '/') && !preg_match('/^[A-Za-z]:[\\\\\/]/', $path)) {
+            $path = $this->runtimeRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $path);
+        }
+        return str_replace('\\', '/', $path);
+    }
 }

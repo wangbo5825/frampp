@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Frampp\ControlPanel;
 
+require_once __DIR__ . '/AccessManager.php';
+
 /**
  * 服务管理：FrankenPHP / MariaDB / Redis 的启停、状态、端口与日志。
  *
@@ -146,6 +148,95 @@ final class ServiceManager
         return ['cleaned' => $cleaned, 'skipped' => $skipped];
     }
 
+    /**
+     * 切换内部传输模式：'tcp'（默认，127.0.0.1 端口）<-> 'sock'（unix socket，仅 Linux）。
+     *
+     * sock 模式下 Caddy admin / MariaDB / Redis 均使用 var/run/*.sock，
+     * 对外站点端口（8080/8081）不受影响，仍在 Caddyfile 中配置。
+     *
+     * @return array{mode:string,changed:bool,message:string,restart:array<string,bool>}
+     */
+    public function switchMode(string $target): array
+    {
+        $target = $target === 'sock' ? 'sock' : 'tcp';
+        if ($target === 'sock' && self::WINDOWS) {
+            throw new \InvalidArgumentException('unix socket 模式仅 Linux 支持（Windows 请保持 TCP）');
+        }
+        $current = $this->config->mode();
+        if ($current === $target) {
+            return ['mode' => $target, 'changed' => false, 'message' => "已处于 {$target} 模式"];
+        }
+
+        // 1. 停止服务（先数据服务再 Web 服务器）
+        foreach (['mariadb', 'redis', 'frankenphp'] as $svc) {
+            try {
+                $this->stop($svc);
+            } catch (\Throwable) {
+                // 未运行或停止失败不阻塞切换
+            }
+        }
+
+        // 2. 更新 runtime.json（mode + sockets）
+        $runtimeFile = $this->config->varDir('runtime.json');
+        $runtime = is_file($runtimeFile)
+            ? json_decode((string) file_get_contents($runtimeFile), true)
+            : $this->config->runtime;
+        if (!is_array($runtime)) {
+            $runtime = $this->config->runtime;
+        }
+        if ($target === 'sock') {
+            $runDir = $this->config->varDir('run');
+            if (!is_dir($runDir)) {
+                mkdir($runDir, 0777, true);
+            }
+            $runtime['mode'] = 'sock';
+            $runtime['sockets'] = [
+                'admin' => $runDir . DIRECTORY_SEPARATOR . 'admin.sock',
+                'mysql' => $runDir . DIRECTORY_SEPARATOR . 'mysql.sock',
+                'redis' => $runDir . DIRECTORY_SEPARATOR . 'redis.sock',
+            ];
+        } else {
+            $runtime['mode'] = 'tcp';
+            unset($runtime['sockets']);
+        }
+        file_put_contents(
+            $runtimeFile,
+            json_encode($runtime, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL
+        );
+
+        // 3. 重新加载配置并重生成 Caddyfile / redis.conf / php.ini
+        $config = Config::discover($this->config->root);
+        $access = new AccessManager($config);
+        $access->renderCaddyfile();
+        $this->renderRedisConf($config);
+        $this->renderPhpIni($config);
+
+        // 4. 启动服务
+        $restart = [];
+        $errors = [];
+        $mgr = new self($config);
+        foreach (['mariadb', 'redis', 'frankenphp'] as $svc) {
+            try {
+                $result = $mgr->start($svc);
+                $restart[$svc] = (bool) ($result['started'] ?? false);
+            } catch (\Throwable $e) {
+                $restart[$svc] = false;
+                $errors[] = "{$svc}: " . $e->getMessage();
+            }
+        }
+
+        $message = "已切换到 {$target} 模式";
+        if (!empty($errors)) {
+            $message .= '；部分服务启动失败：' . implode('; ', $errors);
+        }
+        return [
+            'mode'    => $target,
+            'changed' => true,
+            'message' => $message,
+            'restart' => $restart,
+        ];
+    }
+
     public function tailLog(string $name, int $lines = 50): array
     {
         if (!isset(self::SERVICES[$name])) {
@@ -193,6 +284,12 @@ final class ServiceManager
             '--port=' . $this->config->port('mysql'),
             '--bind-address=127.0.0.1',
         ];
+        $mysqlSock = $this->config->socket('mysql');
+        if ($mysqlSock !== null) {
+            // unix socket 模式：禁用 TCP 监听，仅本机 socket（避免端口冲突）
+            $args[] = '--skip-networking';
+            $args[] = '--socket=' . $mysqlSock;
+        }
         if (self::WINDOWS) {
             $args[] = '--console';
         } else {
@@ -218,6 +315,42 @@ final class ServiceManager
             mkdir($this->config->varDir('redis'), 0777, true);
         }
         return $this->startDetached($exe, ['redis.conf'], $redisCwd, 'redis');
+    }
+
+    /** 按当前模式重生成 redis.conf（unix socket 模式含 unixsocket 指令） */
+    private function renderRedisConf(Config $config): void
+    {
+        $template = $config->root . DIRECTORY_SEPARATOR . 'installer' . DIRECTORY_SEPARATOR . 'templates'
+            . DIRECTORY_SEPARATOR . 'redis.conf.template';
+        if (!is_file($template)) {
+            throw new \RuntimeException("缺少 redis.conf 模板: {$template}");
+        }
+        $content = (string) file_get_contents($template);
+        $mysqlSock = $config->socket('mysql');
+        $redisSock = $config->socket('redis');
+        $unixSocketConf = $redisSock !== null
+            ? "unixsocket $redisSock\nunixsocketperm 700"
+            : '# unix socket disabled (tcp mode)';
+        $replace = [
+            '{{REDIS_PASSWORD}}' => (string) ($config->secret('redis_password') ?? ''),
+            '{{DATA_DIR}}'       => str_replace('\\', '/', $config->varDir('redis')),
+            '{{LOG_FILE}}'       => str_replace('\\', '/', $config->logsDir() . DIRECTORY_SEPARATOR . 'redis.log'),
+            '{{UNIX_SOCKET_CONF}}' => $unixSocketConf,
+        ];
+        file_put_contents($config->etcDir('redis.conf'), str_replace(array_keys($replace), array_values($replace), $content));
+    }
+
+    /** 按当前模式重生成 php.ini（unix socket 模式下 mysqli/pdo_mysql 默认走 socket） */
+    private function renderPhpIni(Config $config): void
+    {
+        $template = $config->root . DIRECTORY_SEPARATOR . 'installer' . DIRECTORY_SEPARATOR . 'templates'
+            . DIRECTORY_SEPARATOR . 'php.ini.linux.template';
+        if (!is_file($template)) {
+            return; // Windows 无 linux 模板，保持原样
+        }
+        $content = (string) file_get_contents($template);
+        $content = str_replace('{{MYSQL_SOCKET}}', (string) ($config->socket('mysql') ?? ''), $content);
+        file_put_contents($config->etcDir('php.ini'), $content);
     }
 
     /**

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../src/Config.php';
-require __DIR__ . '/../src/SiteManager.php';
-require __DIR__ . '/../src/AccessManager.php';
+require_once __DIR__ . '/../src/Config.php';
+require_once __DIR__ . '/../src/SiteManager.php';
+require_once __DIR__ . '/../src/AccessManager.php';
 
 use Frampp\ControlPanel\Config;
 use Frampp\ControlPanel\SiteManager;

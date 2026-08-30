@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../src/Config.php';
-require __DIR__ . '/../src/ServiceManager.php';
-require __DIR__ . '/../src/AccessManager.php';
-require __DIR__ . '/../src/SiteManager.php';
+require_once __DIR__ . '/../src/Config.php';
+require_once __DIR__ . '/../src/ServiceManager.php';
+require_once __DIR__ . '/../src/AccessManager.php';
+require_once __DIR__ . '/../src/SiteManager.php';
 
 use Frampp\ControlPanel\Config;
 use Frampp\ControlPanel\ServiceManager;
@@ -53,7 +53,8 @@ function badge(bool $ok): string
 <body>
 <main>
     <h1>FRAMPP 控制面板</h1>
-    <p class="meta">运行时：<?= htmlspecialchars($config->root) ?></p>
+    <p class="meta">运行时：<?= htmlspecialchars($config->root) ?> · 传输模式：<?= $config->mode() ?>
+        （<?= htmlspecialchars($config->adminAddress()) ?>）</p>
     <p><a href="sites.php" style="color:#0969da;font-size:14px">站点管理 / Site Manager（<?= $siteCount ?>）</a></p>
 
     <div class="card">

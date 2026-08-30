@@ -1,6 +1,7 @@
 # FRAMPP Redis 配置（由 init.ps1 生成）
 bind 127.0.0.1
 port 6379
+{{UNIX_SOCKET_CONF}}
 protected-mode yes
 requirepass {{REDIS_PASSWORD}}
 appendonly yes

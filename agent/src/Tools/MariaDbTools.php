@@ -23,14 +23,17 @@ final class MariaDbTools
             if (!$this->config->runtimeReady()) {
                 throw new \RuntimeException('FRAMPP 运行时不可用（未找到 runtime.json）');
             }
-            $port = (int) ($this->config->runtime['ports']['mysql'] ?? 3306);
+            $mysqlSock = $this->config->socket('mysql');
             $user = 'frampp_ro';
             $pass = $this->config->secret('mariadb_readonly_password');
             if ($pass === null) {
                 throw new \RuntimeException('缺少只读账号密码（var/secrets.json 无 mariadb_readonly_password）');
             }
+            $dsn = $mysqlSock !== null
+                ? "mysql:unix_socket=$mysqlSock;charset=utf8mb4"
+                : "mysql:host=127.0.0.1;port=" . (int) ($this->config->runtime['ports']['mysql'] ?? 3306) . ";charset=utf8mb4";
             $this->pdo = new PDO(
-                "mysql:host=127.0.0.1;port=$port;charset=utf8mb4",
+                $dsn,
                 $user,
                 $pass,
                 [PDO::ATTR_TIMEOUT => 3, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]

@@ -27,6 +27,13 @@ All notable changes to FRAMPP are documented here.
   (also available in the control panel) reaps orphaned process trees and
   removes stale PID files. Windows process checks use `Get-Process` instead of
   `tasklist /FI` for broader permission compatibility.
+- Added `frampp mode sock|tcp|status`: switch internal transports between
+  TCP (default: admin 2019 / MariaDB 3306 / Redis 6379) and unix sockets
+  (Linux only; `var/run/*.sock` for admin / MySQL / Redis, avoiding port
+  conflicts and improving local security). External site ports stay in the
+  Caddyfile. Admin API calls (control panel hot reload / site manager) now go
+  through a unified `CaddyAdminClient` supporting TCP and unix sockets;
+  `bin/env` exports `MYSQL_UNIX_PORT` in sock mode.
 - Added process attribution and orphan cleanup: PID files now record the
   launcher (daemon/CLI) and start time; `frampp status` flags services left
   running by an exited `framppd` daemon as `ORPHAN`, and `frampp cleanup`

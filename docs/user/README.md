@@ -47,3 +47,20 @@ Compare against the matching line in `SHA256SUMS.txt` on the GitHub Release.
 - 服务仅绑定 `127.0.0.1`；数据库与 Redis 不向外部暴露。
 - 首次安装生成随机 MariaDB root 密码、只读账号 `frampp_ro`、Redis 密码与面板令牌。
 - 控制面板（`http://127.0.0.1:8081/`）的变更操作需要面板令牌。
+
+## 内部传输模式 / Internal Transport Mode
+
+默认使用 TCP 端口（Caddy admin `127.0.0.1:2019`、MariaDB 3306、Redis 6379），
+可用管理工具直接连接数据库。若你更关注安全性与端口冲突（如同机多实例），
+可切换到 unix socket 模式（**仅 Linux**）：
+
+```bash
+bin/frampp mode sock     # 切换到 unix socket（admin / mysql / redis 走 var/run/*.sock）
+bin/frampp mode tcp      # 切回 TCP
+bin/frampp mode status   # 查看当前模式与各组件地址
+source bin/env           # sock 模式下 mysql 客户端自动走 socket
+redis-cli -s var/run/redis.sock   # Redis 客户端连接 socket
+```
+
+sock 模式不影响对外站点端口（8080/8081 仍在 Caddyfile 中配置）。
+Windows 不支持 unix socket，切换脚本会提示并保持 TCP。

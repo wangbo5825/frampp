@@ -221,12 +221,33 @@ json_value() { # json_value <file> <key>
 # 6. 配置文件（模板 -> 运行时）
 step "生成配置 / generating configs ..."
 TPL_DIR="$COMPONENT_DIR/../templates"
-cp "$TPL_DIR/php.ini.linux.template" "$RUNTIME_DIR/etc/php.ini"
+
+# 传输模式：默认 tcp；已存在的运行时保留其模式（sock 为 unix socket，仅 Linux）
+MODE="tcp"
+if [[ -f "$RUNTIME_DIR/var/runtime.json" ]]; then
+    MODE="$(json_value "$RUNTIME_DIR/var/runtime.json" mode)"
+    [[ -z "$MODE" ]] && MODE="tcp"
+fi
+RUN_DIR="$RUNTIME_DIR/var/run"
+ADMIN_ADDR="127.0.0.1:2019"
+UNIX_SOCKET_CONF=""
+MYSQL_SOCKET=""
+if [[ "$MODE" == "sock" ]]; then
+    mkdir -p "$RUN_DIR"
+    ADMIN_ADDR="unix//$RUN_DIR/admin.sock"
+    UNIX_SOCKET_CONF="unixsocket $RUN_DIR/redis.sock
+unixsocketperm 700"
+    MYSQL_SOCKET="$RUN_DIR/mysql.sock"
+fi
+
+fill_template "$TPL_DIR/php.ini.linux.template" "$RUNTIME_DIR/etc/php.ini" \
+    MYSQL_SOCKET "$MYSQL_SOCKET"
 
 fill_template "$TPL_DIR/redis.conf.template" "$RUNTIME_DIR/etc/redis.conf" \
     REDIS_PASSWORD "$REDIS_PW" \
     DATA_DIR "$RUNTIME_DIR/var/redis" \
-    LOG_FILE "$RUNTIME_DIR/logs/redis.log"
+    LOG_FILE "$RUNTIME_DIR/logs/redis.log" \
+    UNIX_SOCKET_CONF "$UNIX_SOCKET_CONF"
 
 # IP 访问控制（Linux 定制构建内置 caddy-access-filter v1.2.0）
 ACCESS_CONFIG="$RUNTIME_DIR/etc/access.json"
@@ -283,7 +304,8 @@ fill_template "$TPL_DIR/Caddyfile.template" "$RUNTIME_DIR/etc/Caddyfile" \
     PANEL_ROOT "$RUNTIME_DIR/modules/control-panel/web" \
     LOGS_DIR "$RUNTIME_DIR/logs" \
     ACCESS_IMPORT "$ACCESS_IMPORT" \
-    CADDY_D "$CADDY_D"
+    CADDY_D "$CADDY_D" \
+    ADMIN_ADDR "$ADMIN_ADDR"
 
 # 运行时命令包装与符号链接
 RUNTIME_BIN_SRC="$RUNTIME_DIR/installer/runtime/bin"

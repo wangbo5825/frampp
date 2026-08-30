@@ -159,7 +159,10 @@ if ($php) {
 
     # 构造一个假的运行时目录验证 CLI status 输出
     $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("frampp-test-" + [guid]::NewGuid().ToString("N"))
-    New-Item -ItemType Directory -Force -Path (Join-Path $tmp "var"), (Join-Path $tmp "logs") | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $tmp "var"), (Join-Path $tmp "logs"), (Join-Path $tmp "etc"), (Join-Path $tmp "installer\templates") | Out-Null
+    Copy-Item -LiteralPath (Join-Path $Root "installer\templates\Caddyfile.template") -Destination (Join-Path $tmp "installer\templates\Caddyfile.template")
+    Copy-Item -LiteralPath (Join-Path $Root "installer\templates\redis.conf.template") -Destination (Join-Path $tmp "installer\templates\redis.conf.template")
+    Copy-Item -LiteralPath (Join-Path $Root "installer\templates\php.ini.linux.template") -Destination (Join-Path $tmp "installer\templates\php.ini.linux.template")
     Write-JsonNoBom (Join-Path $tmp "var/runtime.json") @{
         created_at = (Get-Date -Format o)
         root = $tmp
@@ -206,6 +209,33 @@ if ($php) {
     Assert-True ($clJson.skipped -contains "mariadb") "cleanup parses legacy integer pid file"
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $tmp "var/frankenphp.pid"))) "cleanup deleted JSON pid file"
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $tmp "var/mariadb.pid"))) "cleanup deleted legacy pid file"
+
+    # 传输模式：默认 tcp；Windows 拒绝切换到 unix socket，Linux 完整验证切换
+    $modeOut = (& php $cli mode status --json --home $tmp 2>&1 | Out-String)
+    $modeJson = $modeOut | ConvertFrom-Json
+    Assert-True ($modeJson.mode -eq "tcp") "frampp mode defaults to tcp"
+    Assert-True ($modeJson.admin -eq "http://127.0.0.1:2019") "frampp mode tcp admin address"
+    if ($IsWindows) {
+        & php $cli mode sock --json --home $tmp 2>&1 | Out-Null
+        Assert-True ($LASTEXITCODE -ne 0) "frampp mode sock rejected on Windows"
+    } else {
+        $sockOut = (& php $cli mode sock --json --home $tmp 2>&1 | Out-String)
+        Assert-True ($LASTEXITCODE -eq 0) "frampp mode sock succeeds on Linux"
+        $sockJson = $sockOut | ConvertFrom-Json
+        Assert-True ($sockJson.mode -eq "sock") "frampp mode switched to sock"
+        $rt = Get-Content -Raw -LiteralPath (Join-Path $tmp "var/runtime.json") | ConvertFrom-Json
+        Assert-True ($rt.mode -eq "sock") "runtime.json mode updated"
+        $caddy = Get-Content -Raw -LiteralPath (Join-Path $tmp "etc/Caddyfile")
+        Assert-True ($caddy -match 'admin unix//') "Caddyfile admin uses unix socket"
+        $redisConf = Get-Content -Raw -LiteralPath (Join-Path $tmp "etc/redis.conf")
+        Assert-True ($redisConf -match 'unixsocket .*redis\.sock') "redis.conf enables unix socket"
+        $phpIni = Get-Content -Raw -LiteralPath (Join-Path $tmp "etc/php.ini")
+        Assert-True ($phpIni -match 'mysql\.sock') "php.ini points at mysql socket"
+        $tcpOut = (& php $cli mode tcp --json --home $tmp 2>&1 | Out-String)
+        Assert-True ($LASTEXITCODE -eq 0) "frampp mode tcp succeeds"
+        $caddy2 = Get-Content -Raw -LiteralPath (Join-Path $tmp "etc/Caddyfile")
+        Assert-True ($caddy2 -match 'admin 127\.0\.0\.1:2019') "Caddyfile admin back to tcp"
+    }
 
     # new-project minimal（模板回退到仓库 installer/templates/project-minimal）
     $npOut = (& php $cli new-project demo minimal --json --home $tmp 2>&1 | Out-String)

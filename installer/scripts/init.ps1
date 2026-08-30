@@ -230,6 +230,7 @@ Fill-Template (Join-Path $templatesDir "redis.conf.template") @{
     REDIS_PASSWORD = $secrets.redis_password
     DATA_DIR       = Convert-PathToForward (Join-Path $RuntimeDir "var\redis")
     LOG_FILE       = Convert-PathToForward (Join-Path $RuntimeDir "logs\redis.log")
+    UNIX_SOCKET_CONF = "# unix socket disabled (tcp mode; Windows)"
 } $redisConf
 
 # IP 访问控制配置（Windows 官方 FrankenPHP 暂未内置 caddy-access-filter，默认关闭）
@@ -271,6 +272,7 @@ Fill-Template (Join-Path $templatesDir "Caddyfile.template") @{
     LOGS_DIR      = Convert-PathToForward (Join-Path $RuntimeDir "logs")
     ACCESS_IMPORT = "# access-filter disabled"
     CADDY_D       = Convert-PathToForward $caddyD
+    ADMIN_ADDR    = "127.0.0.1:2019"
 } $caddyFile
 
 $htdocsIndex = Join-Path $RuntimeDir "htdocs\index.php"

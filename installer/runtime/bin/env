@@ -14,4 +14,10 @@ export FRAMPP_HOME
 export PATH="$FRAMPP_HOME/bin:$FRAMPP_HOME/modules/python/bin:$FRAMPP_HOME/modules/mariadb/bin:$FRAMPP_HOME/modules/redis:$PATH"
 export PHPRC="$FRAMPP_HOME/etc/php.ini"
 
+# unix socket 模式（frampp mode sock）：mysql 客户端默认走 var/run/mysql.sock
+if [ -f "$FRAMPP_HOME/var/runtime.json" ] && \
+   grep -q '"mode"[[:space:]]*:[[:space:]]*"sock"' "$FRAMPP_HOME/var/runtime.json" 2>/dev/null; then
+    export MYSQL_UNIX_PORT="$FRAMPP_HOME/var/run/mysql.sock"
+fi
+
 unset _FRAMPP_ENV_SRC

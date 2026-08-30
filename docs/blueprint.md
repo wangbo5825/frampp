@@ -184,6 +184,15 @@
   但服务仍存活」的进程标记 `ORPHAN`，`frampp cleanup`（CLI 与控制面板按钮）按进程树回收
   并删除过期 PID 文件。Windows 进程探测改用 `Get-Process`（`tasklist /FI` 在受限环境会被拒绝）。
   独立常驻 worker 脚本后续接入时沿用同一进程归因模型，作为独立进程由 ServiceManager 统一管理。
+- **内部传输模式切换（2026-08-30 定版）**：默认保持 TCP（Caddy admin `127.0.0.1:2019`、
+  MariaDB 3306、Redis 6379），符合多数用户习惯（可用管理工具远程/本机连库）。
+  新增 `frampp mode sock` / `frampp mode tcp` 切换脚本：
+  sock 模式下 Caddy admin（`admin unix//var/run/admin.sock`）、MariaDB（`--skip-networking`
+  + `--socket`）、Redis（`unixsocket`）全部改用 `var/run/*.sock`，避免多实例端口冲突并提升
+  本地安全性；对外站点端口（8080/8081）不受影响，仍在 Caddyfile 中配置。运行时 `runtime.json`
+  记录 `mode` 与 `sockets`；控制面板 / Agent / 热重载统一经 `CaddyAdminClient`（TCP 与 unix
+  socket 双支持）；`bin/env` 在 sock 模式自动设置 `MYSQL_UNIX_PORT`。Windows 不支持 unix
+  socket（Caddy/MariaDB/Redis 均受限），切换脚本在 Windows 上拒绝并提示保持 TCP。
 
 ---
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Frampp\ControlPanel;
 
+require_once __DIR__ . '/CaddyAdminClient.php';
+
 /**
  * 站点管理：维护 etc/caddy.d/*.caddy 站点片段，
  * 重建 Caddyfile 并通过 Caddy admin API（/load, text/caddyfile）热重载。
@@ -153,27 +155,12 @@ final class SiteManager
         }
         $body = (string) file_get_contents($caddyfile);
 
-        $ctx = stream_context_create([
-            'http' => [
-                'method'        => 'POST',
-                'header'        => "Content-Type: text/caddyfile\r\n",
-                'content'       => $body,
-                'ignore_errors' => true,
-                'timeout'       => 5,
-            ],
-        ]);
-        $response = @file_get_contents('http://127.0.0.1:2019/load', false, $ctx);
-        $code = 0;
-        foreach ($http_response_header ?? [] as $header) {
-            if (preg_match('#^HTTP/\S+\s+(\d+)#', $header, $m)) {
-                $code = (int) $m[1];
-            }
-        }
-        if ($response !== false && $code >= 200 && $code < 300) {
+        $result = (new CaddyAdminClient($this->config))->post('/load', $body, 'text/caddyfile');
+        if ($result['status'] >= 200 && $result['status'] < 300) {
             return ['ok' => true, 'message' => '配置已热重载'];
         }
-        $message = '配置重载失败（HTTP ' . ($code ?: '?') . '）：' . trim((string) $response);
-        return ['ok' => false, 'message' => $message !== '' ? $message : '无法连接 Caddy admin API（127.0.0.1:2019）'];
+        $message = '配置重载失败（HTTP ' . ($result['status'] ?: '?') . '）：' . trim($result['body']);
+        return ['ok' => false, 'message' => $message !== '' ? $message : '无法连接 Caddy admin API'];
     }
 
     /** 从站点片段中提取监听地址（第一个非注释行） */

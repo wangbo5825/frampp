@@ -193,6 +193,16 @@
   记录 `mode` 与 `sockets`；控制面板 / Agent / 热重载统一经 `CaddyAdminClient`（TCP 与 unix
   socket 双支持）；`bin/env` 在 sock 模式自动设置 `MYSQL_UNIX_PORT`。Windows 不支持 unix
   socket（Caddy/MariaDB/Redis 均受限），切换脚本在 Windows 上拒绝并提示保持 TCP。
+- **运行时目录迁移：installer/ → bin/ + share/（v0.7.0 计划，2026-08-30 记录）**：
+  `installer/` 中安装后仍被运行时使用的文件迁出，使安装包内不再包含 `installer/` 目录：
+  - `installer/scripts/linux/init.sh`、`docker-entrypoint.sh`、`docker-healthcheck.sh` → `bin/`；
+  - `installer/templates/*`（Caddyfile / php.ini / redis.conf / htdocs / project-minimal）与
+    `installer/runtime/frampp.service.template` → `share/templates/`；
+  - `installer/runtime/bin/*`（命令包装器）→ 直接打包进 `bin/`（去掉安装时复制步骤）；
+  - `installer/config/*` 与构建脚本保持仓库内 `installer/`，不进安装包（现状已是如此）。
+  同步调整运行时引用：`bin/frampp init` 调用 `bin/` 下脚本、控制面板模板路径改为
+  `share/templates/`（AccessManager / SiteManager / ServiceManager）、Docker entrypoint 路径、
+  Windows/Linux 打包逻辑与升级文档（旧安装目录的 `installer/` 与新 `share/` 并存处理）。
 
 ---
 

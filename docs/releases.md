@@ -21,10 +21,14 @@ frampp-setup-<channel>-<version>-<env>.<ext>
 
 > **下版本计划（v0.7.0+）**：FRAMPP 与 PHP 大版本保持一致（当前通道 `8.5`），
 > 安装包命名简化为 `frampp-<version>-<env>.<ext>`（去掉通道段），
-> 版本与 PHP / 组件的对应关系保留在 Release note 中说明。
+> 版本与 PHP / 组件的对应关系保留在 Release note 中说明；同时将安装后仍被
+> 运行时使用的 `installer/` 内容迁出——脚本移入 `bin/`，模板移入 `share/templates/`，
+> 安装包内不再包含 `installer/` 目录。
 > Planned (v0.7.0+): since FRAMPP tracks the PHP major version (current channel
 > `8.5`), simplify installer names to `frampp-<version>-<env>.<ext>` and keep
-> the PHP/component mapping in the release notes.
+> the PHP/component mapping in the release notes; also move runtime-used files
+> out of `installer/` (scripts → `bin/`, templates → `share/templates/`) so the
+> package no longer ships an `installer/` directory.
 
 ## 发布步骤 / Release Steps
 

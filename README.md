@@ -112,8 +112,8 @@ docker compose up -d
 The first container start initializes the runtime (random secrets, MariaDB data
 directory and generated configs), then starts FrankenPHP, MariaDB and Redis.
 Visit the default site at <http://127.0.0.1:8080/> and the control panel at
-<http://127.0.0.1:8081/>. See [docs/docker.md](docs/docker.md) for volumes,
-ports and build-from-source details.
+<http://127.0.0.1:8081/>. See [docs/user/docker.md](docs/user/docker.md) for
+volumes, ports and build-from-source details.
 
 ### Releases
 
@@ -146,6 +146,7 @@ CI enforces this portability in the smoke test (`PORTABLE_OK`: FrankenPHP static
 - Dev guide: [AGENTS.md](AGENTS.md)
 - Blueprint & milestones: [docs/blueprint.md](docs/blueprint.md)
 - Releases: [docs/releases.md](docs/releases.md)
+- User docs (shipped with installers): [docs/user/README.md](docs/user/README.md)
 
 ### License
 

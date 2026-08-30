@@ -96,7 +96,7 @@ docker compose up -d
 
 容器首次启动会初始化运行时（生成随机密钥、MariaDB 数据目录和配置），随后启动
 FrankenPHP、MariaDB 与 Redis。默认站点 <http://127.0.0.1:8080/>，控制面板
-<http://127.0.0.1:8081/>。卷、端口和源码构建方式见 [docs/docker.md](docs/docker.md)。
+<http://127.0.0.1:8081/>。卷、端口和源码构建方式见 [docs/user/docker.md](docs/user/docker.md)。
 
 ## 系统要求
 
@@ -113,10 +113,11 @@ GLIBC ≤ 2.31）。详见 [docs/releases.md](docs/releases.md)。
 
 - [蓝图](docs/blueprint.md)
 - [版本发布](docs/releases.md)
-- [安装 / 升级](docs/upgrade.md)
+- [用户文档（随安装包发布）](docs/user/README.md)
+- [安装 / 升级](docs/user/upgrade.md)
 - [安装器](installer/README.md)
 - [Agent](agent/README.md)
-- [Docker](docs/docker.md)
+- [Docker](docs/user/docker.md)
 
 ## 许可证
 

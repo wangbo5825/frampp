@@ -66,7 +66,7 @@ pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
 pwsh -File installer/scripts/build-docker.ps1 -Registry ghcr.io/wangbo5825 -ImageName frampp -Push
 ```
 
-更多卷、端口与源码构建说明见 [docs/docker.md](docker.md)。
+更多卷、端口与源码构建说明见 [docs/user/docker.md](docs/user/docker.md)。
 
 ## Publish to Gitee / 发布到 Gitee
 

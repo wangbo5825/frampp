@@ -196,7 +196,7 @@ foreach ($runtimeScript in @("init.sh", "docker-entrypoint.sh", "docker-healthch
 Copy-Item -Path (Join-Path $Root "installer/config/*") -Destination (Join-Path $StagingDir "installer/config") -Recurse -Force
 Copy-Item -Path (Join-Path $Root "installer/templates/*") -Destination (Join-Path $StagingDir "installer/templates") -Recurse -Force
 Copy-Item -Path (Join-Path $Root "installer/runtime/*") -Destination (Join-Path $StagingDir "installer/runtime") -Recurse -Force
-Copy-Item -Path (Join-Path $Root "docs/*") -Destination (Join-Path $StagingDir "docs") -Recurse -Force
+Copy-Item -Path (Join-Path $Root "docs/user/*") -Destination (Join-Path $StagingDir "docs") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "installer/templates/project-minimal") -Destination (Join-Path $moduleDir "templates/project-minimal") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "README.md") -Destination (Join-Path $StagingDir "README.md")
 Copy-Item -LiteralPath (Join-Path $Root "LICENSE") -Destination (Join-Path $StagingDir "LICENSE")

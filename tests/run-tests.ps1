@@ -138,9 +138,13 @@ $buildLinux = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/
 Assert-True ($buildLinux -match 'installer/scripts/linux') "build-linux-package.ps1 stages runtime scripts under installer/scripts/linux"
 Assert-True ($buildLinux -match '\(Join-Path \$StagingDir "installer/scripts/linux"\)') "build-linux-package.ps1 layout pre-creates installer/scripts/linux dir"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/config/channels.json")) "channels.json exists"
-Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/upgrade.md")) "docs/upgrade.md exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/releases.md")) "docs/releases.md exists"
-Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/docker.md")) "docs/docker.md exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/README.md")) "docs/user/README.md exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/upgrade.md")) "docs/user/upgrade.md exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/docker.md")) "docs/user/docker.md exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/blueprint.md")) "docs/blueprint.md exists"
+Assert-True ($setupIss -match 'docs\\user') "setup.iss ships docs/user only"
+Assert-True ($buildLinux -match 'docs/user') "build-linux-package.ps1 ships docs/user only"
 $versionFile = Get-Content -Raw -LiteralPath (Join-Path $Root "VERSION")
 Assert-True ($versionFile -match '^\d+\.\d+\.\d+\s*$') "VERSION file is a semver"
 

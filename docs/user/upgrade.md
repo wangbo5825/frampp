@@ -22,8 +22,8 @@ chmod +x frampp-setup-8.5-0.6.0-linux-x86_64.run
 （生成配置、随机密钥、初始化 MariaDB 数据目录与只读账号）并启动三件套；安装目录可整体移动。
 The single-file installer verifies integrity, extracts, runs `init.sh` (configs, secrets, MariaDB datadir & read-only account) and starts the stack; the install directory is relocatable.
 
-> 系统要求：Linux x86_64 需 glibc ≥ 2.31（Ubuntu 20.04+ / Debian 11+ / RHEL 9+）；FrankenPHP 与 Redis 为 musl 静态，MariaDB 以 glibc 2.31 为基线且不依赖 libaio。详见 `docs/releases.md`。
-> Requirement: Linux x86_64 needs glibc ≥ 2.31 (Ubuntu 20.04+ / Debian 11+ / RHEL 9+); FrankenPHP and Redis are musl-static and MariaDB targets a glibc 2.31 baseline without libaio. See `docs/releases.md`.
+> 系统要求：Linux x86_64 需 glibc ≥ 2.31（Ubuntu 20.04+ / Debian 11+ / RHEL 9+）；FrankenPHP 与 Redis 为 musl 静态，MariaDB 以 glibc 2.31 为基线且不依赖 libaio。完整系统要求与安装包校验见 `docs/README.md`。
+> Requirement: Linux x86_64 needs glibc ≥ 2.31 (Ubuntu 20.04+ / Debian 11+ / RHEL 9+); FrankenPHP and Redis are musl-static and MariaDB targets a glibc 2.31 baseline without libaio. See `docs/README.md` for full requirements and installer verification.
 
 ## 升级 / Upgrade
 

@@ -2,6 +2,19 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.7.1] - 2026-09-01
+
+### 新增
+
+- Linux 安装根目录新增 LAMPP 风格总控命令：`frampp` 为指向 `bin/frampp` 的
+  符号链接，安装后可直接在安装目录执行 `./frampp start|stop|status`。
+  链接在打包阶段创建（`installer/scripts/build-linux-package.ps1`），
+  `init.sh` 在缺失时自动兜底重建（如手工复制目录的场景）。
+
+### 变更
+
+- FRAMPP 版本号提升至 `0.7.1`。
+
 ## [0.7.0] - 2026-08-31
 
 ### 新增

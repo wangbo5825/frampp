@@ -206,6 +206,12 @@ foreach ($bin in (Get-ChildItem -LiteralPath (Join-Path $StagingDir "bin") -File
     & chmod +x $bin.FullName
 }
 
+# 根目录总控命令（LAMPP 风格）：frampp -> bin/frampp（相对符号链接，可随目录整体移动）
+$masterLink = Join-Path $StagingDir "frampp"
+if (Test-Path -LiteralPath $masterLink) { Remove-Item -LiteralPath $masterLink -Force }
+New-Item -ItemType SymbolicLink -Path $masterLink -Target "bin/frampp" | Out-Null
+Write-Step "根目录总控命令 / root master command: frampp -> bin/frampp"
+
 # 5. 打包为 XAMPP 风格单文件 .run（自解压安装器）
 #    Payload = 暂存目录内容（无顶层目录）的 tar.gz；Header = 自解压脚本。
 #    Package as an XAMPP-style single-file .run (self-extracting installer).

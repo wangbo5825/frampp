@@ -25,6 +25,10 @@ frampp-<version>-<env>.<ext>
 > `installer/` 内容已迁出——脚本移入 `bin/`，模板移入 `share/templates/`，
 > 安装包内不再包含 `installer/` 目录。
 
+> **v0.7.1 起实施 / Implemented since v0.7.1**：Linux 安装根目录新增 LAMPP
+> 风格总控命令 `frampp`（符号链接 → `bin/frampp`），安装后可直接
+> `./frampp start|stop|status`。
+
 ## 发布步骤 / Release Steps
 
 ```powershell
@@ -42,8 +46,13 @@ powershell -ExecutionPolicy Bypass -File installer/scripts/release.ps1 -Env wind
 pwsh -File installer/scripts/release.ps1 -Env linux-x86_64 -Publish
 ```
 
-CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.7.0`）。推送 `v*` tag 时，`docker` 作业还会构建并推送 Docker 镜像。
-CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.7.0`). Pushing a `v*` tag also builds and pushes the Docker image in the `docker` job.
+CI 替代方案：推送 `v*` tag 时，Linux 包构建完成后自动上传到同名 Release，
+`docker` 作业还会构建并推送 Docker 镜像；也可在 workflow_dispatch 时传入
+`release_tag` 手动上传（`gh workflow run ci.yml -f release_tag=v0.7.1`）。
+CI alternative: pushing a `v*` tag builds the Linux package and uploads it to
+the release with the same name; the `docker` job also builds and pushes the
+Docker image. You can also pass `release_tag` on workflow_dispatch to upload
+manually (`gh workflow run ci.yml -f release_tag=v0.7.1`).
 
 ## Docker 镜像 / Docker Image
 

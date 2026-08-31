@@ -2,6 +2,20 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.7.1] - 2026-09-01
+
+### Added
+
+- Linux install root now ships a LAMPP-style master command: `frampp` is a
+  symbolic link to `bin/frampp`, so `./frampp start|stop|status` works
+  directly from the installation directory. The link is created at packaging
+  time (`installer/scripts/build-linux-package.ps1`) and `init.sh` recreates
+  it as a fallback when missing (e.g. manual copies).
+
+### Changed
+
+- Bumped FRAMPP version to `0.7.1`.
+
 ## [0.7.0] - 2026-08-31
 
 ### Added

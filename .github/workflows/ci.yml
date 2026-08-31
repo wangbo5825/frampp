@@ -137,6 +137,12 @@ jobs:
           ./bin/frampp status --json || true
           echo "=== version ==="
           ./bin/frampp version || true
+          echo "=== root master command (LAMPP-style symlink) ==="
+          ls -la frampp
+          if [ ! -L frampp ] || [ ! -e frampp ]; then
+            echo "ROOT_FRAMPP_LINK_MISSING"; exit 1
+          fi
+          ./frampp version || true
           echo "=== extensions ==="
           ./modules/frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s pdo_sqlite=%s simplexml=%s openssl=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', extension_loaded('pdo_sqlite')?'yes':'NO', extension_loaded('simplexml')?'yes':'NO', extension_loaded('openssl')?'yes':'NO', PHP_EOL);" || true
           echo "=== caddy version (require >= 2.11.4) ==="
@@ -225,6 +231,18 @@ jobs:
           PKG="$(ls frampp-*-linux-x86_64.run | head -n1)"
           echo "Uploading $PKG to ${{ github.event.inputs.release_tag }}"
           gh release upload "${{ github.event.inputs.release_tag }}" "$PKG" --clobber
+
+      - name: Upload to GitHub Release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd dist/installer
+          PKG="$(ls frampp-*-linux-x86_64.run | head -n1)"
+          echo "Uploading $PKG to ${GITHUB_REF_NAME}"
+          gh release upload "${GITHUB_REF_NAME}" "$PKG" --clobber
 
   docker:
     name: Docker image (build + smoke + push)

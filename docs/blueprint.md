@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.8（2026-08-31，v0.7.0 MySQL 8.0 切换 / 命名简化 / installer→bin+share 决策）
+> 状态：设计稿 v1.9（2026-09-01，v0.7.1 根目录总控命令 frampp / LAMPP 风格）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -252,6 +252,18 @@
   `frampp-<version>-<env>.<ext>`（§2.5），Linux 安装包运行时目录迁移为
   `bin/` + `share/templates/`，安装包内不再包含 `installer/`（§2.11）。
 
+### 2.13 v0.7.1 根目录总控命令决策（v1.9，2026-09-01）
+
+- **背景**：LAMPP（XAMPP Linux）将总控脚本放在安装根目录
+  （`/opt/lampp/lampp`），用户习惯在安装目录下直接 `./lampp start|stop`；
+  0.6.0 布局重构后总控入口为 `bin/frampp`，缺少根目录入口。
+- **结论**：Linux 安装包在安装根目录生成符号链接 `frampp -> bin/frampp`
+  （相对链接，可随目录整体移动）。打包阶段由
+  `installer/scripts/build-linux-package.ps1` 创建，`init.sh` 在缺失时
+  兜底重建；`bin/frampp` 仍是唯一真实入口，根目录命令仅为 LAMPP 风格别名。
+  Windows 变体保持 Inno Setup 生成的 `FRAMPP Control Panel.exe`，不做对等
+  命令；Docker 镜像中 `/opt/frampp/frampp` 同样存在（仅便利，不影响入口）。
+
 ---
 
 ## 3. 总体架构
@@ -322,6 +334,7 @@ frampp/
 
 ```text
 frampp/
+├─ frampp                 # Linux 总控命令（LAMPP 风格；符号链接 → bin/frampp）
 ├─ bin/                   # 用户命令：frampp、php、composer、python、pip、mysql、uninstall、env
 ├─ etc/                   # 集中配置：Caddyfile、php.ini、redis.conf、access-filter.rules
 ├─ modules/               # 软件模块（frankenphp / mariadb / redis / python / agent / control-panel / templates）

@@ -360,6 +360,8 @@ ln -sfn "$RUNTIME_DIR/modules/mysql/bin/mysqladmin" "$RUNTIME_DIR/bin/mysqladmin
 ln -sfn "$RUNTIME_DIR/modules/mysql/bin/mysqldump" "$RUNTIME_DIR/bin/mysqldump" 2>/dev/null || true
 ln -sfn "$RUNTIME_DIR/modules/mysql/bin/mysqlcheck" "$RUNTIME_DIR/bin/mysqlcheck" 2>/dev/null || true
 ln -sfn "$RUNTIME_DIR/modules/redis/redis-cli" "$RUNTIME_DIR/bin/redis-cli" 2>/dev/null || true
+# LAMPP 风格根目录总控命令：frampp -> bin/frampp（打包阶段已创建；解压/手工拷贝时兜底）
+ln -sfn "$RUNTIME_DIR/bin/frampp" "$RUNTIME_DIR/frampp" 2>/dev/null || true
 
 # systemd 单元（安装后可用 bin/install-systemd 安装）
 SYSTEMD_TPL="$RUNTIME_DIR/share/templates/frampp.service.template"

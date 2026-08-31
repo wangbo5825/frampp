@@ -53,6 +53,21 @@ Compare against the matching line in `SHA256SUMS.txt` on the GitHub Release.
 - 首次安装生成随机 MySQL root 密码、只读账号 `frampp_ro`、Redis 密码与面板令牌。
 - 控制面板（`http://127.0.0.1:8081/`）的变更操作需要面板令牌。
 
+## 常用命令 / Common Commands
+
+Linux 安装根目录提供 LAMPP 风格总控命令 `frampp`（指向 `bin/frampp` 的符号
+链接），安装后可直接执行：
+
+```bash
+./frampp status      # 查看服务状态 / show service status
+./frampp start all   # 启动全部服务 / start all services
+./frampp stop all    # 停止全部服务 / stop all services
+./frampp version
+```
+
+Windows 请使用安装目录中的 `FRAMPP Control Panel.exe`，或 `bin/frampp.cmd`
+命令行入口。
+
 ## 内部传输模式 / Internal Transport Mode
 
 默认使用 TCP 端口（Caddy admin `127.0.0.1:2019`、MySQL 3306、Redis 6379），

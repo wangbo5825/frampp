@@ -108,8 +108,10 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential make gcc \
             xz-utils unzip upx-ucl \
-            curl ca-certificates \
-            libaio1
+            curl ca-certificates
+          # MySQL 8.0 服务端需要 libaio；Ubuntu 24.04+ 包名为 libaio1t64（t64 迁移）
+          sudo apt-get install -y --no-install-recommends libaio1t64 || \
+            sudo apt-get install -y --no-install-recommends libaio1
 
       - name: Build Linux package (versions-linux-x86_64.json)
         shell: pwsh

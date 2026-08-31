@@ -11,7 +11,7 @@ use Frampp\Agent\Server;
 use Frampp\Agent\ToolRegistry;
 use Frampp\Agent\Tools\EnvTools;
 use Frampp\Agent\Tools\LogTools;
-use Frampp\Agent\Tools\MariaDbTools;
+use Frampp\Agent\Tools\MySqlTools;
 use Frampp\Agent\Tools\RedisTools;
 
 $args = $_SERVER['argv'] ?? [];
@@ -33,7 +33,7 @@ try {
     $config = AgentConfig::load($configFile, $home);
     $audit = new AuditLogger($config);
     $registry = new ToolRegistry($audit, $config);
-    $registry->register(new MariaDbTools($config));
+    $registry->register(new MySqlTools($config));
     $registry->register(new RedisTools($config));
     $registry->register(new LogTools($config));
     $registry->register(new EnvTools($config));

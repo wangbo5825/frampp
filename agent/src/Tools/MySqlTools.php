@@ -9,7 +9,7 @@ use Frampp\Agent\AsTool;
 use Frampp\Agent\QueryGuard;
 use PDO;
 
-final class MariaDbTools
+final class MySqlTools
 {
     private ?PDO $pdo = null;
 
@@ -25,9 +25,10 @@ final class MariaDbTools
             }
             $mysqlSock = $this->config->socket('mysql');
             $user = 'frampp_ro';
-            $pass = $this->config->secret('mariadb_readonly_password');
+            $pass = $this->config->secret('mysql_readonly_password')
+                ?? $this->config->secret('mariadb_readonly_password');
             if ($pass === null) {
-                throw new \RuntimeException('缺少只读账号密码（var/secrets.json 无 mariadb_readonly_password）');
+                throw new \RuntimeException('缺少只读账号密码（var/secrets.json 无 mysql_readonly_password / mariadb_readonly_password）');
             }
             $dsn = $mysqlSock !== null
                 ? "mysql:unix_socket=$mysqlSock;charset=utf8mb4"

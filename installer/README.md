@@ -21,7 +21,7 @@ Windows：
 Linux x86_64：
 
 - FrankenPHP 1.12.7：源码定制构建（去部分扩展 + Souin + `caddy-access-filter` + UPX，glibc mostly static）
-- MariaDB 12.3.2：源码编译精简版
+- MySQL 8.0.46：官方 glibc 2.17 minimal 包裁剪（`installer/scripts/linux/trim-mysql.sh`，CentOS 7 兼容、自带 OpenSSL）
 - Redis 8.10.1：官方源码静态编译
 - Python 3.13.15：`python-build-standalone` 精简运行时
 
@@ -31,7 +31,7 @@ Linux x86_64：
 # 1. 下载并校验全部组件（SHA-256 锁定在 versions.json）
 powershell -ExecutionPolicy Bypass -File installer/scripts/download.ps1
 
-# 2. 初始化运行时（解压、生成配置与密钥、初始化 MariaDB 数据目录）
+# 2. 初始化运行时（解压、生成配置与密钥、初始化 MySQL 数据目录）
 powershell -ExecutionPolicy Bypass -File installer/scripts/init.ps1
 
 # 3. 查看 / 启动服务
@@ -44,19 +44,19 @@ bin/frampp stop all
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/scripts/build-installer.ps1
-# Windows 产物：dist/installer/frampp-setup-8.5-0.6.0-windows-x64.exe
+# Windows 产物：dist/installer/frampp-0.7.0-windows-x64.exe
 
 pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
-# Linux 产物：dist/installer/frampp-setup-8.5-0.6.0-linux-x86_64.run
+# Linux 产物：dist/installer/frampp-0.7.0-linux-x86_64.run
 
 pwsh -File installer/scripts/build-docker.ps1 -ImageName frampp
-# Docker 产物：frampp:0.6.0 镜像（复用上面的 .run 载荷）
+# Docker 产物：frampp:0.7.0 镜像（复用上面的 .run 载荷）
 ```
 
 ### Docker 镜像
 
 Dockerfile 复用 Linux `.run` 产物，`--extract-only` 解压而不初始化，镜像首启动
-时才生成随机密钥与 MariaDB 数据目录。默认以非 root 用户 `frampp` 运行，入口
+时才生成随机密钥与 MySQL 数据目录。默认以非 root 用户 `frampp` 运行，入口
 脚本见 `installer/scripts/linux/docker-entrypoint.sh`。
 
 ```bash
@@ -65,14 +65,14 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  frampp:0.6.0
+  frampp:0.7.0
 ```
 
 详细卷、端口与发布说明见 [docs/docker.md](../docs/docker.md)。
 
 安装器行为：
 
-- 打包干净运行时（不含开发机数据/密钥），安装时自动运行 `init.ps1` 生成配置、密钥与 MariaDB 数据目录，并启动三件套
+- 打包干净运行时（不含开发机数据/密钥），安装时自动运行 `init.ps1` / `init.sh` 生成配置、密钥与 MySQL 数据目录，并启动三件套
 - 卸载时先停止服务再删除（Linux 运行 `bin/uninstall`，含 `var/`、`logs/` 与 init 生成的配置）
 - 安装 / 升级 / 卸载流程见 [docs/upgrade.md](../docs/upgrade.md)
 - 额外站点配置：把 `*.caddy` 文件放入安装目录 `etc/caddy.d/`，Caddyfile 会自动导入

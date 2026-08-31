@@ -2,6 +2,53 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.7.0] - 2026-08-31
+
+### 新增
+
+- Linux x86_64 数据库组件切换为 **MySQL 8.0.46 Community**，由官方
+  glibc 2.17 minimal 包裁剪（`installer/scripts/linux/trim-mysql.sh`）。
+  官方构建以 CentOS 7（glibc ≥ 2.17）为目标，OpenSSL（以及 Kerberos /
+  LDAP / SASL）打包在 `lib/private`，不依赖 systemd，同一份二进制可运行于
+  CentOS 7 与现代发行版；服务端仅需 `libaio`。裁剪删除 `lib/mecab` 词典
+  （约 129MB）、Kerberos / LDAP-SASL / OCI / FIDO 认证插件、组复制、
+  示例/测试插件、非核心 CLI 工具、头文件、文档及除英文外的本地化错误消息，
+  保持模块紧凑。
+- 数据库初始化改为 `mysqld --initialize-insecure` + PHP PDO（mysqlnd，走
+  unix socket）创建账号，不再依赖 `mysql` CLI（新 Debian/Ubuntu 可能缺
+  `libtinfo.so.5`）。密钥字段为 `mysql_root_password` /
+  `mysql_readonly_password`（升级的旧运行时会自动补充新密钥）。
+- 安装包命名由 `frampp-setup-<channel>-<version>-<env>` 简化为
+  **`frampp-<version>-<env>.<ext>`**（如 `frampp-0.7.0-linux-x86_64.run`、
+  `frampp-0.7.0-windows-x64.exe`），组件通道在 Release note 中说明。
+- Linux 安装包不再包含 `installer/` 目录：运行时脚本移入 `bin/`（init /
+  docker-entrypoint / docker-healthcheck），配置模板与 systemd 单元模板移入
+  `share/templates/`，版本清单移入 `share/`。
+
+### 变更
+
+- Linux 下 `frampp status` / 控制面板显示的服务名改为 **`mysql`**
+  （`modules/mysql`、数据目录 `var/mysql`、日志 `mysql.log` /
+  `mysql.err.log`）；Windows 本轮保持 `mariadb`，后续里程碑对等切换。
+- Linux 运行时依赖基线：MySQL 模块要求 glibc ≥ 2.17（兼容 CentOS 7）与
+  `libaio`；Docker 镜像安装 `libaio1` / `libnuma1`。
+- Agent 的 MySQL 工具优先读取 `mysql_readonly_password`，兼容回读旧的
+  `mariadb_readonly_password`；日志工具同时接受 `mysql` 与 `mariadb`。
+- CI 冒烟测试断言 MySQL GLIBC ≤ 2.17，并通过 PHP PDO（与控制面板同链路）
+  验证数据库连接。
+- FRAMPP 版本号提升至 `0.7.0`。
+
+### 说明
+
+- MySQL 8.0 已于 2026-04-30 EOL（8.0.46 为最终版），作为 CentOS 7 兼容基线
+  采用；面向现代发行版的 MySQL 8.4 LTS / MariaDB 11.4 双变体切换已列入后续
+  计划。
+- **MariaDB 数据目录与 MySQL 8.0 不兼容**。从 0.6.0 升级需重建数据库
+  （见 `docs/user/upgrade.md`）。
+- FRAMPP 创建的数据库账号使用 `mysql_native_password`，保证 localhost TCP
+  下 PHP mysqlnd / Adminer / CLI 等客户端的广泛兼容（MySQL 8.0 仍支持；
+  8.4 默认禁用，相关于后续双变体切换）。
+
 ## [0.6.0] - 2026-08-29
 
 ### 新增

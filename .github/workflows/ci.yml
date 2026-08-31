@@ -101,18 +101,15 @@ jobs:
           restore-keys: |
             linux-build-
 
-      - name: Install Linux build dependencies (MariaDB / spc / UPX)
+      - name: Install Linux build dependencies (Redis / UPX / MySQL runtime)
         shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake bison pkg-config \
-            libssl-dev libpcre2-dev zlib1g-dev libncurses-dev libcurl4-openssl-dev \
-            libxml2-dev libonig-dev libreadline-dev libargon2-dev libsodium-dev \
-            libsqlite3-dev libbz2-dev libzip-dev libyaml-dev libffi-dev \
-            xz-utils unzip upx-ucl autoconf libaio-dev liburing-dev \
-            libgnutls28-dev liblz4-dev libedit-dev libsnappy-dev \
-            libpam0g-dev libkrb5-dev libsystemd-dev libcrack2-dev libcap-dev
+            build-essential make gcc \
+            xz-utils unzip upx-ucl \
+            curl ca-certificates \
+            libaio1
 
       - name: Build Linux package (versions-linux-x86_64.json)
         shell: pwsh
@@ -124,7 +121,7 @@ jobs:
         run: |
           set -euxo pipefail
           cd dist/installer
-          PKG="$(ls frampp-setup-*-linux-x86_64.run | head -n1)"
+          PKG="$(ls frampp-*-linux-x86_64.run | head -n1)"
           chmod +x "$PKG"
           ./"$PKG" --prefix "$PWD/frampp"
           cd frampp
@@ -162,10 +159,10 @@ jobs:
             | grep -o '"handler":"[a-z_]*"' | sort | uniq -c || true
           echo "=== control-panel/web listing ==="
           ls -la modules/control-panel/web || true
-          echo "=== slim checks (mariadb-test must be gone) ==="
-          du -sh modules/mariadb modules/python modules/frankenphp modules/redis || true
-          if [ -d modules/mariadb/mariadb-test ]; then
-            echo "MARIADB_TEST_STILL_PRESENT"; exit 1
+          echo "=== slim checks (mysql-test must be gone) ==="
+          du -sh modules/mysql modules/python modules/frankenphp modules/redis || true
+          if [ -d modules/mysql/mysql-test ]; then
+            echo "MYSQL_TEST_STILL_PRESENT"; exit 1
           fi
           echo "SLIM_OK"
           echo "=== portability checks ==="
@@ -175,15 +172,15 @@ jobs:
           else
             echo "FRANKENPHP_NOT_STATIC"; exit 1
           fi
-          echo "--- MariaDB glibc baseline must be <= 2.31 ---"
-          bash "$GITHUB_WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" modules/mariadb 2.31 mariadb
+          echo "--- MySQL glibc baseline must be <= 2.17 (CentOS 7 compatible) ---"
+          bash "$GITHUB_WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" modules/mysql 2.17 mysql
           echo "PORTABLE_OK"
           echo "=== service logs ==="
           tail -n 60 logs/frankenphp.err.log 2>/dev/null || true
           tail -n 40 logs/frankenphp.log 2>/dev/null || true
-          tail -n 60 logs/mariadb.err.log 2>/dev/null || true
-          tail -n 40 logs/mariadb.log 2>/dev/null || true
-          tail -n 40 logs/mariadb-install-db.log 2>/dev/null || true
+          tail -n 60 logs/mysql.err.log 2>/dev/null || true
+          tail -n 40 logs/mysql.log 2>/dev/null || true
+          tail -n 40 logs/mysql-init.log logs/mysql-init-user.log 2>/dev/null || true
           tail -n 20 logs/panel-access.log logs/frankenphp-access.log 2>/dev/null || true
           echo "=== wait mysql port ==="
           mysql_ready() { (exec 3<>/dev/tcp/127.0.0.1/3306) 2>/dev/null; }
@@ -192,9 +189,15 @@ jobs:
             sleep 1
           done
           mysql_ready || { echo "MYSQL_PORT_NOT_READY"; exit 1; }
-          ROOT_PW="$(sed -n 's/.*"mariadb_root_password"[^"]*"\([^"]*\)".*/\1/p' var/secrets.json)"
+          ROOT_PW="$(sed -n 's/.*"mysql_root_password"[^"]*"\([^"]*\)".*/\1/p' var/secrets.json)"
           REDIS_PW="$(sed -n 's/.*"redis_password"[^"]*"\([^"]*\)".*/\1/p' var/secrets.json)"
-          ./modules/mariadb/bin/mysql --no-defaults --connect-timeout=5 -h127.0.0.1 -P3306 -uroot -p"$ROOT_PW" -e "SELECT VERSION();"
+          echo "--- MySQL via PHP PDO (mysqlnd, 与控制面板同一链路) ---"
+          ROOT_PW="$ROOT_PW" ./modules/frankenphp/frankenphp php-cli -r '
+            $pdo = new PDO("mysql:host=127.0.0.1;port=3306;charset=utf8mb4", "root", getenv("ROOT_PW"), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
+            echo "MYSQL_VERSION=", $pdo->query("SELECT VERSION()")->fetchColumn(), PHP_EOL;
+          '
+          echo "--- MySQL CLI (信息性；新 Debian/Ubuntu 可能缺 libtinfo.so.5) ---"
+          ./modules/mysql/bin/mysql --no-defaults --connect-timeout=5 -h127.0.0.1 -P3306 -uroot -p"$ROOT_PW" -e "SELECT VERSION();" || true
           ./modules/redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
           echo "=== stop ==="
           ./bin/frampp stop all || true
@@ -204,7 +207,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frampp-linux-x86_64
-          path: dist/installer/frampp-setup-*-linux-x86_64.run
+          path: dist/installer/frampp-*-linux-x86_64.run
           retention-days: 14
 
       - name: Upload to GitHub Release (manual)
@@ -215,7 +218,7 @@ jobs:
         run: |
           set -euo pipefail
           cd dist/installer
-          PKG="$(ls frampp-setup-*-linux-x86_64.run | head -n1)"
+          PKG="$(ls frampp-*-linux-x86_64.run | head -n1)"
           echo "Uploading $PKG to ${{ github.event.inputs.release_tag }}"
           gh release upload "${{ github.event.inputs.release_tag }}" "$PKG" --clobber
 
@@ -245,7 +248,7 @@ jobs:
         id: pkg
         shell: bash
         run: |
-          PKG="$(find dist/installer -maxdepth 1 -name 'frampp-setup-*-linux-x86_64.run' -print -quit)"
+          PKG="$(find dist/installer -maxdepth 1 -name 'frampp-*-linux-x86_64.run' -print -quit)"
           if [ -z "$PKG" ]; then
             echo "Linux .run package not found" >&2
             exit 1

@@ -30,7 +30,7 @@ Branch/commit the tag points to (default: master).
 
 .EXAMPLE
 pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.5.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.5.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.7.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Token,

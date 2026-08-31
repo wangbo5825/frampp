@@ -17,7 +17,7 @@ done
 
 FRAMPP_HOME=$(cd "$(dirname "$PRG")/.." && pwd)
 export FRAMPP_HOME
-export PATH="$FRAMPP_HOME/bin:$FRAMPP_HOME/modules/python/bin:$FRAMPP_HOME/modules/mariadb/bin:$FRAMPP_HOME/modules/redis:$PATH"
+export PATH="$FRAMPP_HOME/bin:$FRAMPP_HOME/modules/python/bin:$FRAMPP_HOME/modules/mysql/bin:$FRAMPP_HOME/modules/redis:$PATH"
 
 PHP_INI="$FRAMPP_HOME/etc/php.ini"
 export PHPRC="$PHP_INI"
@@ -25,6 +25,9 @@ export PHPRC="$PHP_INI"
 case "${1:-}" in
     init)
         shift
+        if [ -f "$FRAMPP_HOME/bin/init.sh" ]; then
+            exec bash "$FRAMPP_HOME/bin/init.sh" --runtime-dir "$FRAMPP_HOME" "$@"
+        fi
         exec bash "$FRAMPP_HOME/installer/scripts/linux/init.sh" --runtime-dir "$FRAMPP_HOME" "$@"
         ;;
     env)

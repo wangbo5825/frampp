@@ -5,7 +5,7 @@ FRAMPP 的 AI 接入层：把本地环境能力封装为 MCP 工具，供 Claude
 - 设计：`docs/blueprint.md` §5
 - 协议：MCP（Model Context Protocol），v0.1 提供 **stdio** 传输（JSON-RPC 2.0，新行分隔）
 - 实现：**零外部依赖**的 PHP 实现（自研轻量传输层；工具用 `#[AsTool]` 注解声明，与 php-mcp 风格一致，便于未来迁移官方 SDK）
-- 安全基线：默认仅绑定 127.0.0.1；MariaDB 独立只读账号 + 强制 LIMIT；Redis 只读命令白名单；命令固定模板白名单；全部工具调用写审计日志（`logs/agent-audit.log`）
+- 安全基线：默认仅绑定 127.0.0.1；MySQL/MariaDB 独立只读账号 + 强制 LIMIT；Redis 只读命令白名单；命令固定模板白名单；全部工具调用写审计日志（`logs/agent-audit.log`）
 
 ## 工具清单（v0.1）
 

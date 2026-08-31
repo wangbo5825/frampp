@@ -11,6 +11,7 @@ final class LogTools
 {
     private const FILES = [
         'frankenphp' => 'frankenphp.log',
+        'mysql'      => 'mysql.log',
         'mariadb'    => 'mariadb.log',
         'redis'      => 'redis.log',
         'panel'      => 'panel-access.log',
@@ -39,7 +40,7 @@ final class LogTools
     #[AsTool('logs.tail', '实时查看应用日志尾部（路径白名单）', [
         'type' => 'object',
         'properties' => [
-            'service' => ['type' => 'string', 'enum' => ['frankenphp', 'mariadb', 'redis', 'panel']],
+            'service' => ['type' => 'string', 'enum' => ['frankenphp', 'mysql', 'mariadb', 'redis', 'panel']],
             'lines' => ['type' => 'integer', 'description' => '行数，默认 50'],
         ],
         'required' => ['service'],
@@ -64,7 +65,7 @@ final class LogTools
     #[AsTool('logs.search', '按关键字搜索日志（路径白名单）', [
         'type' => 'object',
         'properties' => [
-            'service' => ['type' => 'string', 'enum' => ['frankenphp', 'mariadb', 'redis', 'panel']],
+            'service' => ['type' => 'string', 'enum' => ['frankenphp', 'mysql', 'mariadb', 'redis', 'panel']],
             'keyword' => ['type' => 'string'],
             'limit' => ['type' => 'integer', 'description' => '最多返回行数，默认 50'],
         ],

@@ -11,7 +11,7 @@ fi
 
 FRAMPP_HOME=$(cd "$(dirname "$_FRAMPP_ENV_SRC")/.." && pwd)
 export FRAMPP_HOME
-export PATH="$FRAMPP_HOME/bin:$FRAMPP_HOME/modules/python/bin:$FRAMPP_HOME/modules/mariadb/bin:$FRAMPP_HOME/modules/redis:$PATH"
+export PATH="$FRAMPP_HOME/bin:$FRAMPP_HOME/modules/python/bin:$FRAMPP_HOME/modules/mysql/bin:$FRAMPP_HOME/modules/redis:$PATH"
 export PHPRC="$FRAMPP_HOME/etc/php.ini"
 
 # unix socket 模式（frampp mode sock）：mysql 客户端默认走 var/run/mysql.sock

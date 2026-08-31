@@ -6,29 +6,24 @@
 
 Positioning: **one-click installers for everyday users** (XAMPP-style), published per **FRAMPP version × component channel × environment**; we do **not** provide multi-PHP coexistence for power users (Laragon / Herd style).
 
-命名规则 / Naming:
+命名规则 / Naming（v0.7.0 起简化，通道并入 Release note）:
 
 ```text
-frampp-setup-<channel>-<version>-<env>.<ext>
-示例 / e.g. frampp-setup-8.5-0.6.0-windows-x64.exe
-示例 / e.g. frampp-setup-8.5-0.6.0-linux-x86_64.run
+frampp-<version>-<env>.<ext>
+示例 / e.g. frampp-0.7.0-windows-x64.exe
+示例 / e.g. frampp-0.7.0-linux-x86_64.run
 ```
 
-- `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.12.7 / PHP 8.5.9 / MariaDB 12.3.2 / Redis 8.10.1）
+- `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.12.7 / PHP 8.5.9 / MySQL 8.0.46（Linux）/ Redis 8.10.1；Windows 数据库仍为 MariaDB 12.3.2）
 - `<version>`：FRAMPP 版本号（语义化，随 Release 递增，来源：仓库 `VERSION` 文件）/ semantic version, bumped per release (from repo `VERSION`)
 - `<env>`：目标环境 / target environment（`windows-x64` / `linux-x86_64`；macOS 属后续里程碑，Docker 以 `ghcr.io/wangbo5825/frampp:<version>` 镜像发布）
 - `<ext>`：`.exe`（Windows，Inno Setup）或 `.run`（Linux，自解压单文件安装器 / self-extracting single-file installer）
 
-> **下版本计划（v0.7.0+）**：FRAMPP 与 PHP 大版本保持一致（当前通道 `8.5`），
-> 安装包命名简化为 `frampp-<version>-<env>.<ext>`（去掉通道段），
-> 版本与 PHP / 组件的对应关系保留在 Release note 中说明；同时将安装后仍被
-> 运行时使用的 `installer/` 内容迁出——脚本移入 `bin/`，模板移入 `share/templates/`，
+> **v0.7.0 起实施 / Implemented since v0.7.0**：FRAMPP 与 PHP 大版本保持一致
+> （当前通道 `8.5`），安装包命名简化为 `frampp-<version>-<env>.<ext>`，
+> 版本与 PHP / 组件的对应关系保留在 Release note 中；运行时使用的
+> `installer/` 内容已迁出——脚本移入 `bin/`，模板移入 `share/templates/`，
 > 安装包内不再包含 `installer/` 目录。
-> Planned (v0.7.0+): since FRAMPP tracks the PHP major version (current channel
-> `8.5`), simplify installer names to `frampp-<version>-<env>.<ext>` and keep
-> the PHP/component mapping in the release notes; also move runtime-used files
-> out of `installer/` (scripts → `bin/`, templates → `share/templates/`) so the
-> package no longer ships an `installer/` directory.
 
 ## 发布步骤 / Release Steps
 
@@ -47,8 +42,8 @@ powershell -ExecutionPolicy Bypass -File installer/scripts/release.ps1 -Env wind
 pwsh -File installer/scripts/release.ps1 -Env linux-x86_64 -Publish
 ```
 
-CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.6.0`）。推送 `v*` tag 时，`docker` 作业还会构建并推送 Docker 镜像。
-CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.6.0`). Pushing a `v*` tag also builds and pushes the Docker image in the `docker` job.
+CI 替代方案：Linux 包由 GitHub Actions 构建后，可在 workflow_dispatch 时传入 `release_tag` 自动上传到 Release（`gh workflow run ci.yml -f release_tag=v0.7.0`）。推送 `v*` tag 时，`docker` 作业还会构建并推送 Docker 镜像。
+CI alternative: after the Linux package is built by GitHub Actions, pass `release_tag` on workflow_dispatch to auto-upload to a release (`gh workflow run ci.yml -f release_tag=v0.7.0`). Pushing a `v*` tag also builds and pushes the Docker image in the `docker` job.
 
 ## Docker 镜像 / Docker Image
 
@@ -60,7 +55,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.6.0
+  ghcr.io/wangbo5825/frampp:0.7.0
 ```
 
 发布到 GitHub Container Registry：
@@ -81,8 +76,8 @@ GitHub is the single source of truth. The repository is mirrored to Gitee automa
 Gitee mirror sync does **not** copy GitHub Releases, so a Gitee 发行版 (with installer attachments) is optional. If you also publish Gitee releases, use the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.6.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.6.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.7.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.7.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 Notes:
@@ -98,8 +93,8 @@ GitHub 是唯一推送源。仓库由 **GitHub Actions 工作流** `.github/work
 镜像同步**不会**复制 GitHub Releases，因此 Gitee 发行版（含安装包附件）为可选项。如仍需发布 Gitee 发行版，运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.6.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-setup-8.5-0.6.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.7.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.7.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 说明：
@@ -120,13 +115,13 @@ Build time on CI is expected to grow to roughly 1.5–2 hours per Linux package 
 
 ### glibc baseline / glibc 基线
 
-The Linux x86_64 package is portable across distributions: **FrankenPHP is built as a fully static musl binary** (no glibc dependency, runs on any glibc version and even Alpine), while **MariaDB is compiled against a glibc 2.31 baseline** (Ubuntu 20.04 / Debian 11), so it runs on Ubuntu 20.04+, Debian 11+ and RHEL 9 / Rocky 9 / Alma 9 (glibc 2.34).
+The Linux x86_64 package is portable across distributions: **FrankenPHP is built as a fully static musl binary** (no glibc dependency, runs on any glibc version and even Alpine), while **MySQL 8.0 uses the official glibc 2.17 generic build** (CentOS 7 baseline), so it runs on CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9 (glibc 2.34). MySQL bundles its own OpenSSL / Kerberos / LDAP libraries in `lib/private` and does not depend on systemd; the server only needs `libaio` at runtime.
 
-Linux x86_64 包具备跨发行版可移植性：**FrankenPHP 以 musl 完全静态方式构建**（不依赖 glibc，可运行于任意 glibc 版本甚至 Alpine），**MariaDB 以 glibc 2.31 为基线编译**（对应 Ubuntu 20.04 / Debian 11），因此可在 Ubuntu 20.04+、Debian 11+ 以及 RHEL 9 / Rocky 9 / Alma 9（glibc 2.34）上运行。
+Linux x86_64 包具备跨发行版可移植性：**FrankenPHP 以 musl 完全静态方式构建**（不依赖 glibc，可运行于任意 glibc 版本甚至 Alpine），**MySQL 8.0 采用官方 glibc 2.17 通用构建**（CentOS 7 基线），因此可在 CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9（glibc 2.34）上运行。MySQL 自带 OpenSSL / Kerberos / LDAP 库（`lib/private`），不依赖 systemd；服务端运行时仅需 `libaio`。
 
-The build scripts `installer/scripts/linux/build-frankenphp-musl.sh` (Alpine, musl static) and `installer/scripts/linux/build-mariadb-glibc.sh` (Ubuntu 20.04, glibc 2.31) keep the produced binaries on a wide-compatibility baseline; CI asserts `PORTABLE_OK` (FrankenPHP static + MariaDB GLIBC ≤ 2.31) during the smoke test.
+The build script `installer/scripts/linux/build-frankenphp-musl.sh` (Alpine, musl static) and the trimmed MySQL module (`installer/scripts/linux/trim-mysql.sh`, official glibc 2.17 minimal tarball) keep the produced binaries on a wide-compatibility baseline; CI asserts `PORTABLE_OK` (FrankenPHP static + MySQL GLIBC ≤ 2.17) during the smoke test.
 
-构建脚本 `installer/scripts/linux/build-frankenphp-musl.sh`（Alpine，musl 静态）与 `installer/scripts/linux/build-mariadb-glibc.sh`（Ubuntu 20.04，glibc 2.31）把产物锁定在广泛兼容的基线上；CI 冒烟测试断言 `PORTABLE_OK`（FrankenPHP 静态 + MariaDB GLIBC ≤ 2.31）。
+构建脚本 `installer/scripts/linux/build-frankenphp-musl.sh`（Alpine，musl 静态）与 MySQL 裁剪模块（`installer/scripts/linux/trim-mysql.sh`，官方 glibc 2.17 minimal 包）把产物锁定在广泛兼容的基线上；CI 冒烟测试断言 `PORTABLE_OK`（FrankenPHP 静态 + MySQL GLIBC ≤ 2.17）。
 
 FRAMPP 0.3.0 对 Linux x86_64 安装包做精简，功能保持不变：
 
@@ -189,25 +184,68 @@ FRAMPP 0.6.0 restructures the installed layout and adds IP access control:
 
 产物位于 / Artifacts in `dist/installer/`：
 
-- `frampp-setup-<channel>-<version>-<env>.exe`：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)
-- `frampp-setup-<channel>-<version>-linux-x86_64.run`：Linux 自解压单文件安装器（运行后自动校验、解压、初始化并启动；目录可整体移动）/ self-extracting single-file Linux installer (verifies, extracts, initializes and starts; directory relocatable)
+- `frampp-<version>-<env>.exe`（如 `frampp-0.7.0-windows-x64.exe`）：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)
+- `frampp-<version>-linux-x86_64.run`（如 `frampp-0.7.0-linux-x86_64.run`）：Linux 自解压单文件安装器（运行后自动校验、解压、初始化并启动；目录可整体移动）/ self-extracting single-file Linux installer (verifies, extracts, initializes and starts; directory relocatable)
 - `ghcr.io/wangbo5825/frampp:<version>`：单镜像 all-in-one Docker 镜像（首启动初始化，`docker run` / Compose 一键启动）/ single all-in-one Docker image (initializes on first start; one-click via `docker run` / Compose)
 - `SHA256SUMS.txt`：全部安装包哈希，供用户核对 / hashes of all installers for verification
+
+## 0.7.0 MySQL 8.0 / 0.7.0 切换 MySQL 8.0
+
+FRAMPP 0.7.0 switches the Linux database component from a source-built
+MariaDB to the official **MySQL 8.0.46 Community** generic binary
+(`linux-glibc2.17-x86_64-minimal.tar.xz`), trimmed by
+`installer/scripts/linux/trim-mysql.sh`:
+
+- The official glibc 2.17 build targets CentOS 7 and is backward-compatible
+  with newer distributions; OpenSSL / Kerberos / LDAP / SASL are bundled in
+  `lib/private`, so there is no system OpenSSL dependency and no systemd
+  requirement. Only `libaio` is needed at runtime.
+- Removed during trimming: `lib/mecab` dictionaries (~129 MB), Kerberos /
+  LDAP-SASL / OCI / FIDO authentication plugins, group replication,
+  sample/test plugins, non-core CLI tools, headers, docs, man pages and
+  localized error messages except English. The module targets ~30–45 MB
+  compressed.
+- Database init uses `mysqld --initialize-insecure` + PHP PDO (mysqlnd) over
+  a unix socket, so the `mysql` CLI's `libtinfo.so.5` dependency is not
+  required at install time.
+- Notes: MySQL 8.0 reached EOL on 2026-04-30 (8.0.46 is the final release)
+  and is adopted as the CentOS 7-compatible baseline; a dual-variant switch
+  to MySQL 8.4 LTS / MariaDB 11.4 for modern distributions is planned next.
+  MariaDB data directories are **not** compatible with MySQL 8.0 — upgrading
+  from 0.6.0 requires rebuilding the database (see
+  [docs/user/upgrade.md](user/upgrade.md)).
+
+FRAMPP 0.7.0 将 Linux 数据库组件由源码编译 MariaDB 切换为官方
+**MySQL 8.0.46 Community** 通用二进制（`linux-glibc2.17-x86_64-minimal`），
+由 `installer/scripts/linux/trim-mysql.sh` 裁剪：
+
+- 官方 glibc 2.17 构建以 CentOS 7 为目标，且对更新发行版向后兼容；
+  OpenSSL / Kerberos / LDAP / SASL 打包在 `lib/private`，无系统 OpenSSL
+  依赖、无 systemd 依赖，服务端运行时仅需 `libaio`。
+- 裁剪删除：`lib/mecab` 词典（约 129MB）、Kerberos / LDAP-SASL / OCI /
+  FIDO 认证插件、组复制、示例/测试插件、非核心 CLI 工具、头文件、文档、
+  man 页与除英文外的本地化错误消息；模块目标压缩体积约 30~45MB。
+- 初始化使用 `mysqld --initialize-insecure` + PHP PDO（mysqlnd，走 unix
+  socket），安装期不依赖 `mysql` CLI 的 `libtinfo.so.5`。
+- 说明：MySQL 8.0 已于 2026-04-30 EOL（8.0.46 为最终版），作为 CentOS 7
+  兼容基线采用；面向现代发行版的 MySQL 8.4 LTS / MariaDB 11.4 双变体切换
+  已列入后续计划。MariaDB 数据目录与 MySQL 8.0 **不兼容**——从 0.6.0 升级
+  需重建数据库（见 [docs/user/upgrade.md](user/upgrade.md)）。
 
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash
-chmod +x frampp-setup-8.5-0.6.0-linux-x86_64.run
-./frampp-setup-8.5-0.6.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-setup-8.5-0.6.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
-./frampp-setup-8.5-0.6.0-linux-x86_64.run --help           # 帮助 / help
+chmod +x frampp-0.7.0-linux-x86_64.run
+./frampp-0.7.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.7.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+./frampp-0.7.0-linux-x86_64.run --help           # 帮助 / help
 
 ~/frampp/bin/frampp status        # 查看服务状态 / check status
 ~/frampp/bin/uninstall            # 停止服务并可选清理数据 / stop services, optionally clean data
 ```
 
-Linux 包自包含三件套二进制（FrankenPHP 静态构建、MariaDB bintar、Redis 官方源码静态编译），不依赖系统包管理器；运行时仅需常见工具（sh / tar / openssl 或 /dev/urandom）。
-The Linux package bundles all three binaries (static FrankenPHP, MariaDB bintar, statically compiled Redis) with no system package dependencies; only common tools are needed at runtime (sh / tar / openssl or /dev/urandom).
+Linux 包自包含三件套二进制（FrankenPHP 静态构建、MySQL 8.0 glibc 2.17 裁剪版、Redis 官方源码静态编译），不依赖系统包管理器；运行时仅需常见工具（sh / tar / openssl 或 /dev/urandom）与 libaio（Debian/Ubuntu 需安装 libaio1）。
+The Linux package bundles all three binaries (static FrankenPHP, a trimmed MySQL 8.0 glibc 2.17 build, statically compiled Redis) with no system package dependencies; only common tools are needed at runtime (sh / tar / openssl or /dev/urandom) plus libaio (libaio1 on Debian/Ubuntu).
 
 ## 新增通道 / Adding a Channel
 
@@ -219,7 +257,7 @@ The Linux package bundles all three binaries (static FrankenPHP, MariaDB bintar,
 ## 校验 / Verification
 
 ```powershell
-Get-FileHash frampp-setup-8.5-0.6.0-windows-x64.exe -Algorithm SHA256
-sha256sum frampp-setup-8.5-0.6.0-linux-x86_64.run
+Get-FileHash frampp-0.7.0-windows-x64.exe -Algorithm SHA256
+sha256sum frampp-0.7.0-linux-x86_64.run
 # 与 / compare with SHA256SUMS.txt 中对应行 / the matching line
 ```

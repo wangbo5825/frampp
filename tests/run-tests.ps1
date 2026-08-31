@@ -48,10 +48,11 @@ function Test-VersionsFile([string]$Path, [string]$Platform) {
         if ($sha -ne "PENDING") {
             Assert-True ($sha -match '^[0-9A-Fa-f]{64}$') "$label component '$($prop.Name)' sha256 is 64 hex chars"
         }
-        Assert-True ($prop.Value.kind -in @("zip", "phar", "binary", "tar.gz", "src")) "$label component '$($prop.Name)' kind valid"
+        Assert-True ($prop.Value.kind -in @("zip", "phar", "binary", "tar.gz", "tar.xz", "src")) "$label component '$($prop.Name)' kind valid"
     }
     $names = @($config.components.PSObject.Properties.Name | Sort-Object)
-    Assert-True ($names -contains "frankenphp" -and $names -contains "mariadb" -and
+    $dbName = if ($Platform -eq "linux-x86_64") { "mysql" } else { "mariadb" }
+    Assert-True ($names -contains "frankenphp" -and $names -contains $dbName -and
                  $names -contains "redis" -and $names -contains "composer") "$label declares four core components"
 
     # 本地已缓存时校验哈希
@@ -105,7 +106,7 @@ Assert-True ($caddy -match '\{\{CADDY_D\}\}.*\.caddy') "Caddyfile template impor
 $setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/setup.iss")
 Assert-True ($setupIss -match '\[UninstallRun\]') "setup.iss stops services on uninstall"
 Assert-True ($setupIss -match 'init\.ps1') "setup.iss runs init.ps1 on install"
-Assert-True ($setupIss -match 'OutputBaseFilename=frampp-setup-\{#Channel\}-{#MyAppVersion\}-{#TargetEnv\}') "setup.iss names artifacts by channel/version/env"
+Assert-True ($setupIss -match 'OutputBaseFilename=frampp-\{#MyAppVersion\}-{#TargetEnv\}') "setup.iss names artifacts by version/env (v0.7.0 simplified)"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/build-installer.ps1")) "build-installer.ps1 exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/build-linux-package.ps1")) "build-linux-package.ps1 exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/scripts/release.ps1")) "release.ps1 exists"
@@ -135,8 +136,10 @@ Assert-True ($framppWrapper -match '\binit\b') "bin/frampp wrapper supports init
 $runHeader = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/frampp-installer.sh")
 Assert-True ($runHeader -match '\-\-extract-only') "frampp-installer.sh supports --extract-only"
 $buildLinux = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/build-linux-package.ps1")
-Assert-True ($buildLinux -match 'installer/scripts/linux') "build-linux-package.ps1 stages runtime scripts under installer/scripts/linux"
-Assert-True ($buildLinux -match '\(Join-Path \$StagingDir "installer/scripts/linux"\)') "build-linux-package.ps1 layout pre-creates installer/scripts/linux dir"
+Assert-True ($buildLinux -match 'trim-mysql\.sh') "build-linux-package.ps1 uses trim-mysql.sh"
+Assert-True ($buildLinux -match '\(Join-Path \$StagingDir "share/templates"\)') "build-linux-package.ps1 stages templates under share/templates"
+Assert-True ($buildLinux -match '\$outName = "frampp-\$AppVersion-\$Env\.run"') "build-linux-package.ps1 uses simplified artifact name"
+Assert-True ($buildLinux -match '\(Join-Path \$moduleDir "mysql"\)') "build-linux-package.ps1 stages the mysql module"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/config/channels.json")) "channels.json exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/releases.md")) "docs/releases.md exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/README.md")) "docs/user/README.md exists"
@@ -159,10 +162,10 @@ if ($php) {
 
     # 构造一个假的运行时目录验证 CLI status 输出
     $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("frampp-test-" + [guid]::NewGuid().ToString("N"))
-    New-Item -ItemType Directory -Force -Path (Join-Path $tmp "var"), (Join-Path $tmp "logs"), (Join-Path $tmp "etc"), (Join-Path $tmp "installer\templates") | Out-Null
-    Copy-Item -LiteralPath (Join-Path $Root "installer\templates\Caddyfile.template") -Destination (Join-Path $tmp "installer\templates\Caddyfile.template")
-    Copy-Item -LiteralPath (Join-Path $Root "installer\templates\redis.conf.template") -Destination (Join-Path $tmp "installer\templates\redis.conf.template")
-    Copy-Item -LiteralPath (Join-Path $Root "installer\templates\php.ini.linux.template") -Destination (Join-Path $tmp "installer\templates\php.ini.linux.template")
+    New-Item -ItemType Directory -Force -Path (Join-Path $tmp "var"), (Join-Path $tmp "logs"), (Join-Path $tmp "etc"), (Join-Path $tmp "share\templates") | Out-Null
+    Copy-Item -LiteralPath (Join-Path $Root "installer\templates\Caddyfile.template") -Destination (Join-Path $tmp "share\templates\Caddyfile.template")
+    Copy-Item -LiteralPath (Join-Path $Root "installer\templates\redis.conf.template") -Destination (Join-Path $tmp "share\templates\redis.conf.template")
+    Copy-Item -LiteralPath (Join-Path $Root "installer\templates\php.ini.linux.template") -Destination (Join-Path $tmp "share\templates\php.ini.linux.template")
     Write-JsonNoBom (Join-Path $tmp "var/runtime.json") @{
         created_at = (Get-Date -Format o)
         root = $tmp
@@ -170,6 +173,7 @@ if ($php) {
     }
     Write-JsonNoBom (Join-Path $tmp "var/secrets.json") @{
         panel_token = "test-token"
+        mysql_root_password = "x"
         mariadb_root_password = "x"
         redis_password = "y"
     }
@@ -178,7 +182,8 @@ if ($php) {
     $out = & php $cli status --json --home $tmp 2>&1 | Out-String
     Assert-True ($LASTEXITCODE -eq 0) "frampp status exits 0"
     $json = $out | ConvertFrom-Json
-    Assert-True ($null -ne $json.frankenphp -and $null -ne $json.mariadb -and $null -ne $json.redis) "frampp status lists three services"
+    $dbKey = if ($IsWindows) { "mariadb" } else { "mysql" }
+    Assert-True ($null -ne $json.frankenphp -and $null -ne $json.$dbKey -and $null -ne $json.redis) "frampp status lists three services (db=$dbKey)"
     Assert-True (-not $json.frankenphp.running) "frankenphp reports stopped in empty runtime"
 
     # 孤儿检测：daemon 启动者已退出但服务进程存活 => orphan=true（只读状态，不清理）
@@ -201,14 +206,14 @@ if ($php) {
         launcher_type = "daemon"
         started_at = (Get-Date -Format o)
     }
-    [System.IO.File]::WriteAllText((Join-Path $tmp "var/mariadb.pid"), "123456", (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText((Join-Path $tmp "var/$dbKey.pid"), "123456", (New-Object System.Text.UTF8Encoding($false)))
     $clOut = (& php $cli cleanup --json --home $tmp 2>&1 | Out-String)
     Assert-True ($LASTEXITCODE -eq 0) "frampp cleanup exits 0"
     $clJson = $clOut | ConvertFrom-Json
     Assert-True ($clJson.skipped -contains "frankenphp") "cleanup removes stale JSON pid file"
-    Assert-True ($clJson.skipped -contains "mariadb") "cleanup parses legacy integer pid file"
+    Assert-True ($clJson.skipped -contains $dbKey) "cleanup parses legacy integer pid file"
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $tmp "var/frankenphp.pid"))) "cleanup deleted JSON pid file"
-    Assert-True (-not (Test-Path -LiteralPath (Join-Path $tmp "var/mariadb.pid"))) "cleanup deleted legacy pid file"
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $tmp "var/$dbKey.pid"))) "cleanup deleted legacy pid file"
 
     # 传输模式：默认 tcp；Windows 拒绝切换到 unix socket，Linux 完整验证切换
     $modeOut = (& php $cli mode status --json --home $tmp 2>&1 | Out-String)

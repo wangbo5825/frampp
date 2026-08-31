@@ -11,12 +11,12 @@ LAMPP / XAMPP / NMPP 的产品形态，并内置基于 MCP 的 AI Agent 接入�
 ## 当前状态
 
 - 里程碑：**M4 生产模式 + Linux x86_64 / Docker 变体**
-- 最新版本线：**0.6.x**
+- 最新版本线：**0.7.x**（Linux 数据库组件为 MySQL 8.0，glibc 2.17，兼容 CentOS 7）
 - 当前通道：PHP **8.5** / FrankenPHP **1.12.7**
 
 ## FRAMPP 是什么？
 
-FRAMPP 把 PHP 应用服务器、MariaDB 和 Redis 打包成自包含的 XAMPP 风格安装包：
+FRAMPP 把 PHP 应用服务器、MySQL / MariaDB 和 Redis 打包成自包含的 XAMPP 风格安装包：
 下载、运行，几分钟即可开始开发。
 
 它面向希望零门槛本地环境的普通开发者，不提供多 PHP 版本并存的 Laragon / Herd
@@ -46,7 +46,7 @@ FRAMPP 把 PHP 应用服务器、MariaDB 和 Redis 打包成自包含的 XAMPP �
 | F | FrankenPHP | 应用服务器：内置 Caddy、HTTPS、worker 模式 |
 | R | Redis | 缓存、队列、会话 |
 | A | Agent | MCP 服务器，连接 AI Agent 与本地环境 |
-| M | MySQL / MariaDB | 关系数据库，默认 MariaDB |
+| M | MySQL / MariaDB | 关系数据库（Linux 为 MySQL 8.0；Windows 为 MariaDB） |
 | P | PHP | 主要开发语言 |
 | P | Python | 支撑语言，用于自动化与 AI 负载 |
 
@@ -55,15 +55,15 @@ FRAMPP 把 PHP 应用服务器、MariaDB 和 Redis 打包成自包含的 XAMPP �
 ### Windows
 
 从 [GitHub Releases](https://github.com/wangbo5825/frampp/releases) 下载
-`frampp-setup-8.5-0.6.0-windows-x64.exe`，双击安装。安装器会自动初始化并启动
+`frampp-0.7.0-windows-x64.exe`，双击安装。安装器会自动初始化并启动
 整套环境。
 
 ### Linux
 
 ```bash
-chmod +x frampp-setup-8.5-0.6.0-linux-x86_64.run
-./frampp-setup-8.5-0.6.0-linux-x86_64.run
-./frampp-setup-8.5-0.6.0-linux-x86_64.run --prefix /opt/frampp
+chmod +x frampp-0.7.0-linux-x86_64.run
+./frampp-0.7.0-linux-x86_64.run
+./frampp-0.7.0-linux-x86_64.run --prefix /opt/frampp
 ```
 
 安装完成后：
@@ -85,7 +85,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.6.0
+  ghcr.io/wangbo5825/frampp:0.7.0
 ```
 
 也可使用仓库中的 Docker Compose：
@@ -94,20 +94,21 @@ docker run -d --name frampp \
 docker compose up -d
 ```
 
-容器首次启动会初始化运行时（生成随机密钥、MariaDB 数据目录和配置），随后启动
-FrankenPHP、MariaDB 与 Redis。默认站点 <http://127.0.0.1:8080/>，控制面板
+容器首次启动会初始化运行时（生成随机密钥、MySQL 数据目录和配置），随后启动
+FrankenPHP、MySQL 与 Redis。默认站点 <http://127.0.0.1:8080/>，控制面板
 <http://127.0.0.1:8081/>。卷、端口和源码构建方式见 [docs/user/docker.md](docs/user/docker.md)。
 
 ## 系统要求
 
 - **Windows**：x64，Windows 10 / 11（及 Windows Server 2016+）。
-- **Linux（x86_64）**：任意 glibc ≥ 2.31 的发行版（Ubuntu 20.04+、Debian 11+、
-  RHEL 9 / Rocky 9 / Alma 9+）。FrankenPHP 与 Redis 为完全静态的 musl 二进制
-  （不依赖 glibc），MariaDB 以 glibc 2.31 为基线编译且不依赖 libaio。
+- **Linux（x86_64）**：任意 glibc ≥ 2.17 的发行版（CentOS 7、Ubuntu 20.04+、
+  Debian 11+、RHEL 8+ / Rocky 8+ / Alma 8+）。FrankenPHP 与 Redis 为完全静态
+  的 musl 二进制（不依赖 glibc），MySQL 8.0 为官方 glibc 2.17 通用构建
+  （自带 OpenSSL，服务端仅需 `libaio`）。
 - **Docker**：任意安装 Docker 引擎的主机；镜像基于 `debian:bookworm-slim`。
 
-CI 在冒烟测试中断言该可移植性（`PORTABLE_OK`：FrankenPHP 静态 + MariaDB
-GLIBC ≤ 2.31）。详见 [docs/releases.md](docs/releases.md)。
+CI 在冒烟测试中断言该可移植性（`PORTABLE_OK`：FrankenPHP 静态 + MySQL
+GLIBC ≤ 2.17）。详见 [docs/releases.md](docs/releases.md)。
 
 ## 文档
 

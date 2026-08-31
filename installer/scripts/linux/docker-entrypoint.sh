@@ -9,13 +9,17 @@ set -euo pipefail
 
 FRAMPP_HOME="${FRAMPP_HOME:-/opt/frampp}"
 export FRAMPP_HOME
-export PATH="$FRAMPP_HOME/bin:$FRAMPP_HOME/modules/python/bin:$FRAMPP_HOME/modules/mariadb/bin:$FRAMPP_HOME/modules/redis:$PATH"
+export PATH="$FRAMPP_HOME/bin:$FRAMPP_HOME/modules/python/bin:$FRAMPP_HOME/modules/mysql/bin:$FRAMPP_HOME/modules/redis:$PATH"
 
 log() { printf '\033[36m[FRAMPP]\033[0m %s\n' "$*"; }
 
 if [[ ! -f "$FRAMPP_HOME/var/runtime.json" ]]; then
-    log "首次启动，初始化运行时（生成随机密钥、MariaDB 数据目录与配置）..."
-    bash "$FRAMPP_HOME/installer/scripts/linux/init.sh" --runtime-dir "$FRAMPP_HOME"
+    log "首次启动，初始化运行时（生成随机密钥、MySQL 数据目录与配置）..."
+    if [[ -f "$FRAMPP_HOME/bin/init.sh" ]]; then
+        bash "$FRAMPP_HOME/bin/init.sh" --runtime-dir "$FRAMPP_HOME"
+    else
+        bash "$FRAMPP_HOME/installer/scripts/linux/init.sh" --runtime-dir "$FRAMPP_HOME"
+    fi
 fi
 
 stop_all() {

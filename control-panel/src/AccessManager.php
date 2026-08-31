@@ -122,7 +122,18 @@ final class AccessManager
 
     public function renderCaddyfile(): void
     {
-        $template = $this->config->root . DIRECTORY_SEPARATOR . 'installer' . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR . 'Caddyfile.template';
+        // v0.7.0 起安装包内模板位于 share/templates/；旧安装/开发布局回退 installer/templates/
+        $template = '';
+        foreach ([
+            'share' . DIRECTORY_SEPARATOR . 'templates',
+            'installer' . DIRECTORY_SEPARATOR . 'templates',
+        ] as $rel) {
+            $candidate = $this->config->root . DIRECTORY_SEPARATOR . $rel . DIRECTORY_SEPARATOR . 'Caddyfile.template';
+            if (is_file($candidate)) {
+                $template = $candidate;
+                break;
+            }
+        }
         if (!is_file($template)) {
             throw new \RuntimeException("缺少 Caddyfile 模板: {$template}");
         }

@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.7（2026-08-29，0.6.0 布局重构 / 命令统一 / systemd / IP 访问控制决策）
+> 状态：设计稿 v1.8（2026-08-31，v0.7.0 MySQL 8.0 切换 / 命名简化 / installer→bin+share 决策）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -70,7 +70,7 @@
 - **发布形态**：`frampp-setup-<channel>-<version>-linux-x86_64.run`（XAMPP 风格单文件自解压安装器；内部载荷为暂存目录内容的 tar.gz，运行时自动校验、解压到目标目录并执行 `bin/frampp init` 就地初始化与启动；目录可整体移动，卸载用 `bin/uninstall`）。
 - **组件矩阵（环境级版本清单 `installer/config/versions-linux-x86_64.json`）**：
   - **FrankenPHP**：官方静态构建 `frankenphp-linux-x86_64`（musl，无 glibc 依赖）；官方默认扩展集**内置 APCu / redis / mysqli / pdo_mysql / mbstring / openssl / xml / zip / intl** 等，Linux 无需单独 APCu 扩展。
-  - **MariaDB**：官方 bintar `mariadb-12.3.2-linux-systemd-x86_64.tar.gz`（自包含目录树；安装/运行均加 `--no-defaults` 隔离系统 `/etc/my.cnf`）。
+  - **MySQL 8.0**（v0.7.0 起）：官方 glibc 2.17 minimal 包裁剪（`installer/scripts/linux/trim-mysql.sh`，CentOS 7 兼容、自带 OpenSSL）；v0.6.0 及以前为 MariaDB bintar / 源码编译，见 §2.12。
   - **Redis**：**官方源码 8.10.1 静态编译**（首选 Alpine musl 静态，Docker 不可用时回退宿主编译），保证与 Windows 版本一致、品牌一致且无 glibc 依赖；不用 Valkey 预编译包（品牌不一致且将 glibc 基线抬到 2.35）。
   - Composer / Adminer：与 Windows 同一文件（跨平台 phar/php），复用同一缓存。
 - **运行模型**：php.ini 由 `php.ini.linux.template` 生成（静态扩展无 `extension=` 指令）；CLI 与服务器统一通过 `bin/frampp` 包装器启动（`frankenphp php-cli -c <php.ini>` + `PHPRC` 环境变量），控制面板 `ServiceManager` 已跨平台（`kill`/`/dev/null`、去 `.exe`）。
@@ -203,6 +203,54 @@
   同步调整运行时引用：`bin/frampp init` 调用 `bin/` 下脚本、控制面板模板路径改为
   `share/templates/`（AccessManager / SiteManager / ServiceManager）、Docker entrypoint 路径、
   Windows/Linux 打包逻辑与升级文档（旧安装目录的 `installer/` 与新 `share/` 并存处理）。
+
+### 2.12 v0.7.0 Linux 数据库组件切换 MySQL 8.0 决策（v1.8，2026-08-31）
+
+- **背景（问题复述）**：0.6.0 自编译 MariaDB 12.3.2 在 CI（Ubuntu）上构建，
+  产物需要 GLIBC 2.28+ / GLIBCXX 3.4.20+ / LIBSYSTEMD_227 / XCRYPT_2.0，无法在
+  用户的 CentOS 7（glibc 2.17）测试服务器上启动。官方 MariaDB bintar 需
+  glibc 2.19+；MariaDB el7 RPM 又依赖系统 OpenSSL 1.0.2（libssl.so.10），
+  在 Ubuntu 20.04+ / Debian 11+ / RHEL 9 等新发行版上不存在，无法跨端复用。
+- **结论（2026-08-31 定版）**：Linux x86_64 数据库组件由“源码编译 MariaDB
+  12.3.2”切换为**官方 MySQL 8.0.46 Community glibc 2.17 通用二进制
+  （minimal tarball）裁剪**。理由：
+  - MySQL 8.0.44+ 的通用包提供 `linux-glibc2.17` 变体，正是以 CentOS 7 为
+    构建基线，可在 glibc ≥ 2.17 的发行版（CentOS 7 / Ubuntu 20.04+ /
+    Debian 11+ / RHEL 8/9）运行，覆盖 FRAMPP 目标范围。
+  - 通用 tarball **自带 OpenSSL**（`lib/private`，`ldd` 实测），不依赖系统
+    OpenSSL 版本；不依赖 systemd；服务端仅需 `libaio`（CentOS 7 默认安装，
+    Debian/Ubuntu 需 `libaio1`）。
+  - 官方发布，无需本地编译，构建时间与体积显著下降（minimal 包 61.6 MB 压缩）。
+- **已知取舍**：MySQL 8.0 已于 **2026-04-30 EOL**（8.0.46 为最终版，
+  2026-04-21 发布），作为过渡兼容方案接受；长期现代发行版基线（MySQL 8.4
+  LTS / MariaDB 11.4）作为后续“双变体”路线储备，不阻塞 0.7.0。
+  Windows 变体本轮**保持 MariaDB 12.3.2**，服务命名按平台区分（Linux 显示
+  `mysql`，Windows 显示 `mariadb`），后续里程碑对等切换。
+- **裁剪策略（`installer/scripts/linux/trim-mysql.sh`）**：minimal tarball
+  已去除 debug 符号 → 解压后 `strip --strip-unneeded` → 删除
+  `mysql-test/ docs/ man/ include/ *.a *.la` 与开发工具 → 保留
+  `mysqld` / `mysql` / `mysqladmin` / `mysqldump` / `mysqlcheck` /
+  `mysql_ssl_rsa_setup` / `my_print_defaults` / `resolveip`、
+  **`lib/private`（自带 OpenSSL，必须保留）**、`lib/plugin/`、`share/`
+  （errmsg / charsets 运行时必需）。预期压缩后模块 30~45 MB。
+- **初始化模型**：`mysqld --initialize-insecure`（MySQL 8.0 无
+  mariadb-install-db）→ 临时启动 → 用 **PHP PDO（mysqlnd，走 unix socket）**
+  执行引导 SQL（设置 root 密码、创建 `root`@`127.0.0.1` 与只读账号
+  `frampp_ro`），避免 mysql CLI 在新发行版缺 `libtinfo.so.5` 的依赖问题；
+  关闭改用 `kill -TERM` 优雅停机。FRAMPP 创建的账号显式使用
+  `mysql_native_password`（caching_sha2 在非 TLS TCP 下需 RSA 公钥，会收窄
+  PHP / Adminer / CLI 兼容性；FRAMPP 仅绑定 127.0.0.1）。密钥字段迁移为
+  `mysql_root_password` / `mysql_readonly_password`（兼容回读旧 `mariadb_*` 键）。
+- **数据兼容**：MariaDB 数据目录与 MySQL 8.0 **不兼容**；0.6.0 → 0.7.0
+  升级时数据库需重建（升级文档提供 mysqldump 导出/导入建议）。
+- **CLI 客户端依赖说明**：`bin/mysql` 为官方 glibc 2.17 构建，链接
+  `libtinfo.so.5`；CentOS 7 / RHEL 8/9（装 ncurses-compat-libs）可用，
+  新 Debian/Ubuntu 可能缺该库——仅影响命令行客户端，**不影响 PHP
+  （mysqli / PDO mysqlnd）与控制面板**；文档中说明，Docker 镜像优先保证
+  PHP 链路。
+- **实施确认**：本节同时确认 0.7.0 计划的两项落地——安装包命名简化为
+  `frampp-<version>-<env>.<ext>`（§2.5），Linux 安装包运行时目录迁移为
+  `bin/` + `share/templates/`，安装包内不再包含 `installer/`（§2.11）。
 
 ---
 
@@ -419,4 +467,4 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 4. ✅ M2/M3/M4：Agent v0.1、开发体验（Adminer / 项目创建）、生产模式（Windows / Linux 安装器）已实现
 5. ✅ M5 部分：Linux x86_64 `.run` 与 Docker 单镜像已实现
 6. ✅ v0.6.0：布局重构（bin / etc / var / modules）、统一命令、systemd、IP 访问控制
-7. 下一步：发布 **v0.6.0**（Windows .exe + Linux .run + Docker 镜像），或 macOS / A2A 变体
+7. 下一步：发布 **v0.7.0**（Windows .exe + Linux .run + Docker 镜像；Linux 数据库切换 MySQL 8.0），或 macOS / A2A 变体

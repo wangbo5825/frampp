@@ -2,6 +2,62 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.7.0] - 2026-08-31
+
+### Added
+
+- Linux x86_64 database component is now **MySQL 8.0.46 Community** trimmed
+  from the official glibc 2.17 minimal tarball
+  (`installer/scripts/linux/trim-mysql.sh`). The official build targets
+  CentOS 7 (glibc ≥ 2.17), bundles OpenSSL (and Kerberos / LDAP / SASL) in
+  `lib/private`, and has no systemd dependency, so the same binary runs on
+  CentOS 7 and modern distributions; the server only requires `libaio`.
+  Unused components are removed to keep the module compact: `lib/mecab`
+  dictionaries (~129 MB), Kerberos / LDAP-SASL / OCI / FIDO authentication
+  plugins, group replication, sample/test plugins, non-core CLI tools,
+  headers, docs and localized error messages except English.
+- Database init now uses `mysqld --initialize-insecure` plus PHP PDO
+  (mysqlnd) over a unix socket to create accounts — no dependency on the
+  `mysql` CLI (which may need `libtinfo.so.5` on newer Debian/Ubuntu).
+  Secrets are stored as `mysql_root_password` / `mysql_readonly_password`
+  (upgraded runtimes get the new keys added automatically).
+- Simplified installer naming from `frampp-setup-<channel>-<version>-<env>`
+  to **`frampp-<version>-<env>.<ext>`** (`frampp-0.7.0-linux-x86_64.run`,
+  `frampp-0.7.0-windows-x64.exe`); the component channel is documented in
+  the release notes.
+- The Linux install package no longer contains an `installer/` directory:
+  runtime scripts moved to `bin/` (init / docker-entrypoint /
+  docker-healthcheck), config templates and the systemd unit template moved
+  to `share/templates/`, and the version manifest to `share/`.
+
+### Changed
+
+- The Linux service shown by `frampp status` / control panel is now
+  **`mysql`** (`modules/mysql`, datadir `var/mysql`, logs `mysql.log` /
+  `mysql.err.log`); Windows keeps `mariadb` for now and switches in a later
+  milestone.
+- Linux runtime dependency baseline: the MySQL module requires glibc
+  ≥ 2.17 (CentOS 7 compatible) and `libaio`; the Docker image installs
+  `libaio1` / `libnuma1`.
+- Agent MySQL tools read `mysql_readonly_password` with fallback to the old
+  `mariadb_readonly_password`; log tools accept both `mysql` and `mariadb`
+  service names.
+- CI smoke test asserts MySQL GLIBC ≤ 2.17 and verifies the database through
+  PHP PDO (the same path the control panel uses).
+- Bumped FRAMPP version to `0.7.0`.
+
+### Notes
+
+- MySQL 8.0 reached end of life on 2026-04-30 (8.0.46 is the final release);
+  it is adopted as the CentOS 7-compatible baseline. A dual-variant switch to
+  MySQL 8.4 LTS / MariaDB 11.4 for modern distributions is planned next.
+- **MariaDB data directories are not compatible with MySQL 8.0.** Upgrading
+  from 0.6.0 requires rebuilding the database (see `docs/user/upgrade.md`).
+- FRAMPP-created accounts use `mysql_native_password` for broad client
+  compatibility over localhost TCP (PHP mysqlnd / Adminer / CLI); MySQL 8.0
+  still supports it (8.4 disables it by default — relevant to the future
+  dual-variant switch).
+
 ## [0.6.0] - 2026-08-29
 
 ### Added

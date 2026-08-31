@@ -14,14 +14,14 @@
       "kind": "src",
       "installDir": "modules/frankenphp"
     },
-    "mariadb": {
-      "name": "MariaDB (源码编译精简: 去重型引擎 + strip + 去测试/开发文件)",
-      "version": "12.3.2",
-      "url": "https://archive.mariadb.org/mariadb-12.3.2/source/mariadb-12.3.2.tar.gz",
-      "sha256": "82798714BAF2F3456ED2F311FC803DC120F2BF3B82358E773847D628CDB4B670",
-      "cacheFile": "mariadb-12.3.2.tar.gz",
-      "kind": "src",
-      "installDir": "modules/mariadb"
+    "mysql": {
+      "name": "MySQL 8.0 (官方 glibc 2.17 minimal 裁剪, CentOS 7 兼容)",
+      "version": "8.0.46",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.46-linux-glibc2.17-x86_64-minimal.tar.xz",
+      "sha256": "E2777D490FCAADC5A4BE06DB89B6935C78909BD9C3382AF859AB284AF0C950B0",
+      "cacheFile": "mysql-8.0.46-linux-glibc2.17-x86_64-minimal.tar.xz",
+      "kind": "tar.xz",
+      "installDir": "modules/mysql"
     },
     "redis": {
       "name": "Redis (官方源码，Linux 静态编译)",

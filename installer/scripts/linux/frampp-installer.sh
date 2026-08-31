@@ -9,7 +9,7 @@
 # into the target directory and runs bin/frampp init (init + start).
 #
 # 用法 / Usage:
-#   ./frampp-setup-__CHANNEL__-__APP_VERSION__-linux-x86_64.run [--prefix <dir>] [--extract-only] [--skip-start] [--help]
+#   ./frampp-__APP_VERSION__-linux-x86_64.run [--prefix <dir>] [--extract-only] [--skip-start] [--help]
 #
 
 set -e

@@ -47,10 +47,10 @@ foreach ($ch in $Channels) {
     Write-Step "构建通道 $ch ($Env) ..."
     if ($Env -eq "windows-x64") {
         & (Join-Path $PSScriptRoot "build-installer.ps1") -Root $Root -AppVersion $Version -Channel $ch -Env $Env
-        $artifact = Join-Path $installerDir "frampp-setup-$ch-$Version-$Env.exe"
+        $artifact = Join-Path $installerDir "frampp-$Version-$Env.exe"
     } elseif ($Env -eq "linux-x86_64") {
         & (Join-Path $PSScriptRoot "build-linux-package.ps1") -Root $Root -AppVersion $Version -Channel $ch -Env $Env
-        $artifact = Join-Path $installerDir "frampp-setup-$ch-$Version-$Env.run"
+        $artifact = Join-Path $installerDir "frampp-$Version-$Env.run"
     } else {
         throw "未支持的环境: $Env（支持 windows-x64 / linux-x86_64）"
     }
@@ -82,17 +82,17 @@ FRAMPP $Version
 
 ## 安装包 / Installers
 
-- 通道 / Channel：$($Channels -join ', ')（环境 / Env：$Env）
+- 通道 / Channel：$($Channels -join ', ')（环境 / Env：$Env；v0.7.0 起命名不再含通道段）
 - 校验 / Verify：请核对安装包哈希 / check the hashes in SHA256SUMS.txt
 $(if ($Env -eq "linux-x86_64") {
-    "- Linux：\`frampp-setup-$($Channels -join ',')-$Version-linux-x86_64.run\`（XAMPP 风格单文件自解压安装器 / XAMPP-style single-file self-extracting installer）"
+    "- Linux：\`frampp-$Version-linux-x86_64.run\`（XAMPP 风格单文件自解压安装器 / XAMPP-style single-file self-extracting installer）"
 } else {
-    "- Windows：\`frampp-setup-$($Channels -join ',')-$Version-windows-x64.exe\`（Inno Setup 一键安装 / one-click installer）"
+    "- Windows：\`frampp-$Version-windows-x64.exe\`（Inno Setup 一键安装 / one-click installer）"
 })
 
 ## 说明 / Notes
 
-- 一键安装，安装时自动初始化（MariaDB 数据目录、随机密钥、配置）并启动三件套 / One-click install with automatic init (MariaDB datadir, random secrets, configs) and service start
+- 一键安装，安装时自动初始化（MySQL 数据目录、随机密钥、配置）并启动三件套 / One-click install with automatic init (MySQL datadir, random secrets, configs) and service start
 - 卸载自动停止服务并清理数据 / Uninstall stops services and cleans data
 - 组件版本见 / Component versions: installer/config/versions*.json
 "@

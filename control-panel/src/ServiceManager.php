@@ -7,7 +7,7 @@ namespace Frampp\ControlPanel;
 require_once __DIR__ . '/AccessManager.php';
 
 /**
- * 服务管理：FrankenPHP / MariaDB / Redis 的启停、状态、端口与日志。
+ * 服务管理：FrankenPHP / 数据库（Linux: MySQL 8.0，Windows: MariaDB）/ Redis。
  *
  * 安全基线：
  *   - 所有服务仅绑定 127.0.0.1；
@@ -16,7 +16,15 @@ require_once __DIR__ . '/AccessManager.php';
  */
 final class ServiceManager
 {
-    private const SERVICES = [
+    /** Linux x86_64 运行时：数据库组件为 MySQL 8.0 */
+    private const SERVICES_LINUX = [
+        'frankenphp' => ['port' => 'http',   'log' => 'frankenphp.log'],
+        'mysql'      => ['port' => 'mysql',  'log' => 'mysql.log'],
+        'redis'      => ['port' => 'redis',  'log' => 'redis.log'],
+    ];
+
+    /** Windows 运行时：数据库组件保持 MariaDB（0.7.0 未切换） */
+    private const SERVICES_WINDOWS = [
         'frankenphp' => ['port' => 'http',   'log' => 'frankenphp.log'],
         'mariadb'    => ['port' => 'mysql',  'log' => 'mariadb.log'],
         'redis'      => ['port' => 'redis',  'log' => 'redis.log'],
@@ -30,7 +38,35 @@ final class ServiceManager
 
     public static function services(): array
     {
-        return array_keys(self::SERVICES);
+        return array_keys(self::WINDOWS ? self::SERVICES_WINDOWS : self::SERVICES_LINUX);
+    }
+
+    /** 当前平台数据库服务名（Linux: mysql；Windows: mariadb） */
+    public static function dbService(): string
+    {
+        return self::WINDOWS ? 'mariadb' : 'mysql';
+    }
+
+    /**
+     * @return array{service:string,binary:string,module:string}
+     */
+    private static function dbMeta(): array
+    {
+        return self::WINDOWS
+            ? ['service' => 'mariadb', 'binary' => 'mariadbd', 'module' => 'mariadb']
+            : ['service' => 'mysql',    'binary' => 'mysqld',    'module' => 'mysql'];
+    }
+
+    /**
+     * @return array{port:string,log:string}
+     */
+    private static function serviceMeta(string $name): array
+    {
+        $all = self::WINDOWS ? self::SERVICES_WINDOWS : self::SERVICES_LINUX;
+        if (!isset($all[$name])) {
+            throw new \InvalidArgumentException("未知服务: {$name}");
+        }
+        return $all[$name];
     }
 
     /**
@@ -39,10 +75,11 @@ final class ServiceManager
     public function status(?string $only = null): array
     {
         $result = [];
-        foreach (self::SERVICES as $name => $meta) {
+        foreach (self::services() as $name) {
             if ($only !== null && $only !== $name) {
                 continue;
             }
+            $meta = self::serviceMeta($name);
             $metaInfo = $this->pidMeta($name);
             $pid = $metaInfo['pid'] ?? null;
             $port = $this->config->port($meta['port']);
@@ -62,26 +99,20 @@ final class ServiceManager
 
     public function start(string $name): array
     {
-        if (!isset(self::SERVICES[$name])) {
-            throw new \InvalidArgumentException("未知服务: {$name}（可选：" . implode('|', self::services()) . '）');
-        }
+        self::serviceMeta($name); // 校验服务名
         $status = $this->status($name)[$name];
         if ($status['running']) {
             return ['name' => $name, 'started' => false, 'message' => "已在运行 (PID {$status['pid']})"];
         }
 
-        switch ($name) {
-            case 'frankenphp':
-                $pid = $this->startFrankenphp();
-                break;
-            case 'mariadb':
-                $pid = $this->startMariadb();
-                break;
-            case 'redis':
-                $pid = $this->startRedis();
-                break;
-            default:
-                throw new \LogicException("未实现: $name");
+        if ($name === 'frankenphp') {
+            $pid = $this->startFrankenphp();
+        } elseif ($name === self::dbService()) {
+            $pid = $this->startDb();
+        } elseif ($name === 'redis') {
+            $pid = $this->startRedis();
+        } else {
+            throw new \LogicException("未实现: $name");
         }
 
         if ($pid !== null) {
@@ -93,9 +124,7 @@ final class ServiceManager
 
     public function stop(string $name): array
     {
-        if (!isset(self::SERVICES[$name])) {
-            throw new \InvalidArgumentException("未知服务: $name");
-        }
+        self::serviceMeta($name);
         $pid = $this->readPid($name);
         if ($pid === null || !$this->isProcessAlive($pid)) {
             $this->removePid($name);
@@ -127,7 +156,7 @@ final class ServiceManager
     {
         $cleaned = [];
         $skipped = [];
-        foreach (self::SERVICES as $name => $meta) {
+        foreach (self::services() as $name) {
             $info = $this->pidMeta($name);
             $pid = $info['pid'] ?? null;
             if ($pid === null) {
@@ -168,7 +197,7 @@ final class ServiceManager
         }
 
         // 1. 停止服务（先数据服务再 Web 服务器）
-        foreach (['mariadb', 'redis', 'frankenphp'] as $svc) {
+        foreach (array_merge([self::dbService()], ['redis', 'frankenphp']) as $svc) {
             try {
                 $this->stop($svc);
             } catch (\Throwable) {
@@ -215,7 +244,7 @@ final class ServiceManager
         $restart = [];
         $errors = [];
         $mgr = new self($config);
-        foreach (['mariadb', 'redis', 'frankenphp'] as $svc) {
+        foreach (array_merge([self::dbService()], ['redis', 'frankenphp']) as $svc) {
             try {
                 $result = $mgr->start($svc);
                 $restart[$svc] = (bool) ($result['started'] ?? false);
@@ -239,10 +268,7 @@ final class ServiceManager
 
     public function tailLog(string $name, int $lines = 50): array
     {
-        if (!isset(self::SERVICES[$name])) {
-            throw new \InvalidArgumentException("未知服务: $name");
-        }
-        $logFile = $this->config->logsDir() . DIRECTORY_SEPARATOR . self::SERVICES[$name]['log'];
+        $logFile = $this->config->logsDir() . DIRECTORY_SEPARATOR . self::serviceMeta($name)['log'];
         if (!is_file($logFile)) {
             return ['name' => $name, 'file' => $logFile, 'lines' => []];
         }
@@ -270,14 +296,15 @@ final class ServiceManager
         return $this->startDetached($exe, $args, $this->config->root, 'frankenphp');
     }
 
-    private function startMariadb(): ?int
+    private function startDb(): ?int
     {
-        $exe = $this->config->module('mariadb') . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . $this->exeName('mariadbd');
+        $meta = self::dbMeta();
+        $exe = $this->config->module($meta['module']) . DIRECTORY_SEPARATOR . 'bin'
+            . DIRECTORY_SEPARATOR . $this->exeName($meta['binary']);
         if (!is_file($exe)) {
-            throw new \RuntimeException("缺少 MariaDB 可执行文件: $exe");
+            throw new \RuntimeException("缺少数据库可执行文件: $exe");
         }
-        $datadir = $this->config->varDir('mariadb');
-        $log = $this->config->logsDir() . DIRECTORY_SEPARATOR . 'mariadb.log';
+        $datadir = $this->config->varDir($meta['service']);
         $args = [
             '--no-defaults',
             '--datadir=' . $datadir,
@@ -293,14 +320,15 @@ final class ServiceManager
         if (self::WINDOWS) {
             $args[] = '--console';
         } else {
-            $args[] = '--log-error=' . $this->config->logsDir() . DIRECTORY_SEPARATOR . 'mariadb.err.log';
-            // 以 root 运行时 mariadbd 拒绝启动，需显式 --user
+            $errLog = $meta['service'] === 'mysql' ? 'mysql.err.log' : 'mariadb.err.log';
+            $args[] = '--log-error=' . $this->config->logsDir() . DIRECTORY_SEPARATOR . $errLog;
+            // 以 root 运行时 mysqld 拒绝启动，需显式 --user
             $user = trim((string) shell_exec('id -un 2>/dev/null'));
             if ($user !== '') {
                 $args[] = '--user=' . $user;
             }
         }
-        return $this->startDetached($exe, $args, $this->config->root, 'mariadb');
+        return $this->startDetached($exe, $args, $this->config->root, $meta['service']);
     }
 
     private function startRedis(): ?int
@@ -320,8 +348,7 @@ final class ServiceManager
     /** 按当前模式重生成 redis.conf（unix socket 模式含 unixsocket 指令） */
     private function renderRedisConf(Config $config): void
     {
-        $template = $config->root . DIRECTORY_SEPARATOR . 'installer' . DIRECTORY_SEPARATOR . 'templates'
-            . DIRECTORY_SEPARATOR . 'redis.conf.template';
+        $template = self::resolveTemplate($config, 'redis.conf.template');
         if (!is_file($template)) {
             throw new \RuntimeException("缺少 redis.conf 模板: {$template}");
         }
@@ -345,8 +372,7 @@ final class ServiceManager
     /** 按当前模式重生成 php.ini（unix socket 模式下 mysqli/pdo_mysql 默认走 socket） */
     private function renderPhpIni(Config $config): void
     {
-        $template = $config->root . DIRECTORY_SEPARATOR . 'installer' . DIRECTORY_SEPARATOR . 'templates'
-            . DIRECTORY_SEPARATOR . 'php.ini.linux.template';
+        $template = self::resolveTemplate($config, 'php.ini.linux.template');
         if (!is_file($template)) {
             return; // Windows 无 linux 模板，保持原样
         }
@@ -356,12 +382,30 @@ final class ServiceManager
     }
 
     /**
+     * 模板路径解析：v0.7.0 起安装包内模板位于 share/templates/；
+     * 旧安装 / 开发布局回退到 installer/templates/。
+     */
+    private static function resolveTemplate(Config $config, string $name): string
+    {
+        $candidates = [
+            $config->root . DIRECTORY_SEPARATOR . 'share' . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR . $name,
+            $config->root . DIRECTORY_SEPARATOR . 'installer' . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR . $name,
+        ];
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+        return $candidates[0];
+    }
+
+    /**
      * 通过 proc_open 直接拉起进程（Windows 下 bypass_shell 绕开 cmd.exe），
      * 输出重定向到日志文件，进程脱离父进程独立运行；PID 交由调用方落盘。
      */
     private function startDetached(string $exe, array $args, string $cwd, string $name, ?string $stderrLog = null): ?int
     {
-        $stdout = $this->config->logsDir() . DIRECTORY_SEPARATOR . self::SERVICES[$name]['log'];
+        $stdout = $this->config->logsDir() . DIRECTORY_SEPARATOR . self::serviceMeta($name)['log'];
         $stderr = $stderrLog ?? $this->config->logsDir() . DIRECTORY_SEPARATOR . $name . '.err.log';
 
         $descriptors = [

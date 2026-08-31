@@ -25,7 +25,7 @@ param(
 if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path }
 if (-not $AppVersion) { $AppVersion = (Get-Content -LiteralPath (Join-Path $Root "VERSION") -Raw).Trim() }
 
-$pkg = Join-Path $Root "dist/installer/frampp-setup-$Channel-$AppVersion-$Env.run"
+$pkg = Join-Path $Root "dist/installer/frampp-$AppVersion-$Env.run"
 if (-not (Test-Path -LiteralPath $pkg)) {
     throw "缺少 Linux 安装包: $pkg（请先运行 build-linux-package.ps1 -Env linux-x86_64）"
 }

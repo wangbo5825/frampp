@@ -88,10 +88,10 @@ if (-not (Test-Path -LiteralPath $iscc)) {
     if (-not (Test-Path -LiteralPath $iscc)) { throw "Inno Setup 安装后未找到 ISCC.exe" }
 }
 
-# 4. 编译（产物命名：frampp-setup-<channel>-<version>-<env>.exe）
+# 4. 编译（产物命名：frampp-<version>-<env>.exe，v0.7.0 起简化，通道并入 Release note）
 #    ISPP 定义经 include 文件传入，避免 /D 命令行值（含连字符）被当作表达式解析
 $issFile = Join-Path $Root "installer\setup.iss"
-Write-Step "编译安装器 -> dist/installer/frampp-setup-$Channel-$AppVersion-$Env.exe"
+Write-Step "编译安装器 -> dist/installer/frampp-$AppVersion-$Env.exe"
 $definesFile = Join-Path $StagingDir "release-defines.iss"
 $defines = "#define MyAppVersion `"$AppVersion`"`r`n" +
            "#define Channel `"$Channel`"`r`n" +

@@ -298,8 +298,10 @@ jobs:
             sleep 1
           done
 
-          curl -fsS http://127.0.0.1:18080/ | grep -q 'FRAMPP'
-          curl -fsS http://127.0.0.1:18081/ | grep -q 'FRAMPP 控制面板'
+          SITE_BODY="$(curl -fsS --max-time 20 http://127.0.0.1:18080/ || true)"
+          printf '%s' "$SITE_BODY" | grep -q 'FRAMPP' || { echo "SITE_NOT_OK"; exit 1; }
+          PANEL_BODY="$(curl -fsS --max-time 20 http://127.0.0.1:18081/ || true)"
+          printf '%s' "$PANEL_BODY" | grep -q 'FRAMPP 控制面板' || { echo "PANEL_NOT_OK"; exit 1; }
           docker exec "$CID" /opt/frampp/bin/frampp status --json
           docker exec "$CID" /opt/frampp/bin/frampp version
           docker logs "$CID" | tail -n 40

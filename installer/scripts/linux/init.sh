@@ -405,7 +405,8 @@ FRANKENPHP_BIN="$RUNTIME_DIR/modules/frankenphp/frankenphp"
 mysql_php() { # mysql_php <socket> <password> <sql-file 或 "-">
     local sock="$1" pw="$2" sql="$3"
     FRAMPP_BOOT_SOCKET="$sock" FRAMPP_BOOT_PW="$pw" FRAMPP_BOOT_SQL="$sql" \
-        "$FRANKENPHP_BIN" php-cli -c "$RUNTIME_DIR/etc/php.ini" -r '
+        PHPRC="$RUNTIME_DIR/etc/php.ini" \
+        "$FRANKENPHP_BIN" php-cli -r '
             $sock = getenv("FRAMPP_BOOT_SOCKET");
             $pw = getenv("FRAMPP_BOOT_PW");
             $sql = getenv("FRAMPP_BOOT_SQL");

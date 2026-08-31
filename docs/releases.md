@@ -29,6 +29,9 @@ frampp-<version>-<env>.<ext>
 > 风格总控命令 `frampp`（符号链接 → `bin/frampp`），安装后可直接
 > `./frampp start|stop|status`。
 
+> Release Note 语言规范 / Language convention for release notes：正文采用
+> **先英文、后中文** 的两段式结构（English section first, then Chinese）。
+
 ## 发布步骤 / Release Steps
 
 ```powershell

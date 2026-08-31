@@ -80,21 +80,39 @@ if ($Publish) {
     $notes = @"
 FRAMPP $Version
 
-## 安装包 / Installers
+## Installers
 
-- 通道 / Channel：$($Channels -join ', ')（环境 / Env：$Env；v0.7.0 起命名不再含通道段）
-- 校验 / Verify：请核对安装包哈希 / check the hashes in SHA256SUMS.txt
+- Channel: $($Channels -join ', ') (Env: $Env; since v0.7.0 the channel segment is no longer part of the installer name)
+- Verify: check the hashes in SHA256SUMS.txt
 $(if ($Env -eq "linux-x86_64") {
-    "- Linux：\`frampp-$Version-linux-x86_64.run\`（XAMPP 风格单文件自解压安装器 / XAMPP-style single-file self-extracting installer）"
+    "- Linux: \`frampp-$Version-linux-x86_64.run\` (XAMPP-style single-file self-extracting installer)"
 } else {
-    "- Windows：\`frampp-$Version-windows-x64.exe\`（Inno Setup 一键安装 / one-click installer）"
+    "- Windows: \`frampp-$Version-windows-x64.exe\` (Inno Setup one-click installer)"
 })
 
-## 说明 / Notes
+## Notes
 
-- 一键安装，安装时自动初始化（MySQL 数据目录、随机密钥、配置）并启动三件套 / One-click install with automatic init (MySQL datadir, random secrets, configs) and service start
-- 卸载自动停止服务并清理数据 / Uninstall stops services and cleans data
-- 组件版本见 / Component versions: installer/config/versions*.json
+- One-click install with automatic init (MySQL datadir, random secrets, configs) and service start
+- Uninstall stops services and cleans data
+- Component versions: installer/config/versions*.json
+
+---
+
+## 安装包
+
+- 通道：$($Channels -join ', ')（环境 / Env：$Env；v0.7.0 起命名不再含通道段）
+- 校验：请核对 SHA256SUMS.txt 中的安装包哈希
+$(if ($Env -eq "linux-x86_64") {
+    "- Linux：\`frampp-$Version-linux-x86_64.run\`（XAMPP 风格单文件自解压安装器）"
+} else {
+    "- Windows：\`frampp-$Version-windows-x64.exe\`（Inno Setup 一键安装）"
+})
+
+## 说明
+
+- 一键安装，安装时自动初始化（MySQL 数据目录、随机密钥、配置）并启动服务
+- 卸载自动停止服务并清理数据
+- 组件版本见 installer/config/versions*.json
 "@
     Write-Step "发布 GitHub Release $tag ..."
     $existing = & $gh release view $tag --json tagName 2>$null

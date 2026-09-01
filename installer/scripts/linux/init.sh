@@ -283,7 +283,7 @@ fill_template "$TPL_DIR/redis.conf.template" "$RUNTIME_DIR/etc/redis.conf" \
     UNIX_SOCKET_CONF "$UNIX_SOCKET_CONF" \
     REDIS_PORT "$REDIS_LISTEN_PORT"
 
-# IP 访问控制（Linux 定制构建内置 caddy-access-filter v1.2.0）
+# IP 访问控制（Linux 定制构建内置 caddy-access-filter v1.2.1）
 ACCESS_CONFIG="$RUNTIME_DIR/etc/access.json"
 ACCESS_RULES="$RUNTIME_DIR/etc/access-filter.rules"
 if [[ ! -f "$ACCESS_CONFIG" ]]; then

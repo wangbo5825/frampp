@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.9（2026-09-01，v0.7.1 根目录总控命令 frampp / LAMPP 风格）
+> 状态：设计稿 v1.10（2026-09-01，v0.7.2 caddy-access-filter 1.2.1 升级）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -264,6 +264,19 @@
   Windows 变体保持 Inno Setup 生成的 `FRAMPP Control Panel.exe`，不做对等
   命令；Docker 镜像中 `/opt/frampp/frampp` 同样存在（仅便利，不影响入口）。
 
+### 2.14 v0.7.2 caddy-access-filter 1.2.1 升级决策（v1.10，2026-09-01）
+
+- **结论**：Linux x86_64 FrankenPHP 定制构建中锁定的
+  `github.com/wangbo5825/caddy-access-filter` 由 v1.2.0 升级到 **v1.2.1**
+  （IP 访问过滤模块错误修正版本）；同步更新构建缓存标记
+  （`-musl-accessfilter1.2.1`）与脚本 / 注释中的 v1.2.0 引用，防止缓存复用
+  与模块版本不一致。
+- **影响面**：仅 Linux 定制构建产物与控制面板 IP 访问控制；规则格式
+  `<IP|CIDR|code:XX> <allow|block>` 与热重载接口保持不变，Windows 官方
+  预编译 FrankenPHP 仍不内置该模块。
+- **版本定位**：FRAMPP `VERSION` 提升至 `0.7.2`；组件矩阵与其余运行时行为
+  不变。
+
 ---
 
 ## 3. 总体架构
@@ -480,4 +493,5 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 4. ✅ M2/M3/M4：Agent v0.1、开发体验（Adminer / 项目创建）、生产模式（Windows / Linux 安装器）已实现
 5. ✅ M5 部分：Linux x86_64 `.run` 与 Docker 单镜像已实现
 6. ✅ v0.6.0：布局重构（bin / etc / var / modules）、统一命令、systemd、IP 访问控制
-7. 下一步：发布 **v0.7.0**（Windows .exe + Linux .run + Docker 镜像；Linux 数据库切换 MySQL 8.0），或 macOS / A2A 变体
+7. ✅ 发布 **v0.7.1**（LAMPP 风格根目录总控命令）与 **v0.7.2**（caddy-access-filter 1.2.1 升级）
+8. ✅ v0.8.0 改进计划已记录（2026-09-01，见 `docs/0.8.0-plan.md`）：README/docs 并入 `share/docs/` 并补齐中文版、`frampp start` TCP 模式端口占用检查、`VERSION` 移入 `etc/`；实施时在本蓝图补决策记录

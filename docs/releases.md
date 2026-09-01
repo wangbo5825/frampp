@@ -244,6 +244,17 @@ FRAMPP 0.7.0 将 Linux 数据库组件由源码编译 MariaDB 切换为官方
   已列入后续计划。MariaDB 数据目录与 MySQL 8.0 **不兼容**——从 0.6.0 升级
   需重建数据库（见 [docs/user/upgrade.md](user/upgrade.md)）。
 
+## 0.7.2 caddy-access-filter 1.2.1 / 0.7.2 升级 caddy-access-filter 1.2.1
+
+FRAMPP 0.7.2 upgrades the `caddy-access-filter` module pinned in the Linux
+FrankenPHP custom build to **v1.2.1** (bug-fix release of the IP access
+filter). Stale v1.2.0 references in the build cache marker and script comments
+were fixed at the same time.
+
+FRAMPP 0.7.2 将 Linux FrankenPHP 定制构建中锁定的 `caddy-access-filter`
+模块升级到 **v1.2.1**（IP 访问过滤模块的错误修正版本），并同步修正构建缓存
+标记与脚本注释中残留的 v1.2.0 引用。
+
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash

@@ -10,7 +10,7 @@ require_once __DIR__ . '/CaddyAdminClient.php';
  * IP 访问控制：管理 etc/access.json 与 etc/access-filter.rules，
  * 生成 etc/access-filter.caddy，并通过 Caddy admin API 热重载。
  *
- * 规则格式（caddy-access-filter v1.2.0）：
+ * 规则格式（caddy-access-filter v1.2.1）：
  *   <IP|CIDR|code:XX> <allow|block>
  */
 final class AccessManager

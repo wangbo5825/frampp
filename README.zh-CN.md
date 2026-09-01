@@ -36,7 +36,7 @@ FRAMPP 把 PHP 应用服务器、MySQL / MariaDB 和 Redis 打包成自包含的
   `modules/` 软件模块；Linux 目录可整体移动，移动后运行 `bin/frampp init`。
 - **默认安全** — 服务仅监听 localhost、每次安装生成随机密钥、使用只读数据库
   账号并保留审计日志。
-- **IP 访问控制** — Linux FrankenPHP 构建集成 `caddy-access-filter` v1.2.0，
+- **IP 访问控制** — Linux FrankenPHP 构建集成 `caddy-access-filter` v1.2.1，
   支持本地 IP / CIDR / 国家地区码规则与 GeoIP，控制面板可在线管理并热重载。
 
 ## 组件

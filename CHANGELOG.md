@@ -2,6 +2,20 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.7.2] - 2026-09-01
+
+### Fixed
+
+- Upgraded the `caddy-access-filter` module pinned in the Linux FrankenPHP
+  custom build from v1.2.0 to **v1.2.1** (bug-fix release of the IP access
+  filter). Stale v1.2.0 references were also removed from the build cache
+  marker and script comments so cached FrankenPHP builds are not reused under
+  the wrong module version.
+
+### Changed
+
+- Bumped FRAMPP version to `0.7.2`.
+
 ## [0.7.1] - 2026-09-01
 
 ### Added

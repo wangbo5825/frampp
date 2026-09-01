@@ -7,7 +7,7 @@
 [中文](README.zh-CN.md) · [Blueprint](docs/blueprint.md) ·
 [Releases](https://github.com/wangbo5825/frampp/releases)
 
-> Current status: **v0.7.0** — standardized layout (`bin` / `etc` / `var` /
+> Current status: **v0.7.2** — standardized layout (`bin` / `etc` / `var` /
 > `modules`), MySQL 8.0 (glibc 2.17, CentOS 7 compatible) on Linux, simplified
 > installer naming, unified command wrappers, systemd integration, IP access
 > control and an all-in-one Docker image.

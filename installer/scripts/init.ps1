@@ -315,7 +315,7 @@ if (Test-Path -LiteralPath (Join-Path $caddyPanelModule "bin\panel")) {
     )
     $panelPw = [string]$secrets.panel_admin_password
     $frankenPhp = Join-Path $RuntimeDir "modules\frankenphp\frankenphp.exe"
-    if (Test-Path -LiteralPath $frankenPhp) {
+    if ((Test-Path -LiteralPath $frankenPhp) -and -not (Test-Path -LiteralPath (Join-Path $caddyPanelModule "var\installed"))) {
         & $frankenPhp php-cli (Join-Path $caddyPanelModule "bin\panel") install `
             --username=admin --password=$panelPw --admin-api=$adminApi 2>&1 | Out-Null
     }

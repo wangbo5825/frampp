@@ -398,10 +398,12 @@ return array (
   ),
 );
 EOF
-    PANEL_ADMIN_PW="$PANEL_ADMIN_PW" PANEL_ADMIN_API="$PANEL_ADMIN_API" \
-        "$RUNTIME_DIR/modules/frankenphp/frankenphp" php-cli "$PANEL_MOD/bin/panel" install \
-            --username=admin --password="$PANEL_ADMIN_PW" --admin-api="$PANEL_ADMIN_API" || \
-        warn "caddy-panel 初始化失败 / caddy-panel init failed（可能已初始化 / may already be initialized）"
+    if [[ ! -f "$PANEL_MOD/var/installed" ]]; then
+        PANEL_ADMIN_PW="$PANEL_ADMIN_PW" PANEL_ADMIN_API="$PANEL_ADMIN_API" \
+            "$RUNTIME_DIR/modules/frankenphp/frankenphp" php-cli "$PANEL_MOD/bin/panel" install \
+                --username=admin --password="$PANEL_ADMIN_PW" --admin-api="$PANEL_ADMIN_API" || \
+            warn "caddy-panel 初始化失败 / caddy-panel init failed"
+    fi
 fi
 
 # 运行时命令包装与符号链接

@@ -126,6 +126,10 @@ final class ServiceManager
                 $this->removePid($name);
                 $tail = $this->tailLog($name, 8);
                 $logTail = implode(' | ', array_slice($tail['lines'], -4));
+                if ($logTail === '') {
+                    $errTail = $this->errLogTail($name, 12);
+                    $logTail = $errTail;
+                }
                 throw new \RuntimeException(
                     "{$name} 启动后未就绪 / not ready after start"
                     . ($logTail !== '' ? "：{$logTail}" : '（无日志输出 / no log output）')
@@ -226,6 +230,18 @@ final class ServiceManager
             return true;
         }
         return false;
+    }
+
+    /** 读取服务 stderr 日志尾部（startDetached 把 stderr 写到 <name>.err.log） */
+    private function errLogTail(string $name, int $lines = 12): string
+    {
+        $file = $this->config->logsDir() . DIRECTORY_SEPARATOR . $name . '.err.log';
+        if (!is_file($file)) {
+            return '';
+        }
+        $content = (string) file_get_contents($file);
+        $all = $content === '' ? [] : explode("\n", rtrim($content, "\r\n"));
+        return implode(' | ', array_slice($all, -$lines));
     }
 
     public function stop(string $name): array

@@ -161,6 +161,8 @@ jobs:
           curl -sS -i --max-time 15 http://127.0.0.1:8081/index.php | head -n 20 || true
           echo "=== http 8081 direct /action.php (diagnostic) ==="
           curl -sS -i --max-time 15 http://127.0.0.1:8081/action.php | head -n 20 || true
+          echo "=== service err logs (diagnostic) ==="
+          tail -n 80 logs/frankenphp.err.log logs/mysql.err.log logs/redis.err.log 2>/dev/null || true
           echo "=== panel must render (assert) ==="
           PANEL_BODY="$(curl -sS --max-time 15 http://127.0.0.1:8081/ || true)"
           if printf '%s' "$PANEL_BODY" | grep -q '<?php'; then

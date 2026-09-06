@@ -105,6 +105,9 @@ final class ServiceManager
             return ['name' => $name, 'started' => false, 'message' => "已在运行 (PID {$status['pid']})"];
         }
 
+        // v0.8.0：启动前预检 —— TCP 模式检查端口占用，sock 模式检查 socket 文件
+        $this->assertPortsFree($name);
+
         if ($name === 'frankenphp') {
             $pid = $this->startFrankenphp();
         } elseif ($name === self::dbService()) {
@@ -116,10 +119,113 @@ final class ServiceManager
         }
 
         if ($pid !== null) {
+            // v0.8.0：启动后延迟检测就绪（进程存活 + 端口 / socket 可连），
+            // 未就绪则回收进程并报错，避免“看起来启动了其实失败”。
+            if (!$this->waitReady($name, $pid)) {
+                $this->killProcessTree($pid, true);
+                $this->removePid($name);
+                $tail = $this->tailLog($name, 8);
+                $logTail = implode(' | ', array_slice($tail['lines'], -4));
+                throw new \RuntimeException(
+                    "{$name} 启动后未就绪 / not ready after start"
+                    . ($logTail !== '' ? "：{$logTail}" : '（无日志输出 / no log output）')
+                );
+            }
             $launcherType = getenv('FRAMPP_DAEMON') === '1' ? 'daemon' : 'cli';
             $this->writePidMeta($name, $pid, $launcherType);
         }
         return ['name' => $name, 'started' => true, 'pid' => $pid];
+    }
+
+    /**
+     * 启动前端口预检（v0.8.0）：
+     *   TCP 模式：目标端口已被其他进程监听 → 抛错；
+     *   sock 模式（mysql / redis）：unix socket 已被占用 → 抛错。
+     */
+    private function assertPortsFree(string $name): void
+    {
+        $meta = self::serviceMeta($name);
+        $portKey = $meta['port'];
+
+        if (($portKey === 'mysql' || $portKey === 'redis') && $this->config->socket($portKey) !== null) {
+            $sock = (string) $this->config->socket($portKey);
+            if (is_file($sock) && $this->isSocketOpen($sock)) {
+                throw new \RuntimeException(
+                    "{$name} 启动失败：unix socket 已被占用 / socket in use: {$sock}"
+                );
+            }
+            return;
+        }
+
+        // frankenphp 对外端口与 admin 一起预检；mysql/redis 检查各自 TCP 端口
+        $ports = $portKey === 'http'
+            ? ['http' => $this->config->port('http'), 'panel' => $this->config->port('panel')]
+            : [$portKey => $this->config->port($portKey)];
+        $adminTcp = null;
+        if ($portKey === 'http' && $this->config->adminAddress() !== null) {
+            $addr = $this->config->adminAddress();
+            if (preg_match('#^http://127\.0\.0\.1:(\d+)$#', $addr, $m)) {
+                $adminTcp = (int) $m[1];
+            }
+        }
+
+        foreach ($ports as $label => $port) {
+            if ($port <= 0) {
+                continue;
+            }
+            if ($this->isPortOpen('127.0.0.1', $port)) {
+                throw new \RuntimeException(
+                    "{$name} 启动失败：端口被占用 / port in use: 127.0.0.1:{$port} ({$label})"
+                    . "。可用 `bin/frampp ports` 查看，或调整 runtime.json 的 ports。"
+                );
+            }
+        }
+        if ($adminTcp !== null && $adminTcp > 0 && $this->isPortOpen('127.0.0.1', $adminTcp)) {
+            throw new \RuntimeException(
+                "frankenphp 启动失败：Caddy admin 端口被占用 / admin port in use: 127.0.0.1:{$adminTcp}"
+            );
+        }
+    }
+
+    /**
+     * 启动后就绪检测（v0.8.0）：进程存活且端口 / socket 可连接。
+     */
+    private function waitReady(string $name, int $pid, int $timeoutMs = 10000): bool
+    {
+        $portKey = self::serviceMeta($name)['port'];
+        $deadline = microtime(true) + $timeoutMs / 1000;
+        do {
+            if (!$this->isProcessAlive($pid)) {
+                return false;
+            }
+            if ($this->readyProbe($portKey)) {
+                return true;
+            }
+            usleep(250_000);
+        } while (microtime(true) < $deadline);
+        return $this->readyProbe($portKey);
+    }
+
+    private function readyProbe(string $portKey): bool
+    {
+        if (($portKey === 'mysql' || $portKey === 'redis') && $this->config->socket($portKey) !== null) {
+            return $this->isSocketOpen((string) $this->config->socket($portKey));
+        }
+        $port = $this->config->port($portKey);
+        return $port > 0 && $this->isPortOpen('127.0.0.1', $port);
+    }
+
+    private function isSocketOpen(string $path): bool
+    {
+        if (!is_file($path)) {
+            return false;
+        }
+        $fp = @stream_socket_client('unix://' . $path, $errno, $errstr, 0.5);
+        if ($fp !== false) {
+            fclose($fp);
+            return true;
+        }
+        return false;
     }
 
     public function stop(string $name): array

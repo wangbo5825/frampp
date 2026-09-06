@@ -37,6 +37,7 @@ try {
         'status' => $mgr->status(),
         'start'  => self_start($mgr, $args[1] ?? 'all'),
         'stop'   => self_stop($mgr, $args[1] ?? 'all'),
+        'restart' => self_restart($mgr, $args[1] ?? 'all'),
         'cleanup' => $mgr->cleanupOrphans(),
         'mode'   => self_mode($config, $mgr, array_slice($args, 1)),
         'logs'   => $mgr->tailLog($args[1] ?? 'frankenphp', max(1, (int) ($args[2] ?? 50))),
@@ -48,7 +49,7 @@ try {
         'new-project' => (new ProjectCreator($config))->create((string) ($args[1] ?? ''), (string) ($args[2] ?? 'minimal')),
         'ip-access' => self_ip_access($access, array_slice($args, 1)),
         default  => throw new \InvalidArgumentException(
-            "未知命令: $cmd（支持 status|start|stop|cleanup|mode|logs|ports|version|new-project|ip-access）"
+            "未知命令: $cmd（支持 status|start|stop|restart|cleanup|mode|logs|ports|version|new-project|ip-access）"
         ),
     };
 
@@ -84,6 +85,28 @@ function self_stop(ServiceManager $mgr, string $target): array
     return $result;
 }
 
+function self_restart(ServiceManager $mgr, string $target): array
+{
+    $names = ServiceManager::services();
+    if ($target !== 'all' && !in_array($target, $names, true)) {
+        throw new \InvalidArgumentException("未知服务: $target（可用: " . implode(', ', $names) . '）');
+    }
+    // 停止按依赖反序（redis → 数据库 → frankenphp），启动按正序
+    $stop = [];
+    foreach (array_reverse($names) as $name) {
+        if ($target === 'all' || $target === $name) {
+            $stop[$name] = $mgr->stop($name);
+        }
+    }
+    $start = [];
+    foreach ($names as $name) {
+        if ($target === 'all' || $target === $name) {
+            $start[$name] = $mgr->start($name);
+        }
+    }
+    return ['target' => $target, 'stop' => $stop, 'start' => $start];
+}
+
 function renderText(string $cmd, array $data): void
 {
     if ($cmd === 'mode') {
@@ -98,6 +121,18 @@ function renderText(string $cmd, array $data): void
             $data['redis'] ?? '-',
             PHP_EOL
         );
+        return;
+    }
+    if ($cmd === 'restart') {
+        printf("restart %s%s", $data['target'] ?? 'all', PHP_EOL);
+        echo '--- stop ---', PHP_EOL;
+        foreach ($data['stop'] ?? [] as $name => $info) {
+            printf("%-10s %s%s", $name, json_encode($info, JSON_UNESCAPED_UNICODE), PHP_EOL);
+        }
+        echo '--- start ---', PHP_EOL;
+        foreach ($data['start'] ?? [] as $name => $info) {
+            printf("%-10s %s%s", $name, json_encode($info, JSON_UNESCAPED_UNICODE), PHP_EOL);
+        }
         return;
     }
     if ($cmd === 'cleanup') {

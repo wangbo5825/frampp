@@ -346,7 +346,7 @@ fill_template "$TPL_DIR/Caddyfile.template" "$RUNTIME_DIR/etc/global.caddy" \
     printf '# Assembled by FRAMPP / caddy-panel (global + caddy.d)\n\n' > "$RUNTIME_DIR/etc/Caddyfile"
     cat "$RUNTIME_DIR/etc/global.caddy" >> "$RUNTIME_DIR/etc/Caddyfile"
     if ls "$CADDY_D"/*.caddy >/dev/null 2>&1; then
-        printf '\nimport "%s"/*.caddy\n' "$CADDY_D" >> "$RUNTIME_DIR/etc/Caddyfile"
+        printf '\nimport "%s/*.caddy"\n' "$CADDY_D" >> "$RUNTIME_DIR/etc/Caddyfile"
     fi
 }
 

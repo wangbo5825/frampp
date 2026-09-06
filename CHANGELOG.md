@@ -2,6 +2,62 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.8.0] - 2026-09-06
+
+### Added
+
+- Integrated **caddy-panel** (pinned git submodule) as the Caddy web
+  management UI at `http://127.0.0.1:8081/panel`: manage sites, the
+  Caddyfile, certificates and logs with `/adapt` validation, hot reload,
+  snapshots and last-good recovery. init provisions the module
+  (`modules/caddy-panel`), generates its `config.php` /
+  `panel.bootstrap.php` (`APP_ROOT`, `PANEL_BASE=/panel/`) and creates the
+  admin account non-interactively; the platform console (services / IP
+  access control) stays at the 8081 root.
+- `frampp restart [service]` command (default `all`; stops in reverse
+  dependency order, starts in order).
+- Startup hardening: `frampp start` pre-checks port / unix-socket occupancy
+  before launching and waits up to 10 s for the service to become ready;
+  failures report `started=false` with a log tail and a non-zero exit code.
+
+### Changed
+
+- Installed package layout: docs and README (English + Chinese) now ship
+  under `share/docs/`; the version file lives at `etc/VERSION` (the version
+  command keeps a legacy root fallback).
+- The Caddyfile is now assembled from `etc/global.caddy` plus
+  `import etc/caddy.d/*.caddy` — the same structure caddy-panel manages —
+  with the 8081 console serving `/panel` through `handle_path`.
+- Bumped FRAMPP version to `0.8.0`.
+
+## [0.8.0] - 2026-09-06
+
+### Added
+
+- Integrated **caddy-panel** (pinned git submodule) as the Caddy web
+  management UI at `http://127.0.0.1:8081/panel`: manage sites, the
+  Caddyfile, certificates and logs with `/adapt` validation, hot reload,
+  snapshots and last-good recovery. init provisions the module
+  (`modules/caddy-panel`), generates its `config.php` /
+  `panel.bootstrap.php` (`APP_ROOT`, `PANEL_BASE=/panel/`) and creates the
+  admin account non-interactively; the platform console (services / IP
+  access control) stays at the 8081 root.
+- `frampp restart [service]` command (default `all`; stops in reverse
+  dependency order, starts in order).
+- Startup hardening: `frampp start` pre-checks port / unix-socket occupancy
+  before launching and waits up to 10 s for the service to become ready;
+  failures report `started=false` with a log tail and a non-zero exit code.
+
+### Changed
+
+- Installed package layout: docs and README (English + Chinese) now ship
+  under `share/docs/`; the version file lives at `etc/VERSION` (the version
+  command keeps a legacy root fallback).
+- The Caddyfile is now assembled from `etc/global.caddy` plus
+  `import etc/caddy.d/*.caddy` — the same structure caddy-panel manages —
+  with the 8081 console serving `/panel` through `handle_path`.
+- Bumped FRAMPP version to `0.8.0`.
+
 ## [0.7.2] - 2026-09-01
 
 ### Fixed

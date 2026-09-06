@@ -29,6 +29,12 @@ frampp-<version>-<env>.<ext>
 > 风格总控命令 `frampp`（符号链接 → `bin/frampp`），安装后可直接
 > `./frampp start|stop|status`。
 
+> **v0.8.0 起实施 / Implemented since v0.8.0**：集成 caddy-panel 作为
+> Caddy 管理界面（8081 控制台子路由 `/panel`）；Caddyfile 由
+> `etc/global.caddy` + `etc/caddy.d/*.caddy` 组装；文档随包置于
+> `share/docs/`，版本文件位于 `etc/VERSION`；`frampp restart` 与启动端口
+> 预检 / 就绪检测可用。
+
 > Release Note 语言规范 / Language convention for release notes：正文采用
 > **先英文、后中文** 的两段式结构（English section first, then Chinese）。
 
@@ -254,6 +260,23 @@ were fixed at the same time.
 FRAMPP 0.7.2 将 Linux FrankenPHP 定制构建中锁定的 `caddy-access-filter`
 模块升级到 **v1.2.1**（IP 访问过滤模块的错误修正版本），并同步修正构建缓存
 标记与脚本注释中残留的 v1.2.0 引用。
+
+## 0.8.0 caddy-panel & Service UX / 0.8.0 集成 caddy-panel 与服务体验
+
+FRAMPP 0.8.0 integrates **caddy-panel** as the Caddy web management UI under
+`http://127.0.0.1:8081/panel` (a pinned git submodule shipped as
+`modules/caddy-panel`): sites, Caddyfile, certificates, logs, config
+snapshots and last-good recovery. The platform console (services / IP access
+control) remains at the 8081 root. `frampp restart` and startup hardening
+(port pre-check + 10 s readiness wait) were added; docs ship under
+`share/docs/` and the version file under `etc/VERSION`.
+
+FRAMPP 0.8.0 集成 **caddy-panel** 作为 Caddy Web 管理界面，位于
+`http://127.0.0.1:8081/panel`（git 子模块固定引用，随包安装为
+`modules/caddy-panel`）：站点、Caddyfile、证书、日志、配置快照与 last-good
+恢复；8081 根路径仍为平台控制台（服务 / IP 访问控制）。新增
+`frampp restart` 与启动加固（端口预检 + 10 秒就绪检测）；文档随包置于
+`share/docs/`，版本文件位于 `etc/VERSION`。
 
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 

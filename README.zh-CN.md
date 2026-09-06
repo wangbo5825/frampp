@@ -11,7 +11,7 @@ LAMPP / XAMPP / NMPP 的产品形态，并内置基于 MCP 的 AI Agent 接入�
 ## 当前状态
 
 - 里程碑：**M4 生产模式 + Linux x86_64 / Docker 变体**
-- 最新版本线：**0.7.x**（Linux 数据库组件为 MySQL 8.0，glibc 2.17，兼容 CentOS 7）
+- 最新版本线：**0.8.0**（Linux 数据库组件为 MySQL 8.0，glibc 2.17，兼容 CentOS 7）
 - 当前通道：PHP **8.5** / FrankenPHP **1.12.7**
 
 ## FRAMPP 是什么？

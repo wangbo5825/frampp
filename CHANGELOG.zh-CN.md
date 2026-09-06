@@ -2,6 +2,50 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.8.0] - 2026-09-06
+
+### 新增
+
+- 集成 **caddy-panel**（git 子模块固定引用）作为 Caddy Web 管理界面，入口
+  `http://127.0.0.1:8081/panel`：管理站点、Caddyfile、证书与日志，支持
+  `/adapt` 校验、热重载、快照与 last-good 恢复。init 预置模块
+  （`modules/caddy-panel`）、生成 `config.php` / `panel.bootstrap.php`
+  （`APP_ROOT`、`PANEL_BASE=/panel/`）并无交互创建管理员；8081 根路径继续
+  提供平台控制台（服务 / IP 访问控制）。
+- 新增 `frampp restart [service]` 指令（默认 `all`；按依赖反序停止、正序启动）。
+- 启动加固：`frampp start` 启动前预检端口 / unix socket 占用，启动后最多等待
+  10 秒就绪；失败返回 `started=false` 并附日志末行、退出码非零。
+
+### 变更
+
+- 安装包布局：文档与 README（英文 + 中文）统一放入 `share/docs/`；版本文件位于
+  `etc/VERSION`（`frampp version` 保留旧根路径回退）。
+- Caddyfile 改为 `etc/global.caddy` + `import etc/caddy.d/*.caddy` 组装
+  （与 caddy-panel 管理结构一致），8081 控制台以 `handle_path` 提供 `/panel`。
+- FRAMPP 版本号提升至 `0.8.0`。
+
+## [0.8.0] - 2026-09-06
+
+### 新增
+
+- 集成 **caddy-panel**（git 子模块固定引用）作为 Caddy Web 管理界面，入口
+  `http://127.0.0.1:8081/panel`：管理站点、Caddyfile、证书与日志，支持
+  `/adapt` 校验、热重载、快照与 last-good 恢复。init 预置模块
+  （`modules/caddy-panel`）、生成 `config.php` / `panel.bootstrap.php`
+  （`APP_ROOT`、`PANEL_BASE=/panel/`）并无交互创建管理员；8081 根路径继续
+  提供平台控制台（服务 / IP 访问控制）。
+- 新增 `frampp restart [service]` 指令（默认 `all`；按依赖反序停止、正序启动）。
+- 启动加固：`frampp start` 启动前预检端口 / unix socket 占用，启动后最多等待
+  10 秒就绪；失败返回 `started=false` 并附日志末行、退出码非零。
+
+### 变更
+
+- 安装包布局：文档与 README（英文 + 中文）统一放入 `share/docs/`；版本文件位于
+  `etc/VERSION`（`frampp version` 保留旧根路径回退）。
+- Caddyfile 改为 `etc/global.caddy` + `import etc/caddy.d/*.caddy` 组装
+  （与 caddy-panel 管理结构一致），8081 控制台以 `handle_path` 提供 `/panel`。
+- FRAMPP 版本号提升至 `0.8.0`。
+
 ## [0.7.2] - 2026-09-01
 
 ### 修复

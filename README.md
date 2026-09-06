@@ -7,10 +7,11 @@
 [中文](README.zh-CN.md) · [Blueprint](docs/blueprint.md) ·
 [Releases](https://github.com/wangbo5825/frampp/releases)
 
-> Current status: **v0.7.2** — standardized layout (`bin` / `etc` / `var` /
+> Current status: **v0.8.0** — standardized layout (`bin` / `etc` / `var` /
 > `modules`), MySQL 8.0 (glibc 2.17, CentOS 7 compatible) on Linux, simplified
 > installer naming, unified command wrappers, systemd integration, IP access
-> control and an all-in-one Docker image.
+> control, the caddy-panel web UI (`/panel` under the 8081 console), `frampp
+> restart`, startup readiness checks and an all-in-one Docker image.
 > Full design & decision records: [docs/blueprint.md](docs/blueprint.md).
 
 [![GitHub](https://img.shields.io/badge/GitHub-wangbo5825%2Fframpp-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/wangbo5825/frampp)

@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.10（2026-09-01，v0.7.2 caddy-access-filter 1.2.1 升级）
+> 状态：设计稿 v1.11（2026-09-06，v0.8.0 caddy-panel /panel 集成）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -277,6 +277,24 @@
 - **版本定位**：FRAMPP `VERSION` 提升至 `0.7.2`；组件矩阵与其余运行时行为
   不变。
 
+### 2.15 v0.8.0 caddy-panel 集成与服务体验决策（v1.11，2026-09-06）
+
+- **caddy-panel 集成**：本地独立项目 caddy-panel（PHP 8.1+ / Vue 3）以 git
+  子模块固定引用，随包安装为 `modules/caddy-panel`，作为 8081 控制台的
+  Caddy 管理界面子路由 `/panel`（`handle_path /panel/*`）。站点 / Caddyfile /
+  证书 / 日志 / 快照恢复由 caddy-panel 提供；服务启停、状态与 IP 访问控制
+  暂留平台控制台（8081 根路径）。
+- **Caddyfile 组装模型**：主 Caddyfile = `etc/global.caddy`（全局选项 +
+  FRAMPP 托管站点 8080/8081）+ `import etc/caddy.d/*.caddy`，与 caddy-panel
+  的组装结构一致，避免双写冲突；init / AccessManager 与 caddy-panel 共享
+  该结构。
+- **服务体验**：新增 `frampp restart [service]`；`frampp start` 启动前端口 /
+  socket 占用预检 + 启动后 10s 就绪检测，失败明确报错并附日志。
+- **安装包布局**：文档与 README（EN/ZH）随包置于 `share/docs/`；版本文件位于
+  `etc/VERSION`（命令保留旧根路径回退）。
+- **版本定位**：FRAMPP `VERSION` 提升至 `0.8.0`；caddy-timer 仍为 backlog，
+  caddy-exec 保留为后续候选（待可行性验证）。
+
 ---
 
 ## 3. 总体架构
@@ -495,3 +513,4 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 6. ✅ v0.6.0：布局重构（bin / etc / var / modules）、统一命令、systemd、IP 访问控制
 7. ✅ 发布 **v0.7.1**（LAMPP 风格根目录总控命令）与 **v0.7.2**（caddy-access-filter 1.2.1 升级）
 8. ✅ v0.8.0 改进计划已记录（2026-09-01，见 `docs/0.8.0-plan.md`）：README/docs 并入 `share/docs/` 并补齐中文版、启动前端口预检 + 启动后延迟就绪检测、`frampp restart` 指令、安装脚本提示语中英双语、`VERSION` 移入 `etc/`、缺省端口 8080/8081 冲突调研、caddy-exec 服务生命周期钩子、caddy-panel Web 管理界面（caddy-timer 定时模块为 backlog）；实施时在本蓝图补决策记录
+9. ✅ 发布 **v0.8.0**（caddy-panel `/panel`、`frampp restart`、启动就绪检测、`share/docs` 布局、`VERSION`→`etc/`、安装脚本双语）

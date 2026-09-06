@@ -1,16 +1,17 @@
 # FRAMPP 用户文档 / User Documentation
 
-随发布包附带的用户文档。安装后在 `docs/` 目录下可找到（Windows 安装器与
-Linux 安装包均包含本目录内容）。
+随发布包附带的用户文档。v0.8.0 起安装后位于 `share/docs/user/`（旧版本在
+根目录 `docs/`；Windows 安装器与 Linux 安装包均包含本目录内容）。
 
 User documentation shipped with the installers (Windows `.exe` and Linux `.run`
-include this directory under `docs/`).
+include this directory under `share/docs/user/` since v0.8.0 (root `docs/` before).
 
 ## 文档 / Documents
 
 - [安装、升级与卸载 / Install, Upgrade & Uninstall](upgrade.md)
 - [Docker 镜像使用 / Docker Image Usage](docker.md)
-- 快速开始 / Quick Start：安装目录下的 `README.md`（项目概览 / project overview）
+- 快速开始 / Quick Start：安装目录下 `share/docs/README.md`（项目概览 /
+  project overview；英文与中文 `README.zh-CN.md`）
 
 ## 系统要求 / System Requirements
 
@@ -43,9 +44,12 @@ Compare against the matching line in `SHA256SUMS.txt` on the GitHub Release.
 | 端口 / Port | 服务 / Service |
 | --- | --- |
 | 8080 | 默认站点 / default site |
-| 8081 | 控制面板 / control panel |
+| 8081 | 控制台 / console（平台服务页 `/`，Caddy 管理界面 caddy-panel `/panel`） |
 | 3306 | MySQL（Windows 为 MariaDB） |
 | 6379 | Redis |
+
+Caddy 管理界面（caddy-panel）：`http://127.0.0.1:8081/panel` —— 站点、
+Caddyfile、证书、访问日志与配置快照 / 恢复，本地访问免登录（127.0.0.1）。
 
 ## 安全基线 / Security Baseline
 
@@ -62,6 +66,7 @@ Linux 安装根目录提供 LAMPP 风格总控命令 `frampp`（指向 `bin/fram
 ./frampp status      # 查看服务状态 / show service status
 ./frampp start all   # 启动全部服务 / start all services
 ./frampp stop all    # 停止全部服务 / stop all services
+./frampp restart all # 重启全部服务 / restart all services
 ./frampp version
 ```
 

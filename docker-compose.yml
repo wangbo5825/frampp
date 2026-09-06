@@ -1,6 +1,6 @@
 services:
   frampp:
-    image: ${FRAMPP_IMAGE:-ghcr.io/wangbo5825/frampp:0.7.0}
+    image: ${FRAMPP_IMAGE:-ghcr.io/wangbo5825/frampp:0.8.0}
     container_name: frampp
     ports:
       - "8080:8080" # 默认站点 / default site

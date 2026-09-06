@@ -10,8 +10,8 @@ Positioning: **one-click installers for everyday users** (XAMPP-style), publishe
 
 ```text
 frampp-<version>-<env>.<ext>
-示例 / e.g. frampp-0.7.0-windows-x64.exe
-示例 / e.g. frampp-0.7.0-linux-x86_64.run
+示例 / e.g. frampp-0.8.0-windows-x64.exe
+示例 / e.g. frampp-0.8.0-linux-x86_64.run
 ```
 
 - `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.12.7 / PHP 8.5.9 / MySQL 8.0.46（Linux）/ Redis 8.10.1；Windows 数据库仍为 MariaDB 12.3.2）
@@ -73,7 +73,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.7.0
+  ghcr.io/wangbo5825/frampp:0.8.0
 ```
 
 发布到 GitHub Container Registry：
@@ -94,8 +94,8 @@ GitHub is the single source of truth. The repository is mirrored to Gitee automa
 Gitee mirror sync does **not** copy GitHub Releases, so a Gitee 发行版 (with installer attachments) is optional. If you also publish Gitee releases, use the publish script (requires pwsh 7 and a Gitee token with `projects` scope):
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.7.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.7.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.8.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.8.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 Notes:
@@ -111,8 +111,8 @@ GitHub 是唯一推送源。仓库由 **GitHub Actions 工作流** `.github/work
 镜像同步**不会**复制 GitHub Releases，因此 Gitee 发行版（含安装包附件）为可选项。如仍需发布 Gitee 发行版，运行发布脚本（需要 pwsh 7 与 Gitee 私人令牌，权限含 `projects`）：
 
 ```powershell
-pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.7.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.7.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.8.0 `
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.8.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 说明：
@@ -202,8 +202,8 @@ FRAMPP 0.6.0 restructures the installed layout and adds IP access control:
 
 产物位于 / Artifacts in `dist/installer/`：
 
-- `frampp-<version>-<env>.exe`（如 `frampp-0.7.0-windows-x64.exe`）：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)
-- `frampp-<version>-linux-x86_64.run`（如 `frampp-0.7.0-linux-x86_64.run`）：Linux 自解压单文件安装器（运行后自动校验、解压、初始化并启动；目录可整体移动）/ self-extracting single-file Linux installer (verifies, extracts, initializes and starts; directory relocatable)
+- `frampp-<version>-<env>.exe`（如 `frampp-0.8.0-windows-x64.exe`）：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)
+- `frampp-<version>-linux-x86_64.run`（如 `frampp-0.8.0-linux-x86_64.run`）：Linux 自解压单文件安装器（运行后自动校验、解压、初始化并启动；目录可整体移动）/ self-extracting single-file Linux installer (verifies, extracts, initializes and starts; directory relocatable)
 - `ghcr.io/wangbo5825/frampp:<version>`：单镜像 all-in-one Docker 镜像（首启动初始化，`docker run` / Compose 一键启动）/ single all-in-one Docker image (initializes on first start; one-click via `docker run` / Compose)
 - `SHA256SUMS.txt`：全部安装包哈希，供用户核对 / hashes of all installers for verification
 
@@ -281,10 +281,10 @@ FRAMPP 0.8.0 集成 **caddy-panel** 作为 Caddy Web 管理界面，位于
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash
-chmod +x frampp-0.7.0-linux-x86_64.run
-./frampp-0.7.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.7.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
-./frampp-0.7.0-linux-x86_64.run --help           # 帮助 / help
+chmod +x frampp-0.8.0-linux-x86_64.run
+./frampp-0.8.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+./frampp-0.8.0-linux-x86_64.run --help           # 帮助 / help
 
 ~/frampp/bin/frampp status        # 查看服务状态 / check status
 ~/frampp/bin/uninstall            # 停止服务并可选清理数据 / stop services, optionally clean data
@@ -303,7 +303,7 @@ The Linux package bundles all three binaries (static FrankenPHP, a trimmed MySQL
 ## 校验 / Verification
 
 ```powershell
-Get-FileHash frampp-0.7.0-windows-x64.exe -Algorithm SHA256
-sha256sum frampp-0.7.0-linux-x86_64.run
+Get-FileHash frampp-0.8.0-windows-x64.exe -Algorithm SHA256
+sha256sum frampp-0.8.0-linux-x86_64.run
 # 与 / compare with SHA256SUMS.txt 中对应行 / the matching line
 ```

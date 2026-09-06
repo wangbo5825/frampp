@@ -13,17 +13,17 @@
 ### Linux（x86_64）
 
 ```bash
-chmod +x frampp-0.7.0-linux-x86_64.run
-./frampp-0.7.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.7.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+chmod +x frampp-0.8.0-linux-x86_64.run
+./frampp-0.8.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
 ```
 
 单文件安装器会自动校验完整性、解压并执行 `bin/frampp init`
 （生成配置、随机密钥、初始化 MySQL 数据目录与只读账号）并启动三件套；安装目录可整体移动。
 The single-file installer verifies integrity, extracts, runs `init.sh` (configs, secrets, MySQL datadir & read-only account) and starts the stack; the install directory is relocatable.
 
-> 系统要求：Linux x86_64 需 glibc ≥ 2.17（CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9+）；FrankenPHP 与 Redis 为 musl 静态，MySQL 8.0 为官方 glibc 2.17 通用二进制（自带 OpenSSL，服务端需 `libaio`）。完整系统要求与安装包校验见 `docs/README.md`。
-> Requirement: Linux x86_64 needs glibc ≥ 2.17 (CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9+); FrankenPHP and Redis are musl-static and MySQL 8.0 is the official glibc 2.17 generic build (bundled OpenSSL; the server needs `libaio`). See `docs/README.md` for full requirements and installer verification.
+> 系统要求：Linux x86_64 需 glibc ≥ 2.17（CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9+）；FrankenPHP 与 Redis 为 musl 静态，MySQL 8.0 为官方 glibc 2.17 通用二进制（自带 OpenSSL，服务端需 `libaio`）。完整系统要求与安装包校验见 `share/docs/README.md`（v0.8.0 起）。
+> Requirement: Linux x86_64 needs glibc ≥ 2.17 (CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9+); FrankenPHP and Redis are musl-static and MySQL 8.0 is the official glibc 2.17 generic build (bundled OpenSSL; the server needs `libaio`). See `share/docs/README.md` for full requirements and installer verification (since v0.8.0).
 
 ## 升级 / Upgrade
 
@@ -44,6 +44,18 @@ The single-file installer verifies integrity, extracts, runs `init.sh` (configs,
 > the data directories are not compatible**: export your databases with
 > `mysqldump` before upgrading and re-import them with `bin/mysql` afterwards;
 > Windows keeps MariaDB in this release and needs no rebuild.
+>
+> **0.7.x → 0.8.0（caddy-panel 与布局调整）**：init 会新增并初始化 caddy-panel
+> 模块（`modules/caddy-panel`，Caddy 管理界面 `http://127.0.0.1:8081/panel`），
+> 主 Caddyfile 改为 `etc/global.caddy` + `etc/caddy.d/*.caddy` 组装——请把
+> 自定义站点以 `caddy.d` 片段维护（或通过 `/panel` 管理），init 会重建主文件。
+> 版本文件移至 `etc/VERSION`，文档移至 `share/docs/`；新增 `frampp restart`
+> 与启动端口预检 / 就绪检测。0.7.x 数据库数据无需重建。
+> **0.7.x → 0.8.0 (caddy-panel & layout)**: init provisions the caddy-panel
+> module (Caddy UI at `/panel`) and assembles the main Caddyfile from
+> `etc/global.caddy` + `etc/caddy.d/*.caddy`; keep custom sites as `caddy.d`
+> fragments or manage them via `/panel`. The version file moved to
+> `etc/VERSION` and docs to `share/docs/`; no database rebuild is required.
 >
 > 版本间数据库结构变化（如数据库大版本升级）时，建议先在备份上演练。
 > If the database schema changes between versions (e.g. a major DB upgrade), rehearse on a backup first.

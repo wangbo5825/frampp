@@ -44,13 +44,13 @@ bin/frampp stop all
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/scripts/build-installer.ps1
-# Windows 产物：dist/installer/frampp-0.7.0-windows-x64.exe
+# Windows 产物：dist/installer/frampp-0.8.0-windows-x64.exe
 
 pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
-# Linux 产物：dist/installer/frampp-0.7.0-linux-x86_64.run
+# Linux 产物：dist/installer/frampp-0.8.0-linux-x86_64.run
 
 pwsh -File installer/scripts/build-docker.ps1 -ImageName frampp
-# Docker 产物：frampp:0.7.0 镜像（复用上面的 .run 载荷）
+# Docker 产物：frampp:0.8.0 镜像（复用上面的 .run 载荷）
 ```
 
 ### Docker 镜像
@@ -65,7 +65,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  frampp:0.7.0
+  frampp:0.8.0
 ```
 
 详细卷、端口与发布说明见 [docs/docker.md](../docs/docker.md)。

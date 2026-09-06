@@ -88,7 +88,8 @@ $layout = @(
     (Join-Path $StagingDir "htdocs"),
     (Join-Path $StagingDir "logs"),
     (Join-Path $StagingDir "share/templates"),
-    (Join-Path $StagingDir "docs")
+    (Join-Path $StagingDir "share/docs"),
+    (Join-Path $StagingDir "share/docs/user")
 )
 foreach ($d in $layout) { New-Item -ItemType Directory -Force -Path $d | Out-Null }
 Write-Step "暂存目录就绪: $StagingDir"
@@ -190,11 +191,12 @@ foreach ($runtimeScript in @("init.sh", "docker-entrypoint.sh", "docker-healthch
 Copy-Item -LiteralPath (Join-Path $Root "installer/config/versions-linux-x86_64.json") -Destination (Join-Path $StagingDir "share/versions-linux-x86_64.json")
 Copy-Item -Path (Join-Path $Root "installer/templates/*") -Destination (Join-Path $StagingDir "share/templates") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "installer/runtime/frampp.service.template") -Destination (Join-Path $StagingDir "share/templates/frampp.service.template")
-Copy-Item -Path (Join-Path $Root "docs/user/*") -Destination (Join-Path $StagingDir "docs") -Recurse -Force
+Copy-Item -Path (Join-Path $Root "docs/user/*") -Destination (Join-Path $StagingDir "share/docs/user") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "installer/templates/project-minimal") -Destination (Join-Path $moduleDir "templates/project-minimal") -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $Root "README.md") -Destination (Join-Path $StagingDir "README.md")
+Copy-Item -LiteralPath (Join-Path $Root "README.md") -Destination (Join-Path $StagingDir "share/docs/README.md")
+Copy-Item -LiteralPath (Join-Path $Root "README.zh-CN.md") -Destination (Join-Path $StagingDir "share/docs/README.zh-CN.md")
 Copy-Item -LiteralPath (Join-Path $Root "LICENSE") -Destination (Join-Path $StagingDir "LICENSE")
-Copy-Item -LiteralPath (Join-Path $Root "VERSION") -Destination (Join-Path $StagingDir "VERSION")
+Copy-Item -LiteralPath (Join-Path $Root "VERSION") -Destination (Join-Path $StagingDir "etc/VERSION")
 
 # 默认站点首页
 Copy-Item -LiteralPath (Join-Path $Root "installer/templates/htdocs/index.php") -Destination (Join-Path $StagingDir "htdocs/index.php")

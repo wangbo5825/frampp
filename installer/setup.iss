@@ -36,8 +36,10 @@ Source: "..\installer\scripts\init.ps1"; DestDir: "{app}\installer\scripts"; Fla
 Source: "..\installer\config\*"; DestDir: "{app}\installer\config"; Flags: recursesubdirs
 Source: "..\installer\templates\*"; DestDir: "{app}\installer\templates"; Flags: recursesubdirs
 Source: "..\installer\runtime\*"; DestDir: "{app}\installer\runtime"; Flags: recursesubdirs
-Source: "..\docs\user\*"; DestDir: "{app}\docs"; Flags: recursesubdirs
-Source: "..\README.md"; DestDir: "{app}"; Flags: isreadme
+Source: "..\docs\user\*"; DestDir: "{app}\share\docs\user"; Flags: recursesubdirs
+Source: "..\README.md"; DestDir: "{app}\share\docs"; Flags: isreadme
+Source: "..\README.zh-CN.md"; DestDir: "{app}\share\docs"
+Source: "..\VERSION"; DestDir: "{app}\etc"
 Source: "..\LICENSE"; DestDir: "{app}"
 
 [Icons]

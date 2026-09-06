@@ -182,7 +182,11 @@ function renderText(string $cmd, array $data): void
 
 function self_version(Config $config): string
 {
-    $versionFile = $config->root . DIRECTORY_SEPARATOR . 'VERSION';
+    // v0.8.0：安装包内版本文件位于 etc/VERSION；兼容旧布局（根目录 VERSION）
+    $versionFile = $config->root . DIRECTORY_SEPARATOR . 'etc' . DIRECTORY_SEPARATOR . 'VERSION';
+    if (!is_file($versionFile)) {
+        $versionFile = $config->root . DIRECTORY_SEPARATOR . 'VERSION';
+    }
     if (is_file($versionFile)) {
         $version = trim((string) file_get_contents($versionFile));
         if ($version !== '') {

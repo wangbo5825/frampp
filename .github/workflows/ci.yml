@@ -26,6 +26,8 @@ jobs:
         php: ["8.4", "8.5"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -64,6 +66,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -81,6 +85,8 @@ jobs:
     if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -255,6 +261,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: actions/download-artifact@v4
         with:

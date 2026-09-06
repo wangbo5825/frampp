@@ -32,6 +32,14 @@ Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.i
 [Files]
 Source: "..\dist\staging\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs; Excludes: "data\*|var\*|logs\*|*.pid"
 Source: "..\agent\*"; DestDir: "{app}\modules\agent"; Flags: recursesubdirs
+Source: "..\caddy-panel\public\*"; DestDir: "{app}\modules\caddy-panel\public"; Flags: recursesubdirs
+Source: "..\caddy-panel\src\*"; DestDir: "{app}\modules\caddy-panel\src"; Flags: recursesubdirs
+Source: "..\caddy-panel\bin\panel"; DestDir: "{app}\modules\caddy-panel\bin"
+Source: "..\caddy-panel\docs\*"; DestDir: "{app}\modules\caddy-panel\docs"; Flags: recursesubdirs
+Source: "..\caddy-panel\config.sample.php"; DestDir: "{app}\modules\caddy-panel"
+Source: "..\caddy-panel\LICENSE"; DestDir: "{app}\modules\caddy-panel"
+Source: "..\caddy-panel\README.md"; DestDir: "{app}\modules\caddy-panel"
+Source: "..\caddy-panel\README.zh-CN.md"; DestDir: "{app}\modules\caddy-panel"
 Source: "..\installer\scripts\init.ps1"; DestDir: "{app}\installer\scripts"; Flags: skipifsourcedoesntexist
 Source: "..\installer\config\*"; DestDir: "{app}\installer\config"; Flags: recursesubdirs
 Source: "..\installer\templates\*"; DestDir: "{app}\installer\templates"; Flags: recursesubdirs

@@ -183,6 +183,19 @@ Copy-Item -Path (Join-Path $Root "control-panel/web/*") -Destination (Join-Path 
 Copy-Item -LiteralPath (Join-Path $Root "control-panel/src") -Destination (Join-Path $moduleDir "control-panel") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "control-panel/bin") -Destination (Join-Path $moduleDir "control-panel") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "agent") -Destination (Join-Path $moduleDir "agent") -Recurse -Force
+# caddy-panel（v0.8.0）：Caddy 管理界面模块，运行时只保留 public/src/bin/docs 与说明文件
+$caddyPanelModule = Join-Path $moduleDir "caddy-panel"
+if (Test-Path -LiteralPath (Join-Path $Root "caddy-panel/public")) {
+    Write-Step "复制 caddy-panel 模块 / staging caddy-panel module"
+    foreach ($sub in @("public", "src", "bin", "docs")) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $caddyPanelModule $sub) | Out-Null
+        Copy-Item -Path (Join-Path $Root "caddy-panel/$sub/*") -Destination (Join-Path $caddyPanelModule $sub) -Recurse -Force
+    }
+    foreach ($f in @("config.sample.php", "LICENSE", "README.md", "README.zh-CN.md")) {
+        Copy-Item -LiteralPath (Join-Path $Root "caddy-panel/$f") -Destination (Join-Path $caddyPanelModule $f) -Force
+    }
+    & chmod +x (Join-Path $caddyPanelModule "bin/panel") 2>$null
+}
 # 运行时脚本 → bin/（构建脚本不进安装包；安装包内不再包含 installer/）
 foreach ($runtimeScript in @("init.sh", "docker-entrypoint.sh", "docker-healthcheck.sh")) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/$runtimeScript") -Destination (Join-Path $StagingDir "bin")

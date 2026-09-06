@@ -198,11 +198,15 @@ if (-not (Test-Path -LiteralPath $secretsFile)) {
         mariadb_readonly_password = New-Secret
         redis_password          = New-Secret
         panel_token             = New-Secret 16
+        panel_admin_password    = New-Secret 16
     }
     Write-JsonFile $secretsFile $secrets
     Write-Step "Secrets generated: $secretsFile"
 } else {
     $secrets = Get-Content -Raw -LiteralPath $secretsFile | ConvertFrom-Json
+    if (-not $secrets.panel_admin_password) {
+        $secrets | Add-Member -NotePropertyName panel_admin_password -NotePropertyValue (New-Secret 16)
+    }
     Write-JsonFile $secretsFile $secrets   # 规范化：去掉旧版可能存在的 BOM
     Write-Step "Secrets loaded (existing)"
 }
@@ -267,14 +271,55 @@ if (-not (Test-Path -LiteralPath $caddyDReadme)) {
 }
 
 $caddyFile = Join-Path $RuntimeDir "etc\Caddyfile"
+$globalCaddy = Join-Path $RuntimeDir "etc\global.caddy"
+$caddyPanelModule = Join-Path $RuntimeDir "modules\caddy-panel"
+$caddyPanelRoot = Convert-PathToForward (Join-Path $caddyPanelModule "public")
 Fill-Template (Join-Path $templatesDir "Caddyfile.template") @{
-    HTDOCS        = Convert-PathToForward (Join-Path $RuntimeDir "htdocs")
-    PANEL_ROOT    = Convert-PathToForward (Join-Path $RuntimeDir "modules\control-panel\web")
-    LOGS_DIR      = Convert-PathToForward (Join-Path $RuntimeDir "logs")
-    ACCESS_IMPORT = "# access-filter disabled"
-    CADDY_D       = Convert-PathToForward $caddyD
-    ADMIN_ADDR    = "127.0.0.1:2019"
-} $caddyFile
+    HTDOCS            = Convert-PathToForward (Join-Path $RuntimeDir "htdocs")
+    PANEL_ROOT        = Convert-PathToForward (Join-Path $RuntimeDir "modules\control-panel\web")
+    CADDY_PANEL_ROOT  = $caddyPanelRoot
+    LOGS_DIR          = Convert-PathToForward (Join-Path $RuntimeDir "logs")
+    ACCESS_IMPORT     = "# access-filter disabled"
+    ADMIN_ADDR        = "127.0.0.1:2019"
+} $globalCaddy
+$caddyMain = "# Assembled by FRAMPP / caddy-panel (global + caddy.d)`n`n" +
+    [System.IO.File]::ReadAllText($globalCaddy, [System.Text.Encoding]::UTF8) +
+    "`n" + 'import "' + (Convert-PathToForward $caddyD) + '/*.caddy"' + "`n"
+[System.IO.File]::WriteAllText($caddyFile, $caddyMain, (New-Object System.Text.UTF8Encoding($false)))
+
+# caddy-panel（v0.8.0）：8081 管理界面子路由 /panel 的初始化
+if (Test-Path -LiteralPath (Join-Path $caddyPanelModule "bin\panel")) {
+    $panelBootstrap = Join-Path $caddyPanelModule "public\panel.bootstrap.php"
+    $appRootFwd = Convert-PathToForward $caddyPanelModule
+    [System.IO.File]::WriteAllText(
+        $panelBootstrap,
+        "<?php`ndefine('APP_ROOT', '$appRootFwd');`ndefine('PANEL_BASE', '/panel/');`n",
+        (New-Object System.Text.UTF8Encoding($false))
+    )
+    $adminApi = "http://127.0.0.1:2019"
+    $etcFwd = Convert-PathToForward (Join-Path $RuntimeDir "etc")
+    $logsFwd = Convert-PathToForward (Join-Path $RuntimeDir "logs")
+    $panelConfig = Join-Path $caddyPanelModule "config.php"
+    [System.IO.File]::WriteAllText(
+        $panelConfig,
+        "<?php`n// caddy-panel 配置（由 FRAMPP init 生成；管理界面 http://127.0.0.1:8081/panel）`n" +
+        "return array (`n  'auth' => array ('allow_local_auto_login' => true, 'setup_token' => '',),`n" +
+        "  'caddy' => array (`n    'admin_api' => '$adminApi',`n" +
+        "    'caddyfile' => '$etcFwd/Caddyfile',`n" +
+        "    'fragments_dir' => '$etcFwd/caddy.d',`n" +
+        "    'global_file' => '$etcFwd/global.caddy',`n" +
+        "    'data_dir' => '',`n" +
+        "    'log_file' => '$logsFwd/frankenphp-access.log',`n  ),`n" +
+        "  'panel' => array ('name' => 'caddy-panel', 'listen' => '127.0.0.1:8080',),`n);`n",
+        (New-Object System.Text.UTF8Encoding($false))
+    )
+    $panelPw = [string]$secrets.panel_admin_password
+    $frankenPhp = Join-Path $RuntimeDir "modules\frankenphp\frankenphp.exe"
+    if (Test-Path -LiteralPath $frankenPhp) {
+        & $frankenPhp php-cli (Join-Path $caddyPanelModule "bin\panel") install `
+            --username=admin --password=$panelPw --admin-api=$adminApi 2>&1 | Out-Null
+    }
+}
 
 $htdocsIndex = Join-Path $RuntimeDir "htdocs\index.php"
 if (-not (Test-Path -LiteralPath $htdocsIndex)) {
@@ -294,6 +339,24 @@ if ($srcResolved -and $dstResolved -and $srcResolved -eq $dstResolved) {
     Copy-Item -LiteralPath (Join-Path $Root "control-panel\src") -Destination (Join-Path $RuntimeDir "modules\control-panel\") -Recurse -Force
     Copy-Item -LiteralPath (Join-Path $Root "control-panel\bin") -Destination (Join-Path $RuntimeDir "modules\control-panel\") -Recurse -Force
     Write-Step "Control panel copied to runtime"
+}
+
+# caddy-panel 模块（开发 / 暂存布局兜底复制；安装布局由 setup.iss 提供）
+$caddyPanelSrcPublic = Join-Path $Root "caddy-panel\public"
+$caddyPanelDstPublic = Join-Path $caddyPanelModule "public"
+$caddyPanelSrcResolved = (Resolve-Path -LiteralPath $caddyPanelSrcPublic -ErrorAction SilentlyContinue).Path
+$caddyPanelDstResolved = (Resolve-Path -LiteralPath $caddyPanelDstPublic -ErrorAction SilentlyContinue).Path
+if ($caddyPanelSrcResolved -and $caddyPanelDstResolved -and $caddyPanelSrcResolved -eq $caddyPanelDstResolved) {
+    Write-Step "caddy-panel already in place (installed layout)"
+} elseif (Test-Path -LiteralPath $caddyPanelSrcPublic) {
+    foreach ($sub in @("public", "src", "bin", "docs")) {
+        New-Item -ItemType Directory -Force -Path (Join-Path $caddyPanelModule $sub) | Out-Null
+        Copy-Item -Path (Join-Path $Root "caddy-panel\$sub\*") -Destination (Join-Path $caddyPanelModule $sub) -Recurse -Force
+    }
+    foreach ($f in @("config.sample.php", "LICENSE", "README.md", "README.zh-CN.md")) {
+        Copy-Item -LiteralPath (Join-Path $Root "caddy-panel\$f") -Destination (Join-Path $caddyPanelModule $f) -Force
+    }
+    Write-Step "caddy-panel module staged"
 }
 
 # 9. bin 命令包装（Windows .cmd）

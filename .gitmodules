@@ -1,0 +1,3 @@
+[submodule "caddy-panel"]
+	path = caddy-panel
+	url = https://github.com/wangbo5825/caddy-panel.git

@@ -163,15 +163,27 @@ final class AccessManager
         }
 
         $replace = [
-            '{{HTDOCS}}'        => str_replace('\\', '/', $this->config->root . DIRECTORY_SEPARATOR . 'htdocs'),
-            '{{PANEL_ROOT}}'    => str_replace('\\', '/', $this->config->module('control-panel') . DIRECTORY_SEPARATOR . 'web'),
-            '{{LOGS_DIR}}'      => str_replace('\\', '/', $this->config->logsDir()),
-            '{{ACCESS_IMPORT}}' => $import,
-            '{{CADDY_D}}'       => str_replace('\\', '/', $this->config->etcDir('caddy.d')),
-            '{{ADMIN_ADDR}}'    => $this->caddyAdminAddr(),
+            '{{HTDOCS}}'            => str_replace('\\', '/', $this->config->root . DIRECTORY_SEPARATOR . 'htdocs'),
+            '{{PANEL_ROOT}}'        => str_replace('\\', '/', $this->config->module('control-panel') . DIRECTORY_SEPARATOR . 'web'),
+            '{{CADDY_PANEL_ROOT}}'  => str_replace('\\', '/', $this->config->module('caddy-panel') . DIRECTORY_SEPARATOR . 'public'),
+            '{{LOGS_DIR}}'          => str_replace('\\', '/', $this->config->logsDir()),
+            '{{ACCESS_IMPORT}}'     => $import,
+            '{{ADMIN_ADDR}}'        => $this->caddyAdminAddr(),
         ];
         $content = str_replace(array_keys($replace), array_values($replace), $content);
-        file_put_contents($this->config->etcDir('Caddyfile'), $content);
+
+        // v0.8.0：渲染结果写入 etc/global.caddy；主 Caddyfile 组装 = global + import caddy.d，
+        // 与 caddy-panel（modules/caddy-panel，子路由 /panel）的组装结构保持一致。
+        $globalFile = $this->config->etcDir('global.caddy');
+        $mainFile = $this->config->etcDir('Caddyfile');
+        file_put_contents($globalFile, $content);
+        $fragmentsDir = str_replace('\\', '/', $this->config->etcDir('caddy.d'));
+        $importLine = glob($fragmentsDir . '/*.caddy')
+            ? 'import "' . $fragmentsDir . '/*.caddy"' . PHP_EOL
+            : '';
+        $main = "# Assembled by FRAMPP / caddy-panel (global + caddy.d)\n\n"
+            . $content . "\n" . $importLine;
+        file_put_contents($mainFile, $main);
     }
 
     public function reload(): bool

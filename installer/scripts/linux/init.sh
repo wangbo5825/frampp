@@ -205,7 +205,8 @@ if [[ ! -f "$SECRETS_FILE" ]]; then
     "mysql_root_password": "$(gen_hex 24)",
     "mysql_readonly_password": "$(gen_hex 24)",
     "redis_password": "$(gen_hex 24)",
-    "panel_token": "$(gen_hex 16)"
+    "panel_token": "$(gen_hex 16)",
+    "panel_admin_password": "$(gen_hex 16)"
 }
 EOF
 elif ! grep -q '"mysql_root_password"' "$SECRETS_FILE"; then
@@ -333,13 +334,75 @@ else
     ACCESS_IMPORT="# access-filter disabled"
 fi
 
-fill_template "$TPL_DIR/Caddyfile.template" "$RUNTIME_DIR/etc/Caddyfile" \
+CADDY_PANEL_ROOT="$RUNTIME_DIR/modules/caddy-panel/public"
+fill_template "$TPL_DIR/Caddyfile.template" "$RUNTIME_DIR/etc/global.caddy" \
     HTDOCS "$RUNTIME_DIR/htdocs" \
     PANEL_ROOT "$RUNTIME_DIR/modules/control-panel/web" \
+    CADDY_PANEL_ROOT "$CADDY_PANEL_ROOT" \
     LOGS_DIR "$RUNTIME_DIR/logs" \
     ACCESS_IMPORT "$ACCESS_IMPORT" \
-    CADDY_D "$CADDY_D" \
     ADMIN_ADDR "$ADMIN_ADDR"
+{
+    printf '# Assembled by FRAMPP / caddy-panel (global + caddy.d)\n\n' > "$RUNTIME_DIR/etc/Caddyfile"
+    cat "$RUNTIME_DIR/etc/global.caddy" >> "$RUNTIME_DIR/etc/Caddyfile"
+    if ls "$CADDY_D"/*.caddy >/dev/null 2>&1; then
+        printf '\nimport "%s"/*.caddy\n' "$CADDY_D" >> "$RUNTIME_DIR/etc/Caddyfile"
+    fi
+}
+
+# caddy-panel（v0.8.0）：8081 管理界面子路由 /panel 的初始化（预置 bootstrap / config / 管理员）
+if [[ -d "$RUNTIME_DIR/modules/caddy-panel" && -f "$RUNTIME_DIR/modules/caddy-panel/bin/panel" ]]; then
+    PANEL_MOD="$RUNTIME_DIR/modules/caddy-panel"
+    cat > "$PANEL_MOD/public/panel.bootstrap.php" <<EOF
+<?php
+define('APP_ROOT', '$RUNTIME_DIR/modules/caddy-panel');
+define('PANEL_BASE', '/panel/');
+EOF
+    if [[ "$MODE" == "sock" ]]; then
+        PANEL_ADMIN_API="unix://$RUN_DIR/admin.sock"
+    else
+        PANEL_ADMIN_API="http://127.0.0.1:2019"
+    fi
+    PANEL_ADMIN_PW="$(secret panel_admin_password)"
+    if [[ -z "$PANEL_ADMIN_PW" ]]; then
+        PANEL_ADMIN_PW="$(gen_hex 16)"
+        FRAMPP_SECRETS_FILE="$SECRETS_FILE" FRAMPP_PANEL_PW="$PANEL_ADMIN_PW" \
+            "$RUNTIME_DIR/modules/frankenphp/frankenphp" php-cli -r '
+                $f = getenv("FRAMPP_SECRETS_FILE");
+                $d = json_decode((string) file_get_contents($f), true);
+                if (!isset($d["panel_admin_password"])) {
+                    $d["panel_admin_password"] = getenv("FRAMPP_PANEL_PW");
+                    file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+                }
+            '
+    fi
+    cat > "$PANEL_MOD/config.php" <<EOF
+<?php
+// caddy-panel 配置（由 FRAMPP init 生成；管理界面 http://127.0.0.1:8081/panel）
+return array (
+  'auth' => array (
+    'allow_local_auto_login' => true,
+    'setup_token' => '',
+  ),
+  'caddy' => array (
+    'admin_api' => '$PANEL_ADMIN_API',
+    'caddyfile' => '$RUNTIME_DIR/etc/Caddyfile',
+    'fragments_dir' => '$RUNTIME_DIR/etc/caddy.d',
+    'global_file' => '$RUNTIME_DIR/etc/global.caddy',
+    'data_dir' => '',
+    'log_file' => '$RUNTIME_DIR/logs/frankenphp-access.log',
+  ),
+  'panel' => array (
+    'name' => 'caddy-panel',
+    'listen' => '127.0.0.1:8080',
+  ),
+);
+EOF
+    PANEL_ADMIN_PW="$PANEL_ADMIN_PW" PANEL_ADMIN_API="$PANEL_ADMIN_API" \
+        "$RUNTIME_DIR/modules/frankenphp/frankenphp" php-cli "$PANEL_MOD/bin/panel" install \
+            --username=admin --password="$PANEL_ADMIN_PW" --admin-api="$PANEL_ADMIN_API" || \
+        warn "caddy-panel 初始化失败 / caddy-panel init failed（可能已初始化 / may already be initialized）"
+fi
 
 # 运行时命令包装与符号链接
 RUNTIME_BIN_SRC="$RUNTIME_DIR/installer/runtime/bin"

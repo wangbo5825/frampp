@@ -1,4 +1,9 @@
-# FRAMPP Caddyfile（由 init.sh / init.ps1 生成）
+# FRAMPP 全局配置与托管站点（v0.8.0）
+#
+# 说明：本文件渲染后写入 etc/global.caddy；主 Caddyfile（etc/Caddyfile）由
+# init / AccessManager / caddy-panel 组装 = 本内容 + import etc/caddy.d/*.caddy。
+# 8081 管理入口包含平台控制台（服务 / IP 访问控制）与 Caddy 管理界面
+# caddy-panel（子路由 /panel；caddy-panel 负责站点 / Caddyfile / 证书 / 日志）。
 {
 	frankenphp
 	admin {{ADMIN_ADDR}}
@@ -30,9 +35,17 @@ http://127.0.0.1:8080 {
 }
 
 http://127.0.0.1:8081 {
-	root * {{PANEL_ROOT}}
 	encode zstd gzip
-	route {
+	# Caddy 管理界面（caddy-panel）：子路由 /panel，去掉前缀后交给模块 webroot
+	handle_path /panel/* {
+		root * {{CADDY_PANEL_ROOT}}
+		try_files {path} {path}/index.php index.php
+		php
+		file_server
+	}
+	# 平台控制台：服务 / IP 访问控制 / 站点管理
+	handle {
+		root * {{PANEL_ROOT}}
 		try_files {path} {path}/index.php index.php
 		php
 		file_server
@@ -41,7 +54,3 @@ http://127.0.0.1:8081 {
 		output file {{LOGS_DIR}}/panel-access.log
 	}
 }
-
-# 用户站点配置：把 *.caddy 文件放入 etc/caddy.d/ 即可自动加载
-# User site configs: drop *.caddy files into etc/caddy.d/ to auto-load them
-import {{CADDY_D}}/*.caddy

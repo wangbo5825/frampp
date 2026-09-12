@@ -217,10 +217,11 @@ jobs:
           echo "--- MySQL CLI (信息性；新 Debian/Ubuntu 可能缺 libtinfo.so.5) ---"
           ./modules/mysql/bin/mysql --no-defaults --connect-timeout=5 -h127.0.0.1 -P3306 -uroot -p"$ROOT_PW" -e "SELECT VERSION();" || true
           ./modules/redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
-          echo "=== restart redis (v0.8.0) ==="
-          ./bin/frampp restart redis || true
+          echo "=== restart all (v0.9.0 regression: port/socket release race) ==="
+          ./bin/frampp restart all
+          for i in $(seq 1 30); do (exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null && break; sleep 1; done
           ./modules/redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
-          echo "=== caddy-panel /panel api (v0.8.0) ==="
+          echo "=== caddy-panel /panel api (after restart) ==="
           curl -fsS http://127.0.0.1:8081/panel/api/status | head -c 300
           echo
           echo "=== stop ==="

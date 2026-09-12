@@ -148,47 +148,82 @@ final class ServiceManager
      */
     private function assertPortsFree(string $name): void
     {
-        $meta = self::serviceMeta($name);
-        $portKey = $meta['port'];
+        // v0.9.0：restart 时旧进程可能仍在退出，端口 / socket 的短暂占用属正常。
+        // 先给一小段释放窗口（最多 ~6s），仍被占用才判定为真实冲突。
+        $busy = $this->busyTargets($name);
+        if ($busy) {
+            $deadline = microtime(true) + 6.0;
+            while ($busy && microtime(true) < $deadline) {
+                usleep(200_000);
+                $busy = $this->busyTargets($name);
+            }
+        }
+        if ($busy) {
+            throw new \RuntimeException($this->busyMessage($name, $busy));
+        }
+    }
+
+    /**
+     * 本服务将要占用的端口 / socket 中已被占用的目标。
+     *
+     * @return list<array{label:string,port:?int,socket:?string}>
+     */
+    private function busyTargets(string $name): array
+    {
+        $portKey = self::serviceMeta($name)['port'];
+        $busy = [];
 
         if (($portKey === 'mysql' || $portKey === 'redis') && $this->config->socket($portKey) !== null) {
             $sock = (string) $this->config->socket($portKey);
             if (is_file($sock) && $this->isSocketOpen($sock)) {
-                throw new \RuntimeException(
-                    "{$name} 启动失败：unix socket 已被占用 / socket in use: {$sock}"
-                );
+                $busy[] = ['label' => 'socket', 'port' => null, 'socket' => $sock];
             }
-            return;
+            return $busy;
         }
 
         // frankenphp 对外端口与 admin 一起预检；mysql/redis 检查各自 TCP 端口
-        $ports = $portKey === 'http'
+        $targets = $portKey === 'http'
             ? ['http' => $this->config->port('http'), 'panel' => $this->config->port('panel')]
             : [$portKey => $this->config->port($portKey)];
-        $adminTcp = null;
-        if ($portKey === 'http' && $this->config->adminAddress() !== null) {
+        foreach ($targets as $label => $port) {
+            if ($port > 0 && $this->isPortOpen('127.0.0.1', (int) $port)) {
+                $busy[] = ['label' => $label, 'port' => (int) $port, 'socket' => null];
+            }
+        }
+        if ($portKey === 'http') {
             $addr = $this->config->adminAddress();
-            if (preg_match('#^http://127\.0\.0\.1:(\d+)$#', $addr, $m)) {
-                $adminTcp = (int) $m[1];
+            if ($addr !== null && preg_match('#^http://127\.0\.0\.1:(\d+)$#', $addr, $m)
+                && $this->isPortOpen('127.0.0.1', (int) $m[1])) {
+                $busy[] = ['label' => 'admin', 'port' => (int) $m[1], 'socket' => null];
             }
         }
+        return $busy;
+    }
 
-        foreach ($ports as $label => $port) {
-            if ($port <= 0) {
-                continue;
-            }
-            if ($this->isPortOpen('127.0.0.1', $port)) {
-                throw new \RuntimeException(
-                    "{$name} 启动失败：端口被占用 / port in use: 127.0.0.1:{$port} ({$label})"
-                    . "。可用 `bin/frampp ports` 查看，或调整 runtime.json 的 ports。"
-                );
-            }
+    /**
+     * @param list<array{label:string,port:?int,socket:?string}> $busy
+     */
+    private function busyMessage(string $name, array $busy): string
+    {
+        $first = $busy[0];
+        if (($first['socket'] ?? null) !== null) {
+            return "{$name} 启动失败：unix socket 已被占用 / socket in use: {$first['socket']}";
         }
-        if ($adminTcp !== null && $adminTcp > 0 && $this->isPortOpen('127.0.0.1', $adminTcp)) {
-            throw new \RuntimeException(
-                "frankenphp 启动失败：Caddy admin 端口被占用 / admin port in use: 127.0.0.1:{$adminTcp}"
-            );
+        return "{$name} 启动失败：端口被占用 / port in use: 127.0.0.1:{$first['port']} ({$first['label']})"
+            . '。可用 `bin/frampp ports` 查看，或调整 runtime.json 的 ports。';
+    }
+
+    /** 等待服务的端口 / socket 释放（停止后调用，避免 restart 竞态）。 */
+    private function waitServicePortFree(string $name, int $timeoutMs): bool
+    {
+        $deadline = microtime(true) + $timeoutMs / 1000;
+        while (microtime(true) < $deadline) {
+            if (!$this->busyTargets($name)) {
+                return true;
+            }
+            usleep(200_000);
         }
+        return !$this->busyTargets($name);
     }
 
     /**
@@ -264,8 +299,20 @@ final class ServiceManager
         if ($this->isProcessAlive($pid)) {
             $this->killProcessTree($pid, true);
         }
+        // v0.9.0 修复：强杀后等待进程退出与端口 / socket 释放再返回，否则紧接着的
+        // start() 端口预检会把尚未退出的旧进程判为“端口被占用”，导致
+        // `frampp restart` 偶发启动失败。
+        $deadline = microtime(true) + 5.0;
+        while ($this->isProcessAlive($pid) && microtime(true) < $deadline) {
+            usleep(200_000);
+        }
+        $released = $this->waitServicePortFree($name, 5000);
         $this->removePid($name);
-        return ['name' => $name, 'stopped' => true];
+        $result = ['name' => $name, 'stopped' => true];
+        if (!$released) {
+            $result['warning'] = '端口 / socket 仍未释放，重启可能失败 / port or socket still held';
+        }
+        return $result;
     }
 
     /**

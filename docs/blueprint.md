@@ -517,5 +517,6 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 9. ✅ 发布 **v0.8.0**（caddy-panel `/panel`、`frampp restart`、启动就绪检测、`share/docs` 布局、`VERSION`→`etc/`、安装脚本双语）
 10. 下一步：**v0.9.0** 集成 pogo-scheduler 自 fork（`wangbo5825/scheduler`）
     定时调度（Linux 定制构建 xcaddy 模块）、一键安装器英文优先、应用目录结构
-    （`apps/<app>/htdocs`）、Linux 缺省安装目录 `/opt/frampp` 等，见
-    `docs/0.9.0-plan.md`；或 macOS / A2A 变体
+    （`apps/<app>/htdocs`）、Linux 缺省安装目录 `/opt/frampp`、非 root + setcap
+    绑定 80/443、启动 chroot / 沙箱隔离等，见 `docs/0.9.0-plan.md`；或 macOS /
+    A2A 变体

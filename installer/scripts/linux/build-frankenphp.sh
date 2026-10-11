@@ -63,7 +63,9 @@ export FRANKENPHP_VERSION="${FP_VERSION#v}"
 
 # Caddy 模块：去掉 Mercure/Vulcain，保留 cbrotli，加入 Souin（锁定兼容版本）
 # 与 caddy-access-filter（access/filter 可编程钩子，v1.2.1：本地 IP/CIDR/国家码规则 + GeoIP）
-export SPC_CMD_VAR_FRANKENPHP_XCADDY_MODULES="--with github.com/dunglas/caddy-cbrotli --with github.com/darkweak/souin/plugins/caddy@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/souin@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/storages/otter/caddy --with github.com/wangbo5825/caddy-access-filter@v1.2.1"
+# 注意：所有模块必须锁定版本，否则 xcaddy 取最新会导致 MVS 抬升 Caddy 版本，
+# 不同架构/不同时间构建出的产物会出现版本漂移（0.8.1 曾出现 2.11.4 vs 2.11.7）。
+export SPC_CMD_VAR_FRANKENPHP_XCADDY_MODULES="--with github.com/dunglas/caddy-cbrotli@v1.0.1 --with github.com/darkweak/souin/plugins/caddy@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/souin@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/storages/otter/caddy@v0.0.20 --with github.com/wangbo5825/caddy-access-filter@v1.2.1"
 
 echo "==> 构建 FrankenPHP $FRANKENPHP_VERSION（PHP $PHP_VERSION, libc=$SPC_LIBC, UPX=$COMPRESS）..."
 echo "    扩展: ${PHP_EXTENSIONS//,/, }"

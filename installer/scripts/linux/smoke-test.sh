@@ -41,7 +41,19 @@ grep -o '"platform": *"[^"]*"' var/runtime.json || true
 echo "=== extensions ==="
 ./modules/frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s pdo_sqlite=%s simplexml=%s openssl=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', extension_loaded('pdo_sqlite')?'yes':'NO', extension_loaded('simplexml')?'yes':'NO', extension_loaded('openssl')?'yes':'NO', PHP_EOL);" || true
 echo "=== caddy version (require >= 2.11.4) ==="
-./modules/frankenphp/frankenphp version | grep -E "Caddy v2\.11\.4|v2\.11\.4" || { echo "CADDY_VERSION_TOO_OLD"; exit 1; }
+CADDY_FULL="$(./modules/frankenphp/frankenphp version 2>&1 || true)"
+echo "$CADDY_FULL"
+CADDY_VER="$(printf '%s\n' "$CADDY_FULL" | sed -n 's/.*Caddy v\([0-9][0-9.]*\).*/\1/p' | head -n1)"
+ver_ge() { # ver_ge <a> <b> => a >= b
+  [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]
+}
+if [[ -z "$CADDY_VER" ]]; then
+  echo "CADDY_VERSION_UNKNOWN"; exit 1
+fi
+if ! ver_ge "$CADDY_VER" "2.11.4"; then
+  echo "CADDY_VERSION_TOO_OLD ($CADDY_VER < 2.11.4)"; exit 1
+fi
+echo "CADDY_VERSION_OK $CADDY_VER"
 echo "=== http 8080 (headers+body head) ==="
 curl -sS -i --max-time 15 http://127.0.0.1:8080/ | head -n 30 || true
 echo "=== http 8081 (headers+body head) ==="

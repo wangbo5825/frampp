@@ -14,6 +14,9 @@ FRAMPP 的重要变更记录。
   Python 使用对应架构的 python-build-standalone 运行时。
 - 多架构 Docker 镜像：CI 分别构建并推送 `linux/amd64` 与 `linux/arm64`，
   再为版本 tag 与 `latest` 发布 manifest list。
+- FrankenPHP 定制构建的 xcaddy 模块全部锁定版本（`caddy-cbrotli@v1.0.1`、
+  `storages/otter/caddy@v0.0.20`、Souin 按 commit、`caddy-access-filter@v1.2.1`），
+  两个架构构建出的 Caddy 版本一致（v2.11.7），不再随模块代理解析结果漂移。
 - 新增共用冒烟脚本 `installer/scripts/linux/smoke-test.sh`，x86_64 与 aarch64
   CI 作业共用。
 

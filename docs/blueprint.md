@@ -321,6 +321,10 @@
   占位符）；CI 增加 `linux-package-aarch64`、`docker-arm64`、`docker-manifest`
   作业；`installer/scripts/linux/smoke-test.sh` 供两个架构复用（含
   `frampp restart all` 回归断言）。
+- **构建可复现性**：xcaddy 模块全部锁定版本（`caddy-cbrotli@v1.0.1`、
+  `storages/otter/caddy@v0.0.20`、Souin 按 commit、`caddy-access-filter@v1.2.1`），
+  两架构统一解析到 **Caddy v2.11.7**；构建缓存标记升级为
+  `-modpins1` 以强制重建。
 - **兼容性说明**：安装布局、配置与数据目录和 x86_64 完全一致；二进制不可跨架构
   混用，迁移到 arm64 需重新安装（可保留并复用 `var/` 数据目录）。
 

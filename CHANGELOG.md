@@ -16,6 +16,11 @@ All notable changes to FRAMPP are documented here.
 - Multi-arch Docker image: CI now builds and pushes `linux/amd64` and
   `linux/arm64` images and publishes a manifest list for the version tag and
   `latest`.
+- All xcaddy modules in the FrankenPHP custom build are now version-pinned
+  (`caddy-cbrotli@v1.0.1`, `storages/otter/caddy@v0.0.20`, Souin by commit,
+  `caddy-access-filter@v1.2.1`) so both architectures build the same Caddy
+  version (v2.11.7) instead of drifting with whatever the module proxy
+  resolves at build time.
 - Shared Linux smoke test script (`installer/scripts/linux/smoke-test.sh`) used
   by both x86_64 and aarch64 CI jobs.
 

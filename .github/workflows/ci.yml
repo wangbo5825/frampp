@@ -123,6 +123,9 @@ jobs:
 
       - name: Build Linux package (versions-linux-x86_64.json)
         shell: pwsh
+        env:
+          # static-php-cli 需要 GitHub API；匿名访问在并行构建时容易触发 403 限流
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pwsh -NoProfile -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
 
@@ -200,6 +203,9 @@ jobs:
 
       - name: Build Linux package (versions-linux-aarch64.json)
         shell: pwsh
+        env:
+          # static-php-cli 需要 GitHub API；匿名访问在并行构建时容易触发 403 限流
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pwsh -NoProfile -File installer/scripts/build-linux-package.ps1 -Env linux-aarch64
 

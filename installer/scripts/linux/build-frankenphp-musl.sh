@@ -12,6 +12,8 @@
 #   FRAMPP_BUILD_IMAGE 构建镜像（默认 alpine:3.21）
 #   FRAMPP_TARGET_ARCH 目标架构（x86_64 / aarch64；默认与宿主一致）——
 #                      跨架构时通过 docker --platform 走 QEMU（慢），建议在目标架构上原生构建
+#   GITHUB_TOKEN       （可选）传给 spc 以提高 GitHub API 限流额度；CI 中建议设置，
+#                      否则 static-php-cli 拉取 hosted 包列表时可能遇到 403 rate limit
 #
 # 用法: build-frankenphp-musl.sh <frankenphp-源码-tar.gz> <输出目录> [版本]
 #
@@ -49,6 +51,8 @@ docker run --rm --platform "$DOCKER_PLATFORM" \
     -e "FRAMPP_PHP_VERSION=${FRAMPP_PHP_VERSION:-8.5.9}" \
     -e "FRAMPP_SPC_LIBC=musl" \
     -e "FP_VERSION=$FP_VERSION" \
+    -e "GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
+    -e "SPC_GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
     -v "$SRC_TAR_ABS:/src/frankenphp.tar.gz:ro" \
     -v "$OUT_DIR_ABS:/out" \
     -v "$HERE/build-frankenphp.sh:/build-frankenphp.sh:ro" \

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 #
-# 裁剪官方 MySQL 8.0 Community 通用二进制（Linux x86_64, glibc 2.17 基线）。
+# 裁剪官方 MySQL 8.0 Community 通用二进制（Linux: x86_64 / aarch64）。
 #
-# 目标：安装体积控制在 30~45 MB，同时保持 CentOS 7（glibc >= 2.17）兼容。
-#   - 输入官方 minimal tarball（已去除 debug 符号）：
+# 目标：安装体积控制在 30~60 MB，同时保持目标架构的最小 glibc 基线：
+#   - x86_64：官方 minimal tarball（glibc 2.17 基线，CentOS 7 兼容）
 #       mysql-8.0.46-linux-glibc2.17-x86_64-minimal.tar.xz
+#   - aarch64：官方通用 tarball（官方无 minimal 变体，glibc 2.28 基线）
+#       mysql-8.0.46-linux-glibc2.28-aarch64.tar.xz
 #   - 对 bin/ 与 lib/plugin/ 可执行文件执行 strip --strip-unneeded
 #   - 删除 mysql-test/ docs/ man/ include/ *.a 等开发/测试文件
 #   - 保留 lib/private（自带 OpenSSL，必须保留）、lib/plugin/、share/
@@ -17,6 +19,7 @@ set -euo pipefail
 SRC_TAR="$1"
 OUT_DIR="$2"
 MYSQL_VERSION="${3:-unknown}"
+TARGET_ARCH="${FRAMPP_TARGET_ARCH:-$(uname -m)}"
 
 if [[ ! -f "$SRC_TAR" ]]; then
     echo "缺少 MySQL 二进制包: $SRC_TAR" >&2
@@ -27,10 +30,10 @@ mkdir -p "$OUT_DIR"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-echo "==> 解压 MySQL $MYSQL_VERSION minimal 包 ..."
+echo "==> 解压 MySQL $MYSQL_VERSION 通用包 ($TARGET_ARCH) ..."
 tar -xJf "$SRC_TAR" -C "$WORK"
 
-# 扁平化顶层单目录（mysql-8.0.46-linux-glibc2.17-x86_64-minimal/）
+# 扁平化顶层单目录（如 mysql-8.0.46-linux-glibc2.17-x86_64-minimal/）
 SRC_NAME="$(find "$WORK" -mindepth 1 -maxdepth 1 -type d -print -quit | xargs -r basename)"
 if [[ -n "$SRC_NAME" && -d "$WORK/$SRC_NAME" ]]; then
     cp -a "$WORK/$SRC_NAME/." "$OUT_DIR/"
@@ -39,9 +42,12 @@ else
 fi
 
 echo "==> strip 运行时二进制 ..."
-if command -v strip >/dev/null 2>&1; then
+HOST_ARCH="$(uname -m)"
+if command -v strip >/dev/null 2>&1 && [[ "$HOST_ARCH" == "$TARGET_ARCH" ]]; then
     find "$OUT_DIR/bin" "$OUT_DIR/lib/plugin" -type f \
         -exec strip --strip-unneeded {} \; 2>/dev/null || true
+elif command -v strip >/dev/null 2>&1; then
+    echo "WARN: 宿主架构 $HOST_ARCH 与目标 $TARGET_ARCH 不一致，跳过 strip（请在目标架构上构建）" >&2
 fi
 
 echo "==> 删除开发/测试文件（mysql-test docs man include *.a）..."

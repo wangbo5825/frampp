@@ -10,6 +10,8 @@
 #
 # 环境变量:
 #   FRAMPP_BUILD_IMAGE 构建镜像（默认 alpine:3.21）
+#   FRAMPP_TARGET_ARCH 目标架构（x86_64 / aarch64；默认与宿主一致）——
+#                      跨架构时通过 docker --platform 走 QEMU（慢），建议在目标架构上原生构建
 #
 # 用法: build-frankenphp-musl.sh <frankenphp-源码-tar.gz> <输出目录> [版本]
 #
@@ -20,6 +22,11 @@ OUT_DIR="$2"
 FP_VERSION="${3:-unknown}"
 IMAGE="${FRAMPP_BUILD_IMAGE:-alpine:3.21}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET_ARCH="${FRAMPP_TARGET_ARCH:-$(uname -m)}"
+case "$TARGET_ARCH" in
+    aarch64|arm64) DOCKER_PLATFORM="linux/arm64" ;;
+    *)             DOCKER_PLATFORM="linux/amd64" ;;
+esac
 
 if [[ ! -f "$SRC_TAR" ]]; then
     echo "缺少 FrankenPHP 源码包: $SRC_TAR" >&2
@@ -36,8 +43,8 @@ if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
     exec bash "$HERE/build-frankenphp.sh" "$SRC_TAR" "$OUT_DIR" "$FP_VERSION"
 fi
 
-echo "==> 使用 Docker ($IMAGE) musl 完全静态构建 FrankenPHP $FP_VERSION ..."
-docker run --rm \
+echo "==> 使用 Docker ($IMAGE, $DOCKER_PLATFORM) musl 完全静态构建 FrankenPHP $FP_VERSION ..."
+docker run --rm --platform "$DOCKER_PLATFORM" \
     -e "HOST_UID=$(id -u)" -e "HOST_GID=$(id -g)" \
     -e "FRAMPP_PHP_VERSION=${FRAMPP_PHP_VERSION:-8.5.9}" \
     -e "FRAMPP_SPC_LIBC=musl" \

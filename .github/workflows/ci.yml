@@ -128,106 +128,7 @@ jobs:
 
       - name: Smoke test (extract + install + HTTP / MySQL / Redis)
         shell: bash
-        run: |
-          set -euxo pipefail
-          cd dist/installer
-          PKG="$(ls frampp-*-linux-x86_64.run | head -n1)"
-          chmod +x "$PKG"
-          ./"$PKG" --prefix "$PWD/frampp"
-          cd frampp
-          echo "=== init already ran inside .run; verify idempotent init ==="
-          ./bin/frampp init
-          echo "=== Caddyfile ==="
-          cat etc/Caddyfile
-          echo "=== status ==="
-          ./bin/frampp status --json || true
-          echo "=== version ==="
-          ./bin/frampp version || true
-          echo "=== root master command (LAMPP-style symlink) ==="
-          ls -la frampp
-          if [ ! -L frampp ] || [ ! -e frampp ]; then
-            echo "ROOT_FRAMPP_LINK_MISSING"; exit 1
-          fi
-          ./frampp version || true
-          echo "=== extensions ==="
-          ./modules/frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s pdo_sqlite=%s simplexml=%s openssl=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', extension_loaded('pdo_sqlite')?'yes':'NO', extension_loaded('simplexml')?'yes':'NO', extension_loaded('openssl')?'yes':'NO', PHP_EOL);" || true
-          echo "=== caddy version (require >= 2.11.4) ==="
-          ./modules/frankenphp/frankenphp version | grep -E "Caddy v2\.11\.4|v2\.11\.4" || { echo "CADDY_VERSION_TOO_OLD"; exit 1; }
-          echo "=== http 8080 (headers+body head) ==="
-          curl -sS -i --max-time 15 http://127.0.0.1:8080/ | head -n 30 || true
-          echo "=== http 8081 (headers+body head) ==="
-          curl -sS -i --max-time 15 http://127.0.0.1:8081/ | head -n 30 || true
-          echo "=== http 8081 direct /index.php (diagnostic) ==="
-          curl -sS -i --max-time 15 http://127.0.0.1:8081/index.php | head -n 20 || true
-          echo "=== http 8081 direct /action.php (diagnostic) ==="
-          curl -sS -i --max-time 15 http://127.0.0.1:8081/action.php | head -n 20 || true
-          echo "=== service err logs (diagnostic) ==="
-          tail -n 80 logs/frankenphp.err.log logs/mysql.err.log logs/redis.err.log 2>/dev/null || true
-          echo "=== panel must render (assert) ==="
-          PANEL_BODY="$(curl -sS --max-time 15 http://127.0.0.1:8081/ || true)"
-          if printf '%s' "$PANEL_BODY" | grep -q '<?php'; then
-            echo "PANEL_SERVED_RAW_PHP"; exit 1
-          fi
-          if ! printf '%s' "$PANEL_BODY" | grep -q 'FRAMPP 控制面板'; then
-            echo "PANEL_NOT_RENDERED"; exit 1
-          fi
-          echo "PANEL_OK"
-          echo "=== adapted config (routes per server) ==="
-          ./modules/frankenphp/frankenphp adapt --config etc/Caddyfile --adapter caddyfile 2>/dev/null \
-            | grep -o '"handler":"[a-z_]*"' | sort | uniq -c || true
-          echo "=== control-panel/web listing ==="
-          ls -la modules/control-panel/web || true
-          echo "=== slim checks (mysql-test must be gone) ==="
-          du -sh modules/mysql modules/python modules/frankenphp modules/redis || true
-          if [ -d modules/mysql/mysql-test ]; then
-            echo "MYSQL_TEST_STILL_PRESENT"; exit 1
-          fi
-          echo "SLIM_OK"
-          echo "=== portability checks ==="
-          echo "--- FrankenPHP must be static (musl, no glibc dep) ---"
-          if file modules/frankenphp/frankenphp | grep -qi "statically linked"; then
-            echo "FRANKENPHP_STATIC_OK"
-          else
-            echo "FRANKENPHP_NOT_STATIC"; exit 1
-          fi
-          echo "--- MySQL glibc baseline must be <= 2.17 (CentOS 7 compatible) ---"
-          bash "$GITHUB_WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" modules/mysql 2.17 mysql
-          echo "PORTABLE_OK"
-          echo "=== service logs ==="
-          tail -n 60 logs/frankenphp.err.log 2>/dev/null || true
-          tail -n 40 logs/frankenphp.log 2>/dev/null || true
-          tail -n 60 logs/mysql.err.log 2>/dev/null || true
-          tail -n 40 logs/mysql.log 2>/dev/null || true
-          tail -n 40 logs/mysql-init.log logs/mysql-init-user.log 2>/dev/null || true
-          tail -n 20 logs/panel-access.log logs/frankenphp-access.log 2>/dev/null || true
-          echo "=== wait mysql port ==="
-          mysql_ready() { (exec 3<>/dev/tcp/127.0.0.1/3306) 2>/dev/null; }
-          for i in $(seq 1 30); do
-            if mysql_ready; then echo "mysql port open after ${i}s"; break; fi
-            sleep 1
-          done
-          mysql_ready || { echo "MYSQL_PORT_NOT_READY"; exit 1; }
-          ROOT_PW="$(sed -n 's/.*"mysql_root_password"[^"]*"\([^"]*\)".*/\1/p' var/secrets.json)"
-          REDIS_PW="$(sed -n 's/.*"redis_password"[^"]*"\([^"]*\)".*/\1/p' var/secrets.json)"
-          echo "--- MySQL via PHP PDO (mysqlnd, 与控制面板同一链路) ---"
-          ROOT_PW="$ROOT_PW" ./modules/frankenphp/frankenphp php-cli -r '
-            $pdo = new PDO("mysql:host=127.0.0.1;port=3306;charset=utf8mb4", "root", getenv("ROOT_PW"), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
-            echo "MYSQL_VERSION=", $pdo->query("SELECT VERSION()")->fetchColumn(), PHP_EOL;
-          '
-          echo "--- MySQL CLI (信息性；新 Debian/Ubuntu 可能缺 libtinfo.so.5) ---"
-          ./modules/mysql/bin/mysql --no-defaults --connect-timeout=5 -h127.0.0.1 -P3306 -uroot -p"$ROOT_PW" -e "SELECT VERSION();" || true
-          ./modules/redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
-          echo "=== restart all (v0.9.0 regression: port/socket release race) ==="
-          ./bin/frampp restart all
-          for i in $(seq 1 30); do (exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null && break; sleep 1; done
-          ./modules/redis/redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PW" --no-auth-warning ping
-          echo "=== caddy-panel /panel api (after restart) ==="
-          curl -fsS http://127.0.0.1:8081/panel/api/status | head -c 300
-          echo
-          echo "=== stop ==="
-          ./bin/frampp stop all || true
-          ./bin/frampp status --json || true
-
+        run: bash installer/scripts/linux/smoke-test.sh linux-x86_64 2.17 "$GITHUB_WORKSPACE"
       - name: Upload Linux package artifact
         uses: actions/upload-artifact@v4
         with:
@@ -259,8 +160,86 @@ jobs:
           echo "Uploading $PKG to ${GITHUB_REF_NAME}"
           gh release upload "${GITHUB_REF_NAME}" "$PKG" --clobber
 
+  linux-package-aarch64:
+    name: Linux package aarch64 (build + smoke)
+    # GitHub 托管的原生 arm64 runner（公共仓库可用）；编译与 strip 均需目标架构工具链
+    runs-on: ubuntu-24.04-arm
+    # 大体积下载/编译任务仅在 main 推送、tag 或手动触发时执行，PR 只跑轻量校验
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies + PHP (arm64)
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            php-cli php-mbstring php-curl php-xml php-sqlite3 \
+            build-essential make gcc xz-utils unzip curl ca-certificates file binutils
+          # MySQL 8.0 服务端需要 libaio（arm64 路径与 x86_64 不同）
+          sudo apt-get install -y --no-install-recommends libaio1t64 || \
+            sudo apt-get install -y --no-install-recommends libaio1
+          sudo ln -sf libaio.so.1t64 /usr/lib/aarch64-linux-gnu/libaio.so.1 || true
+
+      - name: Run installer smoke tests (aarch64)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File tests/run-tests.ps1
+
+      - name: Cache Linux aarch64 build artifacts (dist/binaries + dist/tools)
+        uses: actions/cache@v4
+        with:
+          path: |
+            dist/binaries
+            dist/tools
+          key: linux-aarch64-build-${{ hashFiles('installer/config/versions-linux-aarch64.json') }}
+          restore-keys: |
+            linux-aarch64-build-
+
+      - name: Build Linux package (versions-linux-aarch64.json)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File installer/scripts/build-linux-package.ps1 -Env linux-aarch64
+
+      - name: Smoke test (extract + install + HTTP / MySQL / Redis)
+        shell: bash
+        run: bash installer/scripts/linux/smoke-test.sh linux-aarch64 2.28 "$GITHUB_WORKSPACE"
+
+      - name: Upload Linux aarch64 package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frampp-linux-aarch64
+          path: dist/installer/frampp-*-linux-aarch64.run
+          retention-days: 14
+
+      - name: Upload to GitHub Release (manual)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd dist/installer
+          PKG="$(ls frampp-*-linux-aarch64.run | head -n1)"
+          echo "Uploading $PKG to ${{ github.event.inputs.release_tag }}"
+          gh release upload "${{ github.event.inputs.release_tag }}" "$PKG" --clobber
+
+      - name: Upload to GitHub Release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd dist/installer
+          PKG="$(ls frampp-*-linux-aarch64.run | head -n1)"
+          echo "Uploading $PKG to ${GITHUB_REF_NAME}"
+          gh release upload "${GITHUB_REF_NAME}" "$PKG" --clobber
+
   docker:
-    name: Docker image (build + smoke + push)
+    name: Docker image amd64 (build + smoke + push)
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     needs: linux-package
@@ -303,8 +282,7 @@ jobs:
         with:
           images: ghcr.io/wangbo5825/frampp
           tags: |
-            type=raw,value=${{ steps.version.outputs.version }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=${{ steps.version.outputs.version }}-amd64
 
       - name: Build image (smoke)
         uses: docker/build-push-action@v6
@@ -360,3 +338,137 @@ jobs:
             FRAMPP_PACKAGE=${{ steps.pkg.outputs.pkg }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  docker-arm64:
+    name: Docker image arm64 (build + smoke + push)
+    runs-on: ubuntu-24.04-arm
+    if: github.event_name != 'pull_request'
+    needs: linux-package-aarch64
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frampp-linux-aarch64
+          path: dist/installer
+
+      - name: Read FRAMPP version
+        id: version
+        shell: bash
+        run: echo "version=$(tr -d '\r\n' < VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Locate Linux aarch64 package
+        id: pkg
+        shell: bash
+        run: |
+          PKG="$(find dist/installer -maxdepth 1 -name 'frampp-*-linux-aarch64.run' -print -quit)"
+          if [ -z "$PKG" ]; then
+            echo "Linux aarch64 .run package not found" >&2
+            exit 1
+          fi
+          echo "pkg=${PKG}" >> "$GITHUB_OUTPUT"
+          echo "Using package: $PKG"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/wangbo5825/frampp
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}-arm64
+
+      - name: Build image (smoke)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          build-args: |
+            FRAMPP_PACKAGE=${{ steps.pkg.outputs.pkg }}
+          tags: frampp:ci-arm64
+
+      - name: Smoke test Docker image (arm64)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          CID="frampp-ci-arm64-$$"
+          trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
+          docker run -d --name "$CID" -p 18080:8080 -p 18081:8081 frampp:ci-arm64
+
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:18081/ >/dev/null 2>&1; then
+              echo "panel ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+          SITE_BODY="$(curl -fsS --max-time 20 http://127.0.0.1:18080/ || true)"
+          printf '%s' "$SITE_BODY" | grep -q 'FRAMPP' || { echo "SITE_NOT_OK"; exit 1; }
+          PANEL_BODY="$(curl -fsS --max-time 20 http://127.0.0.1:18081/ || true)"
+          printf '%s' "$PANEL_BODY" | grep -q 'FRAMPP 控制面板' || { echo "PANEL_NOT_OK"; exit 1; }
+          docker exec "$CID" /opt/frampp/bin/frampp status --json
+          docker exec "$CID" /opt/frampp/bin/frampp version
+          docker logs "$CID" | tail -n 40
+
+      - name: Log in to GitHub Container Registry
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image (arm64)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            FRAMPP_PACKAGE=${{ steps.pkg.outputs.pkg }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  docker-manifest:
+    name: Docker manifest (multi-arch)
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [docker, docker-arm64]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifests
+        shell: bash
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
+        run: |
+          set -euxo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          IMAGE=ghcr.io/wangbo5825/frampp
+          docker manifest create "$IMAGE:$VERSION" \
+            --amend "$IMAGE:$VERSION-amd64" \
+            --amend "$IMAGE:$VERSION-arm64"
+          docker manifest push "$IMAGE:$VERSION"
+          docker manifest create "$IMAGE:latest" \
+            --amend "$IMAGE:$VERSION-amd64" \
+            --amend "$IMAGE:$VERSION-arm64"
+          docker manifest push "$IMAGE:latest"

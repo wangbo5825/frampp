@@ -4,10 +4,13 @@
     下载/编译组件并打包为 XAMPP 风格单文件 .run（自解压安装器）。
 
 .DESCRIPTION
-    - 组件矩阵：installer/config/versions-linux-x86_64.json（哈希锁定）
+    - 组件矩阵：installer/config/versions-<env>.json（哈希锁定）
     - Redis 由官方源码静态编译（installer/scripts/linux/build-redis.sh）
-    - MySQL 8.0 由官方 glibc 2.17 minimal 包裁剪（installer/scripts/linux/trim-mysql.sh）
-    - 产物：dist/installer/frampp-<version>-linux-x86_64.run（v0.7.0 起简化命名）
+    - MySQL 8.0 由官方通用包裁剪（installer/scripts/linux/trim-mysql.sh）：
+      x86_64 → glibc 2.17 minimal；aarch64 → glibc 2.28 完整包（官方无 minimal 变体）
+    - 产物：dist/installer/frampp-<version>-linux-<arch>.run（v0.7.0 起简化命名）
+    - 目标架构：linux-x86_64（默认）/ linux-aarch64；须在与目标一致的架构上构建
+      （编译与 strip 均为本地工具链），CI 分别使用 ubuntu-latest 与 ubuntu-24.04-arm
     - .run = 自解压脚本头 + tar.gz 载荷；运行后自动校验、解压并执行 bin/frampp init
     - 运行环境：Linux + pwsh 7 + tar（CI ubuntu 与本地 Linux 均可）
 
@@ -29,24 +32,29 @@ param(
 )
 
 if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path }
-if (-not $CacheDir) { $CacheDir = Join-Path $Root "dist/binaries" }
-if (-not $StagingDir) { $StagingDir = Join-Path $Root "dist/staging-linux" }
-if (-not $ToolsDir) { $ToolsDir = Join-Path $Root "dist/tools" }
-if (-not $AppVersion) { $AppVersion = (Get-Content -LiteralPath (Join-Path $Root "VERSION") -Raw).Trim() }
 
 $ErrorActionPreference = "Stop"
 
 function Write-Step([string]$Message) { Write-Host "==> $Message" -ForegroundColor Cyan }
 
-if ($Env -ne "linux-x86_64") {
-    throw "本脚本仅用于 linux-x86_64（当前: $Env）"
+switch ($Env) {
+    "linux-x86_64" { $Arch = "x86_64"; $GlibcBaseline = "2.17"; $PlatformLabel = "Linux x86_64" }
+    "linux-aarch64" { $Arch = "aarch64"; $GlibcBaseline = "2.28"; $PlatformLabel = "Linux aarch64" }
+    default { throw "不支持的环境: $Env（支持 linux-x86_64 / linux-aarch64）" }
 }
 
-$versionsFile = Join-Path $Root "installer/config/versions-linux-x86_64.json"
+if (-not $CacheDir) { $CacheDir = Join-Path $Root "dist/binaries" }
+if (-not $StagingDir) { $StagingDir = Join-Path $Root "dist/staging-linux-$Arch" }
+if (-not $ToolsDir) { $ToolsDir = Join-Path $Root "dist/tools" }
+if (-not $AppVersion) { $AppVersion = (Get-Content -LiteralPath (Join-Path $Root "VERSION") -Raw).Trim() }
+
+$versionsFile = Join-Path $Root "installer/config/versions-$Env.json"
 $config = Get-Content -Raw -LiteralPath $versionsFile | ConvertFrom-Json
-if ($config.platform -ne "linux-x86_64") {
+if ($config.platform -ne $Env) {
     throw "versions 文件平台不匹配: $versionsFile"
 }
+$env:FRAMPP_TARGET_ARCH = $Arch
+Write-Step "目标架构 / target arch: $Arch (env=$Env, glibc baseline $GlibcBaseline)"
 
 $installerDir = Join-Path $Root "dist/installer"
 New-Item -ItemType Directory -Force -Path $installerDir | Out-Null
@@ -97,7 +105,7 @@ Write-Step "暂存目录就绪: $StagingDir"
 # 3. 组件
 # FrankenPHP：定制源码构建（精简扩展 + Souin + UPX + musl 完全静态）
 # 在 Alpine 容器内 musl 静态构建，产物无 glibc 依赖，兼容任意发行版。
-$fpBinDir = Join-Path $ToolsDir "frankenphp-linux-x86_64"
+$fpBinDir = Join-Path $ToolsDir "frankenphp-linux-$Arch"
 $fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-musl-accessfilter1.2.1"
 if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (Test-Path -LiteralPath $fpMarker)) {
     Write-Step "编译 FrankenPHP $($config.components.frankenphp.version)（定制: 精简扩展 + Souin + UPX）"
@@ -114,10 +122,10 @@ Copy-Item -LiteralPath (Join-Path $fpBinDir "frankenphp") -Destination (Join-Pat
 & chmod +x (Join-Path $moduleDir "frankenphp/frankenphp")
 
 # MySQL 8.0：官方 glibc 2.17 minimal tarball 裁剪（CentOS 7 兼容，自带 OpenSSL）
-$mysqlBinDir = Join-Path $ToolsDir "mysql-linux-x86_64"
-$mysqlMarker = Join-Path $mysqlBinDir ".built-$($config.components.mysql.version)-glibc2.17"
+$mysqlBinDir = Join-Path $ToolsDir "mysql-linux-$Arch"
+$mysqlMarker = Join-Path $mysqlBinDir ".built-$($config.components.mysql.version)-glibc$GlibcBaseline"
 if (-not (Test-Path -LiteralPath (Join-Path $mysqlBinDir "bin/mysqld")) -or -not (Test-Path -LiteralPath $mysqlMarker)) {
-    Write-Step "裁剪 MySQL $($config.components.mysql.version)（官方 glibc 2.17 minimal）"
+    Write-Step "裁剪 MySQL $($config.components.mysql.version)（官方 glibc $GlibcBaseline 通用包）"
     & bash (Join-Path $PSScriptRoot "linux/trim-mysql.sh") `
         (Join-Path $CacheDir $config.components.mysql.cacheFile) `
         $mysqlBinDir `
@@ -132,7 +140,7 @@ Get-ChildItem -LiteralPath (Join-Path $moduleDir "mysql/bin") -File | ForEach-Ob
 Get-ChildItem -LiteralPath (Join-Path $moduleDir "mysql/lib/plugin") -File -ErrorAction SilentlyContinue | ForEach-Object { & chmod +x $_.FullName }
 
 # Redis：官方源码静态编译（复用 dist/tools 下的构建产物，避免重复编译）
-$redisBinDir = Join-Path $ToolsDir "redis-linux-x86_64"
+$redisBinDir = Join-Path $ToolsDir "redis-linux-$Arch"
 $redisMarker = Join-Path $redisBinDir ".built-$($config.components.redis.version)"
 if (-not (Test-Path -LiteralPath (Join-Path $redisBinDir "redis-server")) -or -not (Test-Path -LiteralPath $redisMarker)) {
     Write-Step "编译 Redis $($config.components.redis.version)（静态）"
@@ -151,7 +159,7 @@ foreach ($redisBin in @("redis-server", "redis-cli")) {
 }
 
 # Python：独立精简运行时
-$pyBinDir = Join-Path $ToolsDir "python-linux-x86_64"
+$pyBinDir = Join-Path $ToolsDir "python-linux-$Arch"
 $pyMarker = Join-Path $pyBinDir ".built-$($config.components.python.version)"
 if (-not (Test-Path -LiteralPath (Join-Path $pyBinDir "bin/python3")) -or -not (Test-Path -LiteralPath $pyMarker)) {
     Write-Step "准备 Python $($config.components.python.version)（精简独立运行时）"
@@ -201,7 +209,7 @@ foreach ($runtimeScript in @("init.sh", "docker-entrypoint.sh", "docker-healthch
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot "linux/$runtimeScript") -Destination (Join-Path $StagingDir "bin")
 }
 # 版本清单与配置模板 → share/ 与 share/templates/
-Copy-Item -LiteralPath (Join-Path $Root "installer/config/versions-linux-x86_64.json") -Destination (Join-Path $StagingDir "share/versions-linux-x86_64.json")
+Copy-Item -LiteralPath $versionsFile -Destination (Join-Path $StagingDir "share/versions-$Env.json")
 Copy-Item -Path (Join-Path $Root "installer/templates/*") -Destination (Join-Path $StagingDir "share/templates") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $Root "installer/runtime/frampp.service.template") -Destination (Join-Path $StagingDir "share/templates/frampp.service.template")
 Copy-Item -Path (Join-Path $Root "docs/user/*") -Destination (Join-Path $StagingDir "share/docs/user") -Recurse -Force
@@ -233,7 +241,7 @@ Write-Step "根目录总控命令 / root master command: frampp -> bin/frampp"
 #    v0.7.0 起命名简化为 frampp-<version>-<env>.run（通道并入 Release note）
 $outName = "frampp-$AppVersion-$Env.run"
 $out = Join-Path $installerDir $outName
-$payload = Join-Path $installerDir "frampp-linux-payload.tar.gz"
+$payload = Join-Path $installerDir "frampp-linux-$Arch-payload.tar.gz"
 if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Force }
 if (Test-Path -LiteralPath $payload) { Remove-Item -LiteralPath $payload -Force }
 
@@ -249,7 +257,8 @@ try {
 # 生成自解压头（先替换固定字段，再按最终字节长度计算载荷偏移）
 $template = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "linux/frampp-installer.sh")
 $template = $template -replace "`r`n", "`n"
-$template = $template.Replace("__APP_VERSION__", $AppVersion).Replace("__CHANNEL__", $Channel)
+$template = $template.Replace("__APP_VERSION__", $AppVersion).Replace("__CHANNEL__", $Channel).
+    Replace("__ENV__", $Env).Replace("__PLATFORM__", $PlatformLabel)
 $headerUtf8 = New-Object System.Text.UTF8Encoding($false)
 $headerBytes = $headerUtf8.GetBytes($template)
 $payloadOffset = $headerBytes.Length + 1

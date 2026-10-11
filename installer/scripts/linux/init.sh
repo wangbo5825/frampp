@@ -38,15 +38,29 @@ if [[ -z "$ROOT" ]]; then ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"; fi
 if [[ -z "$CACHE_DIR" ]]; then CACHE_DIR="$ROOT/dist/binaries"; fi
 if [[ -z "$RUNTIME_DIR" ]]; then RUNTIME_DIR="$ROOT/dist/runtime-linux"; fi
 
+# 目标架构（决定版本清单、组件缓存名与 runtime.json 的 platform 字段）
+case "$(uname -m)" in
+    aarch64|arm64) FRAMPP_ARCH="aarch64" ;;
+    *)             FRAMPP_ARCH="x86_64" ;;
+esac
+FRAMPP_PLATFORM="linux-$FRAMPP_ARCH"
+if [[ "$FRAMPP_ARCH" == "aarch64" ]]; then
+    MYSQL_CACHE_FILE="mysql-8.0.46-linux-glibc2.28-aarch64.tar.xz"
+    PYTHON_CACHE_FILE="cpython-3.13.15-linux-aarch64-install_only_stripped.tar.gz"
+else
+    MYSQL_CACHE_FILE="mysql-8.0.46-linux-glibc2.17-x86_64-minimal.tar.xz"
+    PYTHON_CACHE_FILE="cpython-3.13.15-linux-x86_64-install_only_stripped.tar.gz"
+fi
+
 # 版本清单：安装包内自带；开发场景回退到仓库
 VERSIONS_FILE="${FRAMPP_VERSIONS_FILE:-}"
 if [[ -z "$VERSIONS_FILE" ]]; then
-    if [[ -f "$RUNTIME_DIR/share/versions-linux-x86_64.json" ]]; then
-        VERSIONS_FILE="$RUNTIME_DIR/share/versions-linux-x86_64.json"
-    elif [[ -f "$RUNTIME_DIR/installer/config/versions-linux-x86_64.json" ]]; then
-        VERSIONS_FILE="$RUNTIME_DIR/installer/config/versions-linux-x86_64.json"
+    if [[ -f "$RUNTIME_DIR/share/versions-$FRAMPP_PLATFORM.json" ]]; then
+        VERSIONS_FILE="$RUNTIME_DIR/share/versions-$FRAMPP_PLATFORM.json"
+    elif [[ -f "$RUNTIME_DIR/installer/config/versions-$FRAMPP_PLATFORM.json" ]]; then
+        VERSIONS_FILE="$RUNTIME_DIR/installer/config/versions-$FRAMPP_PLATFORM.json"
     else
-        VERSIONS_FILE="$ROOT/installer/config/versions-linux-x86_64.json"
+        VERSIONS_FILE="$ROOT/installer/config/versions-$FRAMPP_PLATFORM.json"
     fi
 fi
 
@@ -141,11 +155,12 @@ if [[ -d "$CACHE_DIR" ]]; then
             "$FRANKENPHP_VERSION"
     fi
 
-    # MySQL 8.0：官方 glibc 2.17 minimal -> 裁剪（已有 mysqld 则跳过）
+    # MySQL 8.0：官方通用包 -> 裁剪（x86_64 glibc 2.17 minimal / aarch64 glibc 2.28）
     if [[ ! -x "$RUNTIME_DIR/modules/mysql/bin/mysqld" ]]; then
-        step "裁剪 MySQL $MYSQL_VERSION（官方 glibc 2.17 / slim trim）..."
+        step "裁剪 MySQL $MYSQL_VERSION（$FRAMPP_ARCH / slim trim）..."
+        FRAMPP_TARGET_ARCH="$FRAMPP_ARCH" \
         bash "$SCRIPT_DIR/trim-mysql.sh" \
-            "$CACHE_DIR/mysql-8.0.46-linux-glibc2.17-x86_64-minimal.tar.xz" \
+            "$CACHE_DIR/$MYSQL_CACHE_FILE" \
             "$RUNTIME_DIR/modules/mysql" \
             "$MYSQL_VERSION"
     fi
@@ -164,7 +179,7 @@ if [[ -d "$CACHE_DIR" ]]; then
     if [[ ! -x "$RUNTIME_DIR/modules/python/bin/python3" ]]; then
         step "准备 Python $PYTHON_VERSION（精简独立运行时 / standalone runtime）..."
         bash "$SCRIPT_DIR/build-python.sh" \
-            "$CACHE_DIR/cpython-3.13.15-linux-x86_64-install_only_stripped.tar.gz" \
+            "$CACHE_DIR/$PYTHON_CACHE_FILE" \
             "$RUNTIME_DIR/modules/python" \
             "$PYTHON_VERSION"
     fi
@@ -594,7 +609,7 @@ cat > "$RUNTIME_DIR/var/runtime.json" <<EOF
 {
     "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
     "root": "$RUNTIME_DIR",
-    "platform": "linux-x86_64",
+    "platform": "$FRAMPP_PLATFORM",
     "ports": { "http": $HTTP_PORT, "panel": $PANEL_PORT, "mysql": $MYSQL_PORT, "redis": $REDIS_PORT },
     "components": {
         "frankenphp": "$FRANKENPHP_VERSION",

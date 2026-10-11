@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 编译 Redis 官方源码（Linux x86_64）。
+# 编译 Redis 官方源码（Linux: x86_64 / aarch64 —— 与构建主机架构一致）。
 #
 # 静态链接只通过 REDIS_LDFLAGS=-static 传给最终 redis-server/redis-cli 链接，
 # 避免 LDFLAGS 传播到依赖（xxhash/tre 需要构建 .so，-static 会在 musl 下失败）。
@@ -14,6 +14,11 @@ set -euo pipefail
 SRC_TAR="$1"
 OUT_DIR="$2"
 REDIS_VERSION="${3:-unknown}"
+TARGET_ARCH="${FRAMPP_TARGET_ARCH:-$(uname -m)}"
+case "$TARGET_ARCH" in
+    aarch64|arm64) DOCKER_PLATFORM="linux/arm64" ;;
+    *)             DOCKER_PLATFORM="linux/amd64" ;;
+esac
 
 if [[ ! -f "$SRC_TAR" ]]; then
     echo "缺少 Redis 源码包: $SRC_TAR" >&2
@@ -55,7 +60,7 @@ apk add --no-cache build-base linux-headers >/dev/null
 cd "/work/$1"
 make BUILD_TLS=no MALLOC=libc REDIS_LDFLAGS="-static" -j4 redis-server redis-cli
 SCRIPT
-    if docker run --rm -v "$DWORK":/work -w /work alpine:3.20 sh build.sh "$SRC_NAME"; then
+    if docker run --rm --platform "$DOCKER_PLATFORM" -v "$DWORK":/work -w /work alpine:3.20 sh build.sh "$SRC_NAME"; then
         copy_bins "$DWORK/$SRC_NAME"
         built=1
     else

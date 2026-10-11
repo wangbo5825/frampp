@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.11（2026-09-06，v0.8.0 caddy-panel /panel 集成）
+> 状态：设计稿 v1.12（2026-10-11，v0.8.1 新增 Linux arm64 变体与多架构镜像）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -296,6 +296,34 @@
   （待可行性验证）；定时调度改为下一版本（v0.9.0）集成 pogo-scheduler 自
   fork（`wangbo5825/scheduler`）。
 
+### 2.16 v0.8.1 Linux arm64 变体决策（v1.12，2026-10-11）
+
+- **背景**：0.8.0 仅发布 `linux-x86_64` 一键安装包与单架构 Docker 镜像；
+  arm64（aarch64）主机（Apple Silicon 虚拟机、树莓派、ARM 服务器、ARM 云主机等）
+  无法安装。
+- **结论**：新增 `linux-aarch64` 目标：独立组件矩阵
+  `installer/config/versions-linux-aarch64.json`、产物
+  `frampp-<version>-linux-aarch64.run`；构建与冒烟在原生 arm64 runner
+  （GitHub `ubuntu-24.04-arm`）执行（编译与 `strip` 需目标架构工具链）；
+  Docker 以多架构 manifest（`linux/amd64` + `linux/arm64`）发布。
+- **组件矩阵差异**：
+  - FrankenPHP / Redis：官方源码，与 x86_64 共用同一 tarball 与哈希，在 arm64
+    上原生编译（musl 完全静态）。
+  - MySQL 8.0.46：官方 aarch64 仅有 `linux-glibc2.28-aarch64` 通用包（无 minimal
+    变体），沿用 `trim-mysql.sh` 裁剪；**glibc 基线为 2.28**（x86_64 为 2.17），
+    覆盖 Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / 树莓派 OS bullseye+，
+    **不覆盖 CentOS 7 aarch64**（glibc 2.17）。
+  - Python 3.13：python-build-standalone 的
+    `aarch64-unknown-linux-gnu-install_only_stripped` 构建（哈希锁定）。
+  - Composer / Adminer：与架构无关，两个变体共用。
+- **构建与发布**：`build-linux-package.ps1` 支持 `-Env linux-aarch64`
+  （架构化的 tools / staging 目录、`strip` 与 glibc 基线、`__PLATFORM__`
+  占位符）；CI 增加 `linux-package-aarch64`、`docker-arm64`、`docker-manifest`
+  作业；`installer/scripts/linux/smoke-test.sh` 供两个架构复用（含
+  `frampp restart all` 回归断言）。
+- **兼容性说明**：安装布局、配置与数据目录和 x86_64 完全一致；二进制不可跨架构
+  混用，迁移到 arm64 需重新安装（可保留并复用 `var/` 数据目录）。
+
 ---
 
 ## 3. 总体架构
@@ -520,3 +548,5 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
     （`apps/<app>/htdocs`）、Linux 缺省安装目录 `/opt/frampp`、非 root + setcap
     绑定 80/443、启动 chroot / 沙箱隔离、上传内容禁止 PHP/可执行代码等，见
     `docs/0.9.0-plan.md`；或 macOS / A2A 变体
+11. ✅ 发布 **v0.8.1**（Linux arm64 / aarch64 变体、多架构 Docker 镜像、
+    `frampp restart` 竞态修复）

@@ -10,8 +10,8 @@ Positioning: **one-click installers for everyday users** (XAMPP-style), publishe
 
 ```text
 frampp-<version>-<env>.<ext>
-示例 / e.g. frampp-0.8.0-windows-x64.exe
-示例 / e.g. frampp-0.8.0-linux-x86_64.run
+示例 / e.g. frampp-0.8.1-windows-x64.exe
+示例 / e.g. frampp-0.8.1-linux-x86_64.run
 ```
 
 - `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.12.7 / PHP 8.5.9 / MySQL 8.0.46（Linux）/ Redis 8.10.1；Windows 数据库仍为 MariaDB 12.3.2）
@@ -34,6 +34,11 @@ frampp-<version>-<env>.<ext>
 > `etc/global.caddy` + `etc/caddy.d/*.caddy` 组装；文档随包置于
 > `share/docs/`，版本文件位于 `etc/VERSION`；`frampp restart` 与启动端口
 > 预检 / 就绪检测可用。
+
+> **v0.8.1 起实施 / Implemented since v0.8.1**：Linux 新增 **arm64
+> （aarch64）** 一键安装包 `frampp-<version>-linux-aarch64.run`（MySQL 8.0
+> glibc 2.28 基线），Docker 镜像改为 **多架构**（`linux/amd64` +
+> `linux/arm64`，同一 tag 发布 manifest list）。
 
 > Release Note 语言规范 / Language convention for release notes：正文采用
 > **先英文、后中文** 的两段式结构（English section first, then Chinese）。
@@ -73,7 +78,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.0
+  ghcr.io/wangbo5825/frampp:0.8.1
 ```
 
 发布到 GitHub Container Registry：
@@ -95,7 +100,7 @@ Gitee mirror sync does **not** copy GitHub Releases, so a Gitee 发行版 (with 
 
 ```powershell
 pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.8.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.8.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.8.1-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 Notes:
@@ -112,7 +117,7 @@ GitHub 是唯一推送源。仓库由 **GitHub Actions 工作流** `.github/work
 
 ```powershell
 pwsh -File installer/scripts/publish-gitee.ps1 -Token $env:GITEE_TOKEN -Tag v0.8.0 `
-  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.8.0-windows-x64.exe,dist/installer/SHA256SUMS.txt
+  -NotesFile .tmp-notes.md -Assets dist/installer/frampp-0.8.1-windows-x64.exe,dist/installer/SHA256SUMS.txt
 ```
 
 说明：
@@ -202,8 +207,8 @@ FRAMPP 0.6.0 restructures the installed layout and adds IP access control:
 
 产物位于 / Artifacts in `dist/installer/`：
 
-- `frampp-<version>-<env>.exe`（如 `frampp-0.8.0-windows-x64.exe`）：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)
-- `frampp-<version>-linux-x86_64.run`（如 `frampp-0.8.0-linux-x86_64.run`）：Linux 自解压单文件安装器（运行后自动校验、解压、初始化并启动；目录可整体移动）/ self-extracting single-file Linux installer (verifies, extracts, initializes and starts; directory relocatable)
+- `frampp-<version>-<env>.exe`（如 `frampp-0.8.1-windows-x64.exe`）：Inno Setup 一键安装包（安装时自动初始化并启动三件套；卸载自动停服清理）/ one-click Windows installer (auto init + start; uninstall stops services and cleans up)
+- `frampp-<version>-linux-x86_64.run`（如 `frampp-0.8.1-linux-x86_64.run`）：Linux 自解压单文件安装器（运行后自动校验、解压、初始化并启动；目录可整体移动）/ self-extracting single-file Linux installer (verifies, extracts, initializes and starts; directory relocatable)
 - `ghcr.io/wangbo5825/frampp:<version>`：单镜像 all-in-one Docker 镜像（首启动初始化，`docker run` / Compose 一键启动）/ single all-in-one Docker image (initializes on first start; one-click via `docker run` / Compose)
 - `SHA256SUMS.txt`：全部安装包哈希，供用户核对 / hashes of all installers for verification
 
@@ -278,13 +283,44 @@ FRAMPP 0.8.0 集成 **caddy-panel** 作为 Caddy Web 管理界面，位于
 `frampp restart` 与启动加固（端口预检 + 10 秒就绪检测）；文档随包置于
 `share/docs/`，版本文件位于 `etc/VERSION`。
 
+## 0.8.1 arm64 support / 0.8.1 支持 arm64
+
+FRAMPP 0.8.1 adds a native **arm64 (aarch64)** Linux variant alongside x86_64:
+
+- New target/env `linux-aarch64` with its own component matrix
+  (`installer/config/versions-linux-aarch64.json`); artifact
+  `frampp-<version>-linux-aarch64.run`.
+- FrankenPHP (musl static, custom build) and Redis are compiled natively on
+  arm64; MySQL 8.0 uses the official `linux-glibc2.28-aarch64` generic tarball
+  trimmed by `installer/scripts/linux/trim-mysql.sh` (arm64 has no minimal
+  variant, so the baseline is glibc 2.28 instead of 2.17).
+- Python uses the matching python-build-standalone aarch64 runtime; Composer and
+  Adminer are architecture-independent and shared.
+- CI builds and smoke-tests the arm64 package on an arm64 runner, and the Docker
+  image is published as a **multi-arch manifest** (`linux/amd64` +
+  `linux/arm64`) for both the version tag and `latest`.
+
+FRAMPP 0.8.1 在 x86_64 之外新增原生 **arm64（aarch64）** Linux 变体：
+
+- 新增目标 / 环境 `linux-aarch64` 与独立组件矩阵
+  （`installer/config/versions-linux-aarch64.json`），产物
+  `frampp-<version>-linux-aarch64.run`。
+- FrankenPHP（musl 完全静态，定制构建）与 Redis 在 arm64 上原生编译；
+  MySQL 8.0 使用官方 `linux-glibc2.28-aarch64` 通用包并经
+  `installer/scripts/linux/trim-mysql.sh` 裁剪（arm64 无 minimal 变体，
+  基线为 glibc 2.28，而非 x86_64 的 2.17）。
+- Python 使用对应架构的 python-build-standalone 运行时；Composer 与 Adminer
+  与架构无关，两个变体共用。
+- CI 在 arm64 runner 上构建并冒烟验证 arm64 安装包；Docker 镜像以**多架构
+  manifest**（`linux/amd64` + `linux/arm64`）发布版本 tag 与 `latest`。
+
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash
-chmod +x frampp-0.8.0-linux-x86_64.run
-./frampp-0.8.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.8.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
-./frampp-0.8.0-linux-x86_64.run --help           # 帮助 / help
+chmod +x frampp-0.8.1-linux-x86_64.run
+./frampp-0.8.1-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.1-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+./frampp-0.8.1-linux-x86_64.run --help           # 帮助 / help
 
 ~/frampp/bin/frampp status        # 查看服务状态 / check status
 ~/frampp/bin/uninstall            # 停止服务并可选清理数据 / stop services, optionally clean data
@@ -303,7 +339,7 @@ The Linux package bundles all three binaries (static FrankenPHP, a trimmed MySQL
 ## 校验 / Verification
 
 ```powershell
-Get-FileHash frampp-0.8.0-windows-x64.exe -Algorithm SHA256
-sha256sum frampp-0.8.0-linux-x86_64.run
+Get-FileHash frampp-0.8.1-windows-x64.exe -Algorithm SHA256
+sha256sum frampp-0.8.1-linux-x86_64.run
 # 与 / compare with SHA256SUMS.txt 中对应行 / the matching line
 ```

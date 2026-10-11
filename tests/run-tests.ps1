@@ -51,7 +51,7 @@ function Test-VersionsFile([string]$Path, [string]$Platform) {
         Assert-True ($prop.Value.kind -in @("zip", "phar", "binary", "tar.gz", "tar.xz", "src")) "$label component '$($prop.Name)' kind valid"
     }
     $names = @($config.components.PSObject.Properties.Name | Sort-Object)
-    $dbName = if ($Platform -eq "linux-x86_64") { "mysql" } else { "mariadb" }
+    $dbName = if ($Platform -like "linux-*") { "mysql" } else { "mariadb" }
     Assert-True ($names -contains "frankenphp" -and $names -contains $dbName -and
                  $names -contains "redis" -and $names -contains "composer") "$label declares four core components"
 
@@ -73,12 +73,14 @@ function Test-VersionsFile([string]$Path, [string]$Platform) {
 # 1. 版本清单（Windows + Linux）
 Test-VersionsFile (Join-Path $Root "installer/config/versions.json") "windows-x64"
 Test-VersionsFile (Join-Path $Root "installer/config/versions-linux-x86_64.json") "linux-x86_64"
+Test-VersionsFile (Join-Path $Root "installer/config/versions-linux-aarch64.json") "linux-aarch64"
 
 # 2. 通道注册
 $channels = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/config/channels.json") | ConvertFrom-Json
 $envs = @($channels.channels | Where-Object { $_.id -eq "8.5" } | ForEach-Object { $_.envs })
 Assert-True ($envs -contains "windows-x64") "channel 8.5 supports windows-x64"
 Assert-True ($envs -contains "linux-x86_64") "channel 8.5 supports linux-x86_64"
+Assert-True ($envs -contains "linux-aarch64") "channel 8.5 supports linux-aarch64"
 
 # 3. 配置模板
 $tpl = Join-Path $Root "installer/templates"

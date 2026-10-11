@@ -1,19 +1,19 @@
 # syntax=docker/dockerfile:1
 #
-# FRAMPP 官方镜像：复用 Linux x86_64 自包含安装包，单镜像内置
+# FRAMPP 官方镜像：复用 Linux 自包含安装包（x86_64 / aarch64），单镜像内置
 # FrankenPHP + MySQL 8.0 + Redis + Agent/MCP + 控制面板 + Python。
 #
-# 构建前请先生成 Linux 安装包：
-#   pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
+# 构建前请先生成对应架构的 Linux 安装包：
+#   pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64   # 或 linux-aarch64
 # 然后：
-#   docker build -t frampp:0.8.0 \
-#     --build-arg FRAMPP_PACKAGE=dist/installer/frampp-0.8.0-linux-x86_64.run .
+#   docker build -t frampp:0.8.1 \
+#     --build-arg FRAMPP_PACKAGE=dist/installer/frampp-0.8.1-linux-x86_64.run .
 #
 ARG BASE_IMAGE=debian:bookworm-slim
 
 FROM ${BASE_IMAGE} AS runtime
 
-ARG FRAMPP_PACKAGE=dist/installer/frampp-0.8.0-linux-x86_64.run
+ARG FRAMPP_PACKAGE=dist/installer/frampp-0.8.1-linux-x86_64.run
 
 ENV FRAMPP_HOME=/opt/frampp \
     LANG=C.UTF-8 \

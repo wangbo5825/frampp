@@ -10,12 +10,16 @@
 2. 运行 / Runs `installer/scripts/init.ps1`（Windows）或 `bin/init.sh`（Linux）：生成配置（etc/php.ini / etc/redis.conf / etc/Caddyfile）、随机密钥（`var/secrets.json`）、初始化数据库数据目录与只读账号 / generates configs, random secrets, initializes the database datadir & read-only account
 3. 启动三件套并打开控制面板（`http://127.0.0.1:8081/`）/ starts the stack and opens the control panel
 
-### Linux（x86_64）
+### Linux（x86_64 / aarch64）
 
 ```bash
-chmod +x frampp-0.8.0-linux-x86_64.run
-./frampp-0.8.0-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.8.0-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+chmod +x frampp-0.8.1-linux-x86_64.run
+./frampp-0.8.1-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.1-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+
+# arm64（aarch64）主机使用 frampp-0.8.1-linux-aarch64.run（glibc ≥ 2.28）
+chmod +x frampp-0.8.1-linux-aarch64.run
+./frampp-0.8.1-linux-aarch64.run --prefix /opt/frampp
 ```
 
 单文件安装器会自动校验完整性、解压并执行 `bin/frampp init`
@@ -56,6 +60,18 @@ The single-file installer verifies integrity, extracts, runs `init.sh` (configs,
 > `etc/global.caddy` + `etc/caddy.d/*.caddy`; keep custom sites as `caddy.d`
 > fragments or manage them via `/panel`. The version file moved to
 > `etc/VERSION` and docs to `share/docs/`; no database rebuild is required.
+>
+> **0.8.0 → 0.8.1（arm64 支持）**：架构无关的补丁版本。x86_64 安装包不变；
+> 新增 `frampp-<version>-linux-aarch64.run`（arm64，MySQL 8.0 glibc 2.28 基线）
+> 与多架构 Docker 镜像（amd64 + arm64）。数据目录、布局与配置不变，可直接
+> 覆盖安装；Docker 用户 `docker pull ghcr.io/wangbo5825/frampp:0.8.1` 后按原
+> 卷重建容器即可。
+> **0.8.0 → 0.8.1 (arm64 support)**: an architecture-neutral patch. The x86_64
+> installer is unchanged; a new `frampp-<version>-linux-aarch64.run` (arm64,
+> MySQL 8.0 with a glibc 2.28 baseline) and a multi-arch Docker image (amd64 +
+> arm64) are added. Data directory, layout and configuration are unchanged, so
+> an over-the-top install works; Docker users can pull
+> `ghcr.io/wangbo5825/frampp:0.8.1` and recreate the container with the same volumes.
 >
 > 版本间数据库结构变化（如数据库大版本升级）时，建议先在备份上演练。
 > If the database schema changes between versions (e.g. a major DB upgrade), rehearse on a backup first.

@@ -48,11 +48,11 @@ foreach ($ch in $Channels) {
     if ($Env -eq "windows-x64") {
         & (Join-Path $PSScriptRoot "build-installer.ps1") -Root $Root -AppVersion $Version -Channel $ch -Env $Env
         $artifact = Join-Path $installerDir "frampp-$Version-$Env.exe"
-    } elseif ($Env -eq "linux-x86_64") {
+    } elseif ($Env -like "linux-*") {
         & (Join-Path $PSScriptRoot "build-linux-package.ps1") -Root $Root -AppVersion $Version -Channel $ch -Env $Env
         $artifact = Join-Path $installerDir "frampp-$Version-$Env.run"
     } else {
-        throw "未支持的环境: $Env（支持 windows-x64 / linux-x86_64）"
+        throw "未支持的环境: $Env（支持 windows-x64 / linux-x86_64 / linux-aarch64）"
     }
     if (-not (Test-Path -LiteralPath $artifact)) {
         throw "构建产物缺失: $artifact"
@@ -84,8 +84,8 @@ FRAMPP $Version
 
 - Channel: $($Channels -join ', ') (Env: $Env; since v0.7.0 the channel segment is no longer part of the installer name)
 - Verify: check the hashes in SHA256SUMS.txt
-$(if ($Env -eq "linux-x86_64") {
-    "- Linux: \`frampp-$Version-linux-x86_64.run\` (XAMPP-style single-file self-extracting installer)"
+$(if ($Env -like "linux-*") {
+    "- Linux ($Env): \`frampp-$Version-$Env.run\` (XAMPP-style single-file self-extracting installer)"
 } else {
     "- Windows: \`frampp-$Version-windows-x64.exe\` (Inno Setup one-click installer)"
 })
@@ -102,8 +102,8 @@ $(if ($Env -eq "linux-x86_64") {
 
 - 通道：$($Channels -join ', ')（环境 / Env：$Env；v0.7.0 起命名不再含通道段）
 - 校验：请核对 SHA256SUMS.txt 中的安装包哈希
-$(if ($Env -eq "linux-x86_64") {
-    "- Linux：\`frampp-$Version-linux-x86_64.run\`（XAMPP 风格单文件自解压安装器）"
+$(if ($Env -like "linux-*") {
+    "- Linux（$Env）：\`frampp-$Version-$Env.run\`（XAMPP 风格单文件自解压安装器）"
 } else {
     "- Windows：\`frampp-$Version-windows-x64.exe\`（Inno Setup 一键安装）"
 })

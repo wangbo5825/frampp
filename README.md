@@ -7,11 +7,12 @@
 [中文](README.zh-CN.md) · [Blueprint](docs/blueprint.md) ·
 [Releases](https://github.com/wangbo5825/frampp/releases)
 
-> Current status: **v0.8.0** — standardized layout (`bin` / `etc` / `var` /
-> `modules`), MySQL 8.0 (glibc 2.17, CentOS 7 compatible) on Linux, simplified
+> Current status: **v0.8.1** — standardized layout (`bin` / `etc` / `var` /
+> `modules`), MySQL 8.0 on Linux (glibc 2.17 / CentOS 7 compatible on x86_64,
+> glibc 2.28 on aarch64), **Linux x86_64 + aarch64 installers**, simplified
 > installer naming, unified command wrappers, systemd integration, IP access
 > control, the caddy-panel web UI (`/panel` under the 8081 console), `frampp
-> restart`, startup readiness checks and an all-in-one Docker image.
+> restart`, startup readiness checks and a multi-arch Docker image.
 > Full design & decision records: [docs/blueprint.md](docs/blueprint.md).
 
 [![GitHub](https://img.shields.io/badge/GitHub-wangbo5825%2Fframpp-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/wangbo5825/frampp)
@@ -55,7 +56,7 @@ Key characteristics:
 #### Windows
 
 ```powershell
-# Download frampp-0.8.0-windows-x64.exe from GitHub Releases,
+# Download frampp-0.8.1-windows-x64.exe from GitHub Releases,
 # then double-click to install; the installer initializes and starts the stack automatically.
 
 # Dev preview (run from source)
@@ -66,13 +67,17 @@ php control-panel/bin/frampp status                                       # stat
 php control-panel/bin/frampp stop all                                     # stop
 ```
 
-#### Linux (x86_64, one-click installer)
+#### Linux (x86_64 / aarch64, one-click installer)
 
 ```bash
-# Download frampp-0.8.0-linux-x86_64.run from GitHub Releases
-chmod +x frampp-0.8.0-linux-x86_64.run
-./frampp-0.8.0-linux-x86_64.run                              # installs to ~/frampp
-./frampp-0.8.0-linux-x86_64.run --prefix /opt/frampp         # custom directory
+# Download frampp-0.8.1-linux-x86_64.run from GitHub Releases
+chmod +x frampp-0.8.1-linux-x86_64.run
+./frampp-0.8.1-linux-x86_64.run                              # installs to ~/frampp
+./frampp-0.8.1-linux-x86_64.run --prefix /opt/frampp         # custom directory
+
+# arm64 (aarch64) hosts: download frampp-0.8.1-linux-aarch64.run instead
+chmod +x frampp-0.8.1-linux-aarch64.run
+./frampp-0.8.1-linux-aarch64.run --prefix /opt/frampp
 ```
 
 The installer verifies package integrity, extracts the bundle, initializes the runtime (random secrets, MySQL data directory) and starts all services, then prints the URLs.
@@ -86,8 +91,9 @@ After install, visit:
   `bin/mysql`, `bin/redis-cli`; `source bin/env` sets `PATH` / `PHPRC`.
 - systemd: `sudo bin/install-systemd` installs a boot service.
 
-The Linux package bundles a slimmed, mostly static FrankenPHP (APCu / redis /
-mysqli built in), a trimmed official MySQL 8.0 (glibc 2.17), statically compiled Redis, and a
+The Linux package bundles a slimmed, completely static FrankenPHP (APCu / redis /
+mysqli built in), a trimmed official MySQL 8.0 (glibc 2.17 on x86_64, glibc 2.28
+on aarch64), statically compiled Redis, and a
 pruned embedded Python 3.13 runtime — no system packages required; the directory
 is relocatable (run `bin/frampp init` after moving).
 
@@ -102,7 +108,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.0
+  ghcr.io/wangbo5825/frampp:0.8.1
 ```
 
 Or use Docker Compose from the repository:

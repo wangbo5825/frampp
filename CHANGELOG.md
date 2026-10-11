@@ -2,6 +2,35 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.8.1] - 2026-10-11
+
+### Added
+
+- **arm64 (aarch64) Linux support**: new `linux-aarch64` target with its own
+  component matrix (`installer/config/versions-linux-aarch64.json`) and
+  installer `frampp-<version>-linux-aarch64.run`. FrankenPHP (musl static) and
+  Redis are built natively on arm64; MySQL 8.0 comes from the official
+  `linux-glibc2.28-aarch64` generic tarball trimmed by the same script (no
+  minimal variant exists for arm64, so the glibc baseline is 2.28 there);
+  Python uses the matching python-build-standalone aarch64 runtime.
+- Multi-arch Docker image: CI now builds and pushes `linux/amd64` and
+  `linux/arm64` images and publishes a manifest list for the version tag and
+  `latest`.
+- Shared Linux smoke test script (`installer/scripts/linux/smoke-test.sh`) used
+  by both x86_64 and aarch64 CI jobs.
+
+### Fixed
+
+- `frampp restart` could intermittently fail to start a service: `stop()`
+  force-killed the process tree and returned immediately, so the startup port
+  pre-check saw the dying process still holding its port. `stop()` now waits
+  for process exit and port/socket release, and the pre-check retries briefly
+  before reporting a conflict.
+
+### Changed
+
+- Bumped FRAMPP version to `0.8.1`.
+
 ## [0.8.0] - 2026-09-06
 
 ### Added

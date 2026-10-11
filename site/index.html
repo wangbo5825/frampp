@@ -228,7 +228,7 @@
 <script>
 "use strict";
 
-var VERSION = "0.8.0";
+var VERSION = "0.8.1";
 var CHANNEL = "8.5";
 
 var REPO = "https://github.com/wangbo5825/frampp";
@@ -236,6 +236,7 @@ var GITEE = "https://gitee.com/wang_bo_wang_bo/frampp";
 var RELEASES = REPO + "/releases";
 var DL = RELEASES + "/latest/download";
 var LINUX_RUN = DL + "/frampp-" + VERSION + "-linux-x86_64.run";
+var LINUX_ARM_RUN = DL + "/frampp-" + VERSION + "-linux-aarch64.run";
 var WINDOWS_EXE = DL + "/frampp-" + VERSION + "-windows-x64.exe";
 var DOCKER_LINK = REPO + "/pkgs/container/frampp";
 
@@ -260,6 +261,8 @@ var I18N = {
             downloads: {
                 linux: "下载 Linux 安装包 / Download Linux",
                 linuxOs: ".run · 单文件自解压 / single-file self-extracting",
+                linuxArm: "下载 Linux arm64 安装包 / Download Linux arm64",
+                linuxArmOs: ".run · aarch64 / arm64 主机",
                 windows: "下载 Windows 安装包 / Download Windows",
                 windowsOs: ".exe · Inno Setup 一键安装 / one-click installer",
                 docker: "Docker 镜像 / Docker Image",
@@ -271,7 +274,7 @@ var I18N = {
                 ["PHP 8.5.9", "内置扩展 / built-in: APCu · redis · mysqli"],
                 ["MySQL 8.0.46", "Linux 数据库组件 / database on Linux"],
                 ["Redis 8.10.1", "缓存 / 队列 / 会话"],
-                ["3 平台", "Windows x64 · Linux x86_64 · Docker"]
+                ["3 平台", "Windows x64 · Linux x86_64 / arm64 · Docker"]
             ]
         },
         features: {
@@ -283,7 +286,7 @@ var I18N = {
                 ["🤖", "内置 AI Agent", "内置 MCP 服务器，为 AI Agent 提供数据库与运行时工具的标准化接入层，开箱即用。"],
                 ["🚀", "生产级应用服务器", "FrankenPHP 内置 Caddy：自动 HTTPS、worker 模式、热重载，支持现代 PHP 8.5。"],
                 ["🔒", "安全基线", "服务仅绑定 127.0.0.1，随机生成密钥，数据库只读账号，控制面板操作需令牌。"],
-                ["🌍", "多平台", "Windows x64 与 Linux x86_64 一键安装包，另有单镜像 Docker 变体。"]
+                ["🌍", "多平台", "Windows x64、Linux x86_64 与 Linux arm64（aarch64）一键安装包，另有 amd64 + arm64 多架构 Docker 镜像。"]
             ]
         },
         components: {
@@ -371,11 +374,21 @@ var I18N = {
             sub: "类似 XAMPP，按 FRAMPP 版本 × 组件通道 × 环境发布一键安装包。",
             items: [
                 {
-                    ver: "v" + VERSION,
-                    date: "2026-08-31",
-                    desc: "Linux 数据库切换 MySQL 8.0（glibc 2.17，兼容 CentOS 7）、安装包命名简化、installer/ 迁移（bin + share/templates）、标准布局、systemd 与 IP 访问控制。",
+                    ver: "v0.8.1",
+                    date: "2026-10-11",
+                    desc: "新增 Linux arm64（aarch64）一键安装包（MySQL 8.0 glibc 2.28 基线）与多架构 Docker 镜像（amd64 + arm64）；修复 frampp restart 偶发启动失败。",
                     links: [
                         ["Linux .run", LINUX_RUN],
+                        ["Linux arm64 .run", LINUX_ARM_RUN],
+                        ["Windows .exe", WINDOWS_EXE],
+                        ["Docker image", DOCKER_LINK]
+                    ]
+                },
+                {
+                    ver: "v0.8.0",
+                    date: "2026-09-06",
+                    desc: "集成 caddy-panel 管理界面（/panel）、frampp restart、启动端口预检与就绪检测；文档移入 share/docs，版本文件移入 etc/VERSION。",
+                    links: [
                         ["Windows .exe", WINDOWS_EXE],
                         ["Docker image", DOCKER_LINK]
                     ]
@@ -433,6 +446,8 @@ var I18N = {
             downloads: {
                 linux: "Download Linux",
                 linuxOs: ".run · single-file self-extracting installer",
+                linuxArm: "Download Linux arm64",
+                linuxArmOs: ".run · aarch64 / arm64 hosts",
                 windows: "Download Windows",
                 windowsOs: ".exe · one-click Inno Setup installer",
                 docker: "Docker Image",
@@ -444,7 +459,7 @@ var I18N = {
                 ["PHP 8.5.9", "built-in: APCu · redis · mysqli"],
                 ["MySQL 8.0.46", "database on Linux"],
                 ["Redis 8.10.1", "cache / queue / sessions"],
-                ["3 platforms", "Windows x64 · Linux x86_64 · Docker"]
+                ["3 platforms", "Windows x64 · Linux x86_64 / arm64 · Docker"]
             ]
         },
         features: {
@@ -456,7 +471,7 @@ var I18N = {
                 ["🤖", "AI Agent Built-in", "A built-in MCP server exposes database & runtime tools to AI agents through a standard interface, ready to use."],
                 ["🚀", "Production-grade Server", "FrankenPHP embeds Caddy: automatic HTTPS, worker mode, hot reload, and modern PHP 8.5 support."],
                 ["🔒", "Security Baseline", "Services bind to 127.0.0.1 only, random secrets, a read-only database account, and token-protected control panel actions."],
-                ["🌍", "Multi-platform", "One-click installers for Windows x64 and Linux x86_64, plus a single all-in-one Docker image."]
+                ["🌍", "Multi-platform", "One-click installers for Windows x64, Linux x86_64 and Linux arm64 (aarch64), plus a multi-arch (amd64 + arm64) Docker image."]
             ]
         },
         components: {
@@ -544,11 +559,21 @@ var I18N = {
             sub: "Like XAMPP, one-click installers are published per FRAMPP version × component channel × environment.",
             items: [
                 {
-                    ver: "v" + VERSION,
-                    date: "2026-08-31",
-                    desc: "MySQL 8.0 on Linux (glibc 2.17, CentOS 7 compatible), simplified installer naming, installer/ migration (bin + share/templates), standard layout, systemd and IP access control.",
+                    ver: "v0.8.1",
+                    date: "2026-10-11",
+                    desc: "New Linux arm64 (aarch64) installer (MySQL 8.0, glibc 2.28 baseline) and multi-arch Docker image (amd64 + arm64); fixes an intermittent frampp restart failure.",
                     links: [
                         ["Linux .run", LINUX_RUN],
+                        ["Linux arm64 .run", LINUX_ARM_RUN],
+                        ["Windows .exe", WINDOWS_EXE],
+                        ["Docker image", DOCKER_LINK]
+                    ]
+                },
+                {
+                    ver: "v0.8.0",
+                    date: "2026-09-06",
+                    desc: "caddy-panel management UI (/panel), frampp restart, startup port pre-check and readiness detection; docs moved to share/docs and VERSION to etc/VERSION.",
+                    links: [
                         ["Windows .exe", WINDOWS_EXE],
                         ["Docker image", DOCKER_LINK]
                     ]
@@ -637,6 +662,8 @@ function render(lang) {
     document.getElementById("heroDownloads").innerHTML =
         '<a class="btn btn-primary" href="' + LINUX_RUN + '">' + esc(h.downloads.linux) +
             '<span class="os">' + esc(h.downloads.linuxOs) + "</span></a>" +
+        '<a class="btn btn-primary" href="' + LINUX_ARM_RUN + '">' + esc(h.downloads.linuxArm) +
+            '<span class="os">' + esc(h.downloads.linuxArmOs) + "</span></a>" +
         '<a class="btn btn-primary" href="' + WINDOWS_EXE + '">' + esc(h.downloads.windows) +
             '<span class="os">' + esc(h.downloads.windowsOs) + "</span></a>" +
         '<a class="btn btn-ghost" href="' + DOCKER_LINK + '">' + esc(h.downloads.docker) +

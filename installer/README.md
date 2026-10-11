@@ -2,7 +2,7 @@
 
 一键安装与卸载流程、目录布局、PATH 注入、服务注册。
 
-- 平台：Windows（Inno Setup）、Linux x86_64（自解压 `.run`）、Docker（单镜像）
+- 平台：Windows（Inno Setup）、Linux x86_64 / aarch64（自解压 `.run`）、Docker（多架构单镜像）
 - 安装后布局见 `docs/blueprint.md` §4.1
 
 ## 组件矩阵（版本锁定见 `config/versions*.json`）
@@ -18,12 +18,13 @@ Windows：
 | APCu | 5.1.28 | PECL（PHP 8.5 TS x64） |
 | Adminer | 6.0.1 | adminer.org（单文件，随包安装到 htdocs） |
 
-Linux x86_64：
+Linux（x86_64 / aarch64）：
 
-- FrankenPHP 1.12.7：源码定制构建（去部分扩展 + Souin + `caddy-access-filter` + UPX，glibc mostly static）
-- MySQL 8.0.46：官方 glibc 2.17 minimal 包裁剪（`installer/scripts/linux/trim-mysql.sh`，CentOS 7 兼容、自带 OpenSSL）
-- Redis 8.10.1：官方源码静态编译
-- Python 3.13.15：`python-build-standalone` 精简运行时
+- FrankenPHP 1.12.7：源码定制构建（去部分扩展 + Souin + `caddy-access-filter` + UPX，musl 完全静态），在目标架构上原生编译
+- MySQL 8.0.46：官方通用包裁剪（`installer/scripts/linux/trim-mysql.sh`，自带 OpenSSL）——x86_64 用 glibc 2.17 minimal（CentOS 7 兼容），aarch64 用 glibc 2.28 通用包（官方无 arm64 minimal 变体）
+- Redis 8.10.1：官方源码静态编译（目标架构原生）
+- Python 3.13.15：`python-build-standalone` 精简运行时（对应架构）
+- 组件矩阵：`installer/config/versions-linux-x86_64.json` / `versions-linux-aarch64.json`
 
 ## 使用
 
@@ -44,13 +45,16 @@ bin/frampp stop all
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/scripts/build-installer.ps1
-# Windows 产物：dist/installer/frampp-0.8.0-windows-x64.exe
+# Windows 产物：dist/installer/frampp-0.8.1-windows-x64.exe
 
 pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
-# Linux 产物：dist/installer/frampp-0.8.0-linux-x86_64.run
+# Linux 产物：dist/installer/frampp-0.8.1-linux-x86_64.run
+
+pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-aarch64
+# Linux arm64 产物：dist/installer/frampp-0.8.1-linux-aarch64.run（须在 arm64 主机/runner 上构建）
 
 pwsh -File installer/scripts/build-docker.ps1 -ImageName frampp
-# Docker 产物：frampp:0.8.0 镜像（复用上面的 .run 载荷）
+# Docker 产物：frampp:0.8.1 镜像（复用上面的 .run 载荷；多架构 manifest 由 CI 合并 amd64 + arm64）
 ```
 
 ### Docker 镜像
@@ -65,7 +69,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  frampp:0.8.0
+  frampp:0.8.1
 ```
 
 详细卷、端口与发布说明见 [docs/docker.md](../docs/docker.md)。

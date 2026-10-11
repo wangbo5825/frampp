@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "platform": "linux-aarch64",
+  "lockedAt": "2026-10-11T00:00:00Z",
+  "channel": "8.5",
+  "channelLabel": "PHP 8.5（默认稳定通道）",
+  "components": {
+    "frankenphp": {
+      "name": "FrankenPHP (定制构建: 精简扩展 + Souin + UPX, musl 完全静态)",
+      "version": "1.12.7",
+      "url": "https://github.com/php/frankenphp/archive/refs/tags/v1.12.7.tar.gz",
+      "sha256": "4F8636315CC3748DF02A27F36B3456B96EAEBF505029E26DBD5FB473896D94C5",
+      "cacheFile": "frankenphp-v1.12.7.tar.gz",
+      "kind": "src",
+      "installDir": "modules/frankenphp"
+    },
+    "mysql": {
+      "name": "MySQL 8.0 (官方 glibc 2.28 aarch64 通用包裁剪)",
+      "version": "8.0.46",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.46-linux-glibc2.28-aarch64.tar.xz",
+      "sha256": "49CDA0DE886B021DF1C2E3E382164CA3C61E93E7E5C4EE90849E13862E30DD7F",
+      "cacheFile": "mysql-8.0.46-linux-glibc2.28-aarch64.tar.xz",
+      "kind": "tar.xz",
+      "installDir": "modules/mysql"
+    },
+    "redis": {
+      "name": "Redis (官方源码，Linux 静态编译)",
+      "version": "8.10.1",
+      "url": "https://download.redis.io/releases/redis-8.10.1.tar.gz",
+      "sha256": "60166C95AB7AEDAA9DFE516DE685BE0A4DD87BE95DED59BA429DF14C13F1B663",
+      "cacheFile": "redis-8.10.1.tar.gz",
+      "kind": "src",
+      "installDir": "modules/redis"
+    },
+    "composer": {
+      "name": "Composer",
+      "version": "2.10.2",
+      "url": "https://getcomposer.org/download/2.10.2/composer.phar",
+      "sha256": "5EE7125F8A30A34D246CEFDC0BC85B8A783B28F2AEC968994118512350D28027",
+      "cacheFile": "composer.phar",
+      "kind": "phar",
+      "installDir": "modules/composer"
+    },
+    "adminer": {
+      "name": "Adminer",
+      "version": "6.0.1",
+      "url": "https://www.adminer.org/static/download/6.0.1/adminer-6.0.1.php",
+      "sha256": "1815C03F26E21D533E729C0B09BC69A59C902A6440409D013105EE679DFF006C",
+      "cacheFile": "adminer-6.0.1.php",
+      "kind": "phar",
+      "installDir": "htdocs"
+    },
+    "python": {
+      "name": "Python 3.13 (独立精简运行时, install_only_stripped, aarch64)",
+      "version": "3.13.15",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260814/cpython-3.13.15%2B20260814-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "985EFD78C1C6521B379F7C64C2A25E6A1130F07441D1AF8BE441AA05260886AA",
+      "cacheFile": "cpython-3.13.15-linux-aarch64-install_only_stripped.tar.gz",
+      "kind": "tar.gz",
+      "installDir": "modules/python"
+    }
+  }
+}

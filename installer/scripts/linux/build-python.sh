@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 准备精简版 Python 3.13（Linux x86_64）。
+# 准备精简版 Python 3.13（Linux: x86_64 / aarch64 —— 使用对应架构的 standalone 包）。
 #
 # 使用 astral-sh/python-build-standalone 的 install_only_stripped 构建：
 #   - 自包含：无系统包依赖（除 glibc）

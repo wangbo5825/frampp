@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# FRAMPP 一键安装包（Linux x86_64）/ FRAMPP One-Click Installer (Linux x86_64)
+# FRAMPP 一键安装包（__PLATFORM__）/ FRAMPP One-Click Installer (__PLATFORM__)
 #
 # 单文件自解压安装器：本文件头部为安装脚本，尾部追加压缩载荷（tar.gz）。
 # 运行后自动校验完整性、解压到目标目录并执行 bin/frampp init（初始化 + 启动）。
@@ -9,7 +9,7 @@
 # into the target directory and runs bin/frampp init (init + start).
 #
 # 用法 / Usage:
-#   ./frampp-__APP_VERSION__-linux-x86_64.run [--prefix <dir>] [--extract-only] [--skip-start] [--help]
+#   ./frampp-__APP_VERSION__-__ENV__.run [--prefix <dir>] [--extract-only] [--skip-start] [--help]
 #
 
 set -e
@@ -18,6 +18,8 @@ PAYLOAD_OFFSET="0000000000000000"
 PAYLOAD_SHA256="0000000000000000000000000000000000000000000000000000000000000000"
 APP_VERSION="__APP_VERSION__"
 CHANNEL="__CHANNEL__"
+PLATFORM="__PLATFORM__"
+ENV_NAME="__ENV__"
 
 DEFAULT_PREFIX="${HOME:-.}/frampp"
 PREFIX=""
@@ -63,7 +65,7 @@ while [ $# -gt 0 ]; do
             shift
             ;;
         --version)
-            echo "FRAMPP $APP_VERSION ($CHANNEL) - Linux x86_64"
+            echo "FRAMPP $APP_VERSION ($CHANNEL) - $PLATFORM"
             exit 0
             ;;
         --help|-h)
@@ -104,7 +106,7 @@ verify_payload() {
     fi
 }
 
-echo "==> FRAMPP $APP_VERSION 一键安装 / one-click install (Linux x86_64)"
+echo "==> FRAMPP $APP_VERSION 一键安装 / one-click install ($PLATFORM)"
 echo "==> 目标目录 / target directory: $PREFIX"
 
 verify_payload

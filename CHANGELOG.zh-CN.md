@@ -2,6 +2,31 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.8.1] - 2026-10-11
+
+### 新增
+
+- **arm64（aarch64）Linux 支持**：新增 `linux-aarch64` 目标与独立组件矩阵
+  （`installer/config/versions-linux-aarch64.json`），发布
+  `frampp-<version>-linux-aarch64.run`。FrankenPHP（musl 完全静态）与 Redis
+  在 arm64 上原生构建；MySQL 8.0 使用官方 `linux-glibc2.28-aarch64` 通用包
+  并按同一脚本裁剪（官方无 arm64 minimal 变体，故基线为 glibc 2.28）；
+  Python 使用对应架构的 python-build-standalone 运行时。
+- 多架构 Docker 镜像：CI 分别构建并推送 `linux/amd64` 与 `linux/arm64`，
+  再为版本 tag 与 `latest` 发布 manifest list。
+- 新增共用冒烟脚本 `installer/scripts/linux/smoke-test.sh`，x86_64 与 aarch64
+  CI 作业共用。
+
+### 修复
+
+- `frampp restart` 偶发启动失败：`stop()` 强杀进程树后立即返回，导致启动前的
+  端口预检把尚未退出的旧进程判为“端口被占用”。现在 `stop()` 会等待进程退出与
+  端口 / socket 释放，预检也会短暂重试后再报冲突。
+
+### 变更
+
+- FRAMPP 版本号提升至 `0.8.1`。
+
 ## [0.8.0] - 2026-09-06
 
 ### 新增

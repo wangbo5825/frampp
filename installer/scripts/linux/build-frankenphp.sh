@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 定制构建 FrankenPHP（Linux x86_64）。
+# 定制构建 FrankenPHP（Linux: x86_64 / aarch64 —— 与构建主机架构一致）。
 #
 # 基于官方 build-static.sh（static-php-cli / spc）：
 #   - PHP 扩展：官方默认集去掉 intl / soap / gmp / bcmath / exif / imagick
@@ -71,7 +71,13 @@ echo "    Caddy 模块: $SPC_CMD_VAR_FRANKENPHP_XCADDY_MODULES"
 bash ./build-static.sh
 
 echo "==> 复制产物到 $OUT_DIR ..."
-cp "dist/frankenphp-linux-x86_64" "$OUT_DIR/frankenphp"
+# spc 按构建容器/主机架构命名产物（x86_64 / aarch64），这里按实际文件复制
+FP_BIN="$(ls dist/frankenphp-linux-* 2>/dev/null | head -n1 || true)"
+if [[ -z "$FP_BIN" ]]; then
+    echo "未找到 spc 产物（dist/frankenphp-linux-*）" >&2
+    exit 1
+fi
+cp "$FP_BIN" "$OUT_DIR/frankenphp"
 chmod +x "$OUT_DIR/frankenphp"
 
 # sudo 重执行时产物归 root，交还属主给原用户，便于后续脚本读写

@@ -9,6 +9,9 @@
 .EXAMPLE
     pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
     pwsh -File installer/scripts/build-docker.ps1
+
+    多架构镜像（amd64 + arm64）由 CI 分别构建后创建 manifest list；
+    本地可用 -Env linux-aarch64 在 arm64 主机上构建对应镜像。
 #>
 [CmdletBinding()]
 param(
@@ -27,7 +30,7 @@ if (-not $AppVersion) { $AppVersion = (Get-Content -LiteralPath (Join-Path $Root
 
 $pkg = Join-Path $Root "dist/installer/frampp-$AppVersion-$Env.run"
 if (-not (Test-Path -LiteralPath $pkg)) {
-    throw "缺少 Linux 安装包: $pkg（请先运行 build-linux-package.ps1 -Env linux-x86_64）"
+    throw "缺少 Linux 安装包: $pkg（请先运行 build-linux-package.ps1 -Env $Env，且需在目标架构上构建）"
 }
 
 $relativePkg = "dist/installer/" + (Split-Path -Leaf $pkg)

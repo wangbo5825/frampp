@@ -109,7 +109,7 @@ Write-Step "暂存目录就绪: $StagingDir"
 # FrankenPHP：定制源码构建（精简扩展 + Souin + UPX + musl 完全静态）
 # 在 Alpine 容器内 musl 静态构建，产物无 glibc 依赖，兼容任意发行版。
 $fpBinDir = Join-Path $ToolsDir "frankenphp-linux-$Arch"
-$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-musl-accessfilter1.2.1-modpins1"
+$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-musl-accessfilter1.2.1-modpins1-scheduler0.1.0"
 if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (Test-Path -LiteralPath $fpMarker)) {
     Write-Step "编译 FrankenPHP $($config.components.frankenphp.version)（定制: 精简扩展 + Souin + UPX）"
     & bash (Join-Path $PSScriptRoot "linux/build-frankenphp-musl.sh") `

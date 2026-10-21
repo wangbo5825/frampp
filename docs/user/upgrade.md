@@ -13,13 +13,13 @@
 ### Linux（x86_64 / aarch64）
 
 ```bash
-chmod +x frampp-0.8.1-linux-x86_64.run
-./frampp-0.8.1-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.8.1-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+chmod +x frampp-0.8.2-linux-x86_64.run
+./frampp-0.8.2-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.2-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
 
-# arm64（aarch64）主机使用 frampp-0.8.1-linux-aarch64.run（glibc ≥ 2.28）
-chmod +x frampp-0.8.1-linux-aarch64.run
-./frampp-0.8.1-linux-aarch64.run --prefix /opt/frampp
+# arm64（aarch64）主机使用 frampp-0.8.2-linux-aarch64.run（glibc ≥ 2.28）
+chmod +x frampp-0.8.2-linux-aarch64.run
+./frampp-0.8.2-linux-aarch64.run --prefix /opt/frampp
 ```
 
 单文件安装器会自动校验完整性、解压并执行 `bin/frampp init`
@@ -72,6 +72,22 @@ The single-file installer verifies integrity, extracts, runs `init.sh` (configs,
 > arm64) are added. Data directory, layout and configuration are unchanged, so
 > an over-the-top install works; Docker users can pull
 > `ghcr.io/wangbo5825/frampp:0.8.1` and recreate the container with the same volumes.
+>
+> **0.8.1 → 0.8.2（Linux-only 临时预发布）**：应用目录改为
+> `apps/<app>/{htdocs,config,src,var}`，默认站点根为 `apps/default/htdocs`。
+> init 会把旧 `htdocs/` 内容迁移到 `apps/default/htdocs`；裸机安装保留
+> `htdocs -> apps/default/htdocs` 符号链接，Docker 保留旧 `htdocs` 卷并复制
+> 到新的 `apps` 卷。数据库数据与密钥无需重建。新的 `pogo_scheduler` 默认关闭，
+> 需要时编辑 `etc/scheduler.caddy` 并重启 FrankenPHP；Windows 请继续使用 0.8.1
+> （0.8.2 不提供 Windows 安装包）。安装器提示改为英文优先、中文第二语言。
+> **0.8.1 → 0.8.2 (Linux-only preview)**: the application layout is now
+> `apps/<app>/{htdocs,config,src,var}` with the default site at
+> `apps/default/htdocs`. init migrates legacy `htdocs/` (bare-metal installs keep
+> an `htdocs -> apps/default/htdocs` symlink; Docker keeps the old volume and
+> copies data into the new `apps` volume). No database rebuild is needed.
+> `pogo_scheduler` is disabled by default — edit `etc/scheduler.caddy` and restart
+> FrankenPHP to enable it. Windows users stay on 0.8.1 (no 0.8.2 Windows package).
+> Installer messages are now English-first with Chinese second.
 >
 > 版本间数据库结构变化（如数据库大版本升级）时，建议先在备份上演练。
 > If the database schema changes between versions (e.g. a major DB upgrade), rehearse on a backup first.

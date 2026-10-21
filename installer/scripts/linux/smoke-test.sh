@@ -38,8 +38,20 @@ fi
 ./frampp version || true
 echo "=== runtime.json platform ==="
 grep -o '"platform": *"[^"]*"' var/runtime.json || true
+echo "=== apps layout ==="
+test -d apps/default/htdocs
+test -d apps/default/config
+test -d apps/default/src
+test -d apps/default/var
+test -f apps/default/htdocs/index.php
+test -f apps/default/htdocs/adminer.php
+test -L htdocs
+readlink htdocs
 echo "=== extensions ==="
 ./modules/frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s pdo_sqlite=%s simplexml=%s openssl=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', extension_loaded('pdo_sqlite')?'yes':'NO', extension_loaded('simplexml')?'yes':'NO', extension_loaded('openssl')?'yes':'NO', PHP_EOL);" || true
+echo "=== pogo_scheduler module ==="
+./modules/frankenphp/frankenphp list-modules | grep -q 'pogo_scheduler' || { echo "SCHEDULER_MODULE_MISSING"; exit 1; }
+echo "SCHEDULER_MODULE_OK"
 echo "=== caddy version (require >= 2.11.4) ==="
 CADDY_FULL="$(./modules/frankenphp/frankenphp version 2>&1 || true)"
 echo "$CADDY_FULL"
@@ -129,6 +141,34 @@ for i in $(seq 1 30); do (exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null && break;
 echo "=== caddy-panel /panel api (after restart) ==="
 curl -fsS http://127.0.0.1:8081/panel/api/status | head -c 300
 echo
+echo "=== pogo_scheduler smoke (HTTP mode, v0.8.2) ==="
+cat > apps/default/htdocs/scheduler-smoke.php <<'PHP'
+<?php
+$log = dirname(__DIR__, 3) . '/var/scheduler-smoke.log';
+file_put_contents($log, 'tick ' . date('c') . PHP_EOL, FILE_APPEND);
+http_response_code(204);
+PHP
+cat > etc/scheduler.caddy <<'CADDY'
+pogo_scheduler {
+    mode http
+    url http://127.0.0.1:8080/scheduler-smoke.php
+    interval 2s
+    timeout 5s
+    overlap skip
+}
+CADDY
+./bin/frampp restart frankenphp
+SCHED_OK=0
+for i in $(seq 1 30); do
+  if [ -s var/scheduler-smoke.log ]; then SCHED_OK=1; break; fi
+  sleep 1
+done
+if [ "$SCHED_OK" -ne 1 ]; then
+  echo "SCHEDULER_NOT_FIRED"
+  tail -n 40 logs/frankenphp.err.log logs/frankenphp.log 2>/dev/null || true
+  exit 1
+fi
+echo "SCHEDULER_OK $(head -n1 var/scheduler-smoke.log)"
 echo "=== stop ==="
 ./bin/frampp stop all || true
 ./bin/frampp status --json || true

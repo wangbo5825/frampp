@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.12（2026-10-11，v0.8.1 新增 Linux arm64 变体与多架构镜像）
+> 状态：设计稿 v1.13（2026-10-21，v0.8.2 Linux-only：apps 布局 + pogo_scheduler + 英文优先安装器）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -328,6 +328,28 @@
 - **兼容性说明**：安装布局、配置与数据目录和 x86_64 完全一致；二进制不可跨架构
   混用，迁移到 arm64 需重新安装（可保留并复用 `var/` 数据目录）。
 
+### 2.17 v0.8.2 Linux-only 临时版决策（v1.13，2026-10-21）
+
+- **版本定位**：v0.8.2 是只发布 Linux（x86_64 + aarch64）的临时预发布版本，
+  不生成 Windows 安装包；Windows 用户保持 v0.8.1。它将 0.9.0 计划中的第 1–3 项
+  提前落地（安装器英文优先、应用目录结构、pogo-scheduler 自 fork）。
+- **应用目录**：新增 `apps/<app>/{htdocs,config,src,var}`，只有 `htdocs` 是
+  Web 根；默认应用为 `apps/default`（Caddy 默认站点 root 指向
+  `apps/default/htdocs`）。`frampp new-project` 与站点管理默认使用该布局。
+  升级兼容：裸机 init 把旧 `htdocs/` 迁移到 `apps/default/htdocs` 并保留
+  `htdocs -> apps/default/htdocs` 符号链接；Docker 保留旧 `htdocs` 卷并把内容
+  复制到新的 `apps` 卷（新卷 `frampp-apps`）。
+- **调度器**：Linux 定制 FrankenPHP 构建加入
+  `github.com/wangbo5825/scheduler/module@e492454`（pogo_scheduler v0.1.0；
+  模块位于 `module/` 子目录，按 commit 固定）。全局配置
+  `etc/scheduler.caddy` 通过 `import` 注入 Caddyfile 全局块；默认仅含注释（关闭），
+  支持 HTTP 任务（推荐，走 PHP worker 请求链路）与外部命令任务，事件写入
+  FrankenPHP 日志。Windows 官方构建不含该模块，文件不会被导入。
+- **安装器语言**：Linux `.run` / init 的可见提示改为英文优先、中文第二语言；
+  Windows Inno Setup 的 `StatusMsg` 改用 `[CustomMessages]` 跟随安装器语言。
+- **验证**：两架构安装包 CI 冒烟新增 apps 布局断言、`pogo_scheduler` 模块存在性
+  与 HTTP 模式定时触发（写入 `var/scheduler-smoke.log`）测试。
+
 ---
 
 ## 3. 总体架构
@@ -554,3 +576,5 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
     `docs/0.9.0-plan.md`；或 macOS / A2A 变体
 11. ✅ 发布 **v0.8.1**（Linux arm64 / aarch64 变体、多架构 Docker 镜像、
     `frampp restart` 竞态修复）
+12. ✅ 发布 **v0.8.2**（Linux-only 临时版：`apps/<app>` 布局、pogo_scheduler
+    v0.1.0、安装器英文优先）

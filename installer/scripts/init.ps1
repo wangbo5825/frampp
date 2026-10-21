@@ -105,6 +105,10 @@ $dirs = @(
     (Join-Path $RuntimeDir "bin"),
     (Join-Path $RuntimeDir "etc"),
     (Join-Path $RuntimeDir "etc\caddy.d"),
+    (Join-Path $RuntimeDir "apps\default\htdocs"),
+    (Join-Path $RuntimeDir "apps\default\config"),
+    (Join-Path $RuntimeDir "apps\default\src"),
+    (Join-Path $RuntimeDir "apps\default\var"),
     (Join-Path $RuntimeDir "htdocs"),
     (Join-Path $RuntimeDir "logs"),
     (Join-Path $RuntimeDir "var\mariadb"),
@@ -114,6 +118,18 @@ foreach ($d in $dirs) {
     New-Item -ItemType Directory -Force -Path $d | Out-Null
 }
 Write-Step "Runtime layout ready: $RuntimeDir"
+
+# v0.8.2：应用目录 apps/<app>/{htdocs,config,src,var}；仅 htdocs 为 Web 根。
+# Windows 升级时把旧 htdocs 内容复制到 apps/default/htdocs（旧目录保留以兼容）。
+$defaultApp = Join-Path $RuntimeDir "apps\default"
+$defaultHtdocs = Join-Path $defaultApp "htdocs"
+$legacyHtdocs = Join-Path $RuntimeDir "htdocs"
+if ((Test-Path -LiteralPath $legacyHtdocs) -and
+    -not (Test-Path -LiteralPath (Join-Path $defaultHtdocs "index.php")) -and
+    (Get-ChildItem -LiteralPath $legacyHtdocs -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) {
+    Write-Step "Migrating legacy htdocs to apps/default/htdocs"
+    Copy-Item -Path (Join-Path $legacyHtdocs "*") -Destination $defaultHtdocs -Recurse -Force
+}
 
 # 2. 确保组件就绪：已解压/已安装的跳过；缺失时才需要缓存（调用下载器补齐）
 foreach ($prop in $config.components.PSObject.Properties) {
@@ -132,7 +148,7 @@ foreach ($prop in $config.components.PSObject.Properties) {
         if ($name -eq "composer") {
             $dest = Join-Path $RuntimeDir "bin\composer.phar"
         } elseif ($name -eq "adminer") {
-            $dest = Join-Path $RuntimeDir "htdocs\adminer.php"
+            $dest = Join-Path $RuntimeDir "apps\default\htdocs\adminer.php"
         } else {
             $dest = $null
         }
@@ -173,7 +189,7 @@ if (-not (Test-Path -LiteralPath $composerTarget)) {
 }
 
 # Adminer（单文件，放入 htdocs 由 FrankenPHP 直接提供）
-$adminerTarget = Join-Path $RuntimeDir "htdocs\adminer.php"
+$adminerTarget = Join-Path $RuntimeDir "apps\default\htdocs\adminer.php"
 if (-not (Test-Path -LiteralPath $adminerTarget)) {
     Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination $adminerTarget
     Write-Step "Adminer installed: $adminerTarget"
@@ -275,11 +291,12 @@ $globalCaddy = Join-Path $RuntimeDir "etc\global.caddy"
 $caddyPanelModule = Join-Path $RuntimeDir "modules\caddy-panel"
 $caddyPanelRoot = Convert-PathToForward (Join-Path $caddyPanelModule "public")
 Fill-Template (Join-Path $templatesDir "Caddyfile.template") @{
-    HTDOCS            = Convert-PathToForward (Join-Path $RuntimeDir "htdocs")
+    HTDOCS            = Convert-PathToForward $defaultHtdocs
     PANEL_ROOT        = Convert-PathToForward (Join-Path $RuntimeDir "modules\control-panel\web")
     CADDY_PANEL_ROOT  = $caddyPanelRoot
     LOGS_DIR          = Convert-PathToForward (Join-Path $RuntimeDir "logs")
     ACCESS_IMPORT     = "# access-filter disabled"
+    SCHEDULER_IMPORT  = "# pogo_scheduler is available in the Linux custom build only / 仅 Linux 定制构建支持"
     ADMIN_ADDR        = "127.0.0.1:2019"
 } $globalCaddy
 $caddyMain = "# Assembled by FRAMPP / caddy-panel (global + caddy.d)`n`n" +
@@ -321,7 +338,7 @@ if (Test-Path -LiteralPath (Join-Path $caddyPanelModule "bin\panel")) {
     }
 }
 
-$htdocsIndex = Join-Path $RuntimeDir "htdocs\index.php"
+$htdocsIndex = Join-Path $defaultHtdocs "index.php"
 if (-not (Test-Path -LiteralPath $htdocsIndex)) {
     Copy-Item -LiteralPath (Join-Path $templatesDir "htdocs\index.php") -Destination $htdocsIndex
 }
@@ -433,7 +450,7 @@ $datadir = Join-Path $RuntimeDir "var\mariadb"
                 $bootstrapOk = ((Invoke-Native { & $mysql --connect-timeout=5 -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" -e $sql *>> $bootstrapLog }) -eq 0)
             }
             if (-not $bootstrapOk) {
-                Write-Warning "常规方式设置密码失败，改用 skip-grant-tables 重置（仅本机临时操作）"
+                Write-Warning "Regular password setup failed; retrying with skip-grant-tables (local temporary) / 常规方式设置密码失败，改用 skip-grant-tables 重置（仅本机临时操作）"
                 if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
                 Start-Sleep -Milliseconds 500
                 $proc = Start-Process -FilePath (Join-Path $mariadbBin "mariadbd.exe") `
@@ -456,15 +473,15 @@ $datadir = Join-Path $RuntimeDir "var\mariadb"
                 Invoke-Native { & $mysqladmin --connect-timeout=5 -h 127.0.0.1 -P $($ports.mysql) -u root -p"$rootPw" shutdown *>> $bootstrapLog } | Out-Null
                 $dbInitialized = $verifyOk
                 if (-not $verifyOk) {
-                    Write-Warning "MariaDB 密码验证失败，数据目录可能损坏，请删除后重新 init"
+                    Write-Warning "MariaDB password verification failed; datadir may be corrupted, delete it and re-run init / MariaDB 密码验证失败，数据目录可能损坏，请删除后重新 init"
                     if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
                 }
             } else {
-                Write-Warning "MariaDB 账号初始化失败，见 $bootstrapLog"
+                Write-Warning "MariaDB account init failed; see $bootstrapLog / MariaDB 账号初始化失败，见 $bootstrapLog"
                 if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
             }
         } else {
-            Write-Warning "MariaDB 未能监听端口，跳过只读账号创建；日志见 $serverErr"
+            Write-Warning "MariaDB not listening; skipped read-only account; see $serverErr / MariaDB 未能监听端口，跳过只读账号创建；日志见 $serverErr"
             if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force }
         }
         if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force }

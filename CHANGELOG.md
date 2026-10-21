@@ -2,6 +2,34 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.8.2] - 2026-10-21
+
+Temporary Linux-only prerelease (no Windows installer).
+
+### Added
+
+- Integrated **pogo_scheduler v0.1.0** (`github.com/wangbo5825/scheduler/module@e492454`,
+  the commit behind tag `v0.1.0`; pinned by commit because the Go module lives in the
+  `module/` subdirectory)
+  into the Linux custom FrankenPHP build. Optional global config in
+  `etc/scheduler.caddy` supports HTTP jobs (recommended; handled by the PHP
+  worker pipeline) or external-command jobs, with interval/cron timing and
+  overlap control. Scheduler events are written to the FrankenPHP logs.
+- New application layout `apps/<app>/{htdocs,config,src,var}`: only
+  `apps/<app>/htdocs` is served by Caddy. The default site uses
+  `apps/default/htdocs`; `frampp new-project` and the control-panel site
+  manager default to this layout. Existing `htdocs/` data is migrated during
+  init (bare-metal installs keep an `htdocs -> apps/default/htdocs` symlink;
+  Docker keeps the legacy volume and copies data into the new `apps` volume).
+
+### Changed
+
+- Installer and initializer messages are now English-first with Chinese as the
+  second language. The Windows Inno Setup status messages follow the selected
+  installer language via `[CustomMessages]`.
+
+## [0.8.1] - 2026-10-11
+
 ## [0.8.1] - 2026-10-11
 
 ### Added

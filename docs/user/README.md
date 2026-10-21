@@ -10,6 +10,7 @@ include this directory under `share/docs/user/` since v0.8.0 (root `docs/` befor
 
 - [安装、升级与卸载 / Install, Upgrade & Uninstall](upgrade.md)
 - [Docker 镜像使用 / Docker Image Usage](docker.md)
+- [定时任务 / Scheduler](scheduler.md)（Linux 0.8.2+）
 - 快速开始 / Quick Start：安装目录下 `share/docs/README.md`（项目概览 /
   project overview；英文与中文 `README.zh-CN.md`）
 
@@ -57,6 +58,24 @@ Compare against the matching line in `SHA256SUMS.txt` on the GitHub Release.
 
 Caddy 管理界面（caddy-panel）：`http://127.0.0.1:8081/panel` —— 站点、
 Caddyfile、证书、访问日志与配置快照 / 恢复，本地访问免登录（127.0.0.1）。
+
+## 应用目录 / Application Layout
+
+v0.8.2 起应用放在 `apps/<app>/`：
+
+```text
+apps/default/
+├─ htdocs/     # 唯一的 Web 根 / the only web root
+├─ config/     # 非公开配置 / non-public config
+├─ src/        # 应用代码 / application code
+└─ var/        # 应用运行时数据 / app runtime data
+```
+
+默认站点使用 `apps/default/htdocs`。`frampp new-project <name>` 创建
+`apps/<name>/{htdocs,config,src,var}`。旧安装的 `htdocs/` 会在 init 时迁移：
+裸机安装保留 `htdocs -> apps/default/htdocs` 符号链接，Docker 保留旧卷并复制到
+新的 `apps` 卷。只有 `htdocs/` 会被 Caddy 提供，`config/`、`src/`、`var/`
+无法通过 HTTP 访问。
 
 ## 安全基线 / Security Baseline
 

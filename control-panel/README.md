@@ -32,7 +32,7 @@ php control-panel/bin/frampp ip-access default block
 php control-panel/bin/frampp ip-access reload
 ```
 
-项目创建到 `htdocs/<name>`；`minimal` 为离线模板（无需网络），`symfony` / `api-platform` 依赖网络与内置 Composer。
+项目创建到 `apps/<name>/{htdocs,config,src,var}`（v0.8.2 起，仅 `htdocs` 为 Web 根）；`minimal` 为离线模板（无需网络），`symfony` / `api-platform` 依赖网络与内置 Composer。
 数据库管理：`http://127.0.0.1:8080/adminer.php`（Adminer，由 `init.ps1` 随包安装）。
 
 ## 安全

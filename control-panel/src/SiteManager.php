@@ -98,7 +98,8 @@ final class SiteManager
         $target = trim((string) ($values['target'] ?? ''));
 
         if (($type === 'php' || $type === 'static') && $root === '') {
-            throw new \InvalidArgumentException('PHP / 静态站点需要填写文档根目录 root');
+            // v0.8.2：缺省文档根使用 apps/<site>/htdocs（仅 htdocs 对外提供）
+            $root = str_replace('\\', '/', $this->config->root . DIRECTORY_SEPARATOR . 'apps' . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . 'htdocs');
         }
         if ($type === 'proxy' && $target === '') {
             throw new \InvalidArgumentException('反向代理站点需要填写目标地址 target');

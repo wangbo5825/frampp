@@ -7,12 +7,13 @@
 [中文](README.zh-CN.md) · [Blueprint](docs/blueprint.md) ·
 [Releases](https://github.com/wangbo5825/frampp/releases)
 
-> Current status: **v0.8.1** — standardized layout (`bin` / `etc` / `var` /
-> `modules`), MySQL 8.0 on Linux (glibc 2.17 / CentOS 7 compatible on x86_64,
-> glibc 2.28 on aarch64), **Linux x86_64 + aarch64 installers**, simplified
-> installer naming, unified command wrappers, systemd integration, IP access
-> control, the caddy-panel web UI (`/panel` under the 8081 console), `frampp
-> restart`, startup readiness checks and a multi-arch Docker image.
+> Current status: **v0.8.2 (Linux-only temporary prerelease)** — application
+> layout `apps/<app>/{htdocs,config,src,var}` (only `htdocs` is served),
+> pogo_scheduler v0.1.0 for scheduled HTTP/command jobs, and English-first
+> installer messages. Linux x86_64 + aarch64 installers; MySQL 8.0 (glibc 2.17
+> on x86_64, 2.28 on aarch64); caddy-panel (`/panel`), `frampp restart`,
+> startup readiness checks and a multi-arch Docker image. **Windows users:
+> use v0.8.1** (there is no Windows installer for 0.8.2).
 > Full design & decision records: [docs/blueprint.md](docs/blueprint.md).
 
 [![GitHub](https://img.shields.io/badge/GitHub-wangbo5825%2Fframpp-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/wangbo5825/frampp)
@@ -70,17 +71,23 @@ php control-panel/bin/frampp stop all                                     # stop
 #### Linux (x86_64 / aarch64, one-click installer)
 
 ```bash
-# Download frampp-0.8.1-linux-x86_64.run from GitHub Releases
-chmod +x frampp-0.8.1-linux-x86_64.run
-./frampp-0.8.1-linux-x86_64.run                              # installs to ~/frampp
-./frampp-0.8.1-linux-x86_64.run --prefix /opt/frampp         # custom directory
+# Download frampp-0.8.2-linux-x86_64.run from GitHub Releases
+chmod +x frampp-0.8.2-linux-x86_64.run
+./frampp-0.8.2-linux-x86_64.run                              # installs to ~/frampp
+./frampp-0.8.2-linux-x86_64.run --prefix /opt/frampp         # custom directory
 
-# arm64 (aarch64) hosts: download frampp-0.8.1-linux-aarch64.run instead
-chmod +x frampp-0.8.1-linux-aarch64.run
-./frampp-0.8.1-linux-aarch64.run --prefix /opt/frampp
+# arm64 (aarch64) hosts: download frampp-0.8.2-linux-aarch64.run instead
+chmod +x frampp-0.8.2-linux-aarch64.run
+./frampp-0.8.2-linux-aarch64.run --prefix /opt/frampp
 ```
 
 The installer verifies package integrity, extracts the bundle, initializes the runtime (random secrets, MySQL data directory) and starts all services, then prints the URLs.
+
+0.8.2 is a temporary Linux-only prerelease. The default site is
+`apps/default/htdocs`; `frampp new-project` creates
+`apps/<name>/{htdocs,config,src,var}`. Optional scheduling is configured in
+`etc/scheduler.caddy` (`pogo_scheduler`, HTTP or command mode) and events are
+written to the FrankenPHP logs. Older `htdocs/` content is migrated by `init`.
 
 After install, visit:
 
@@ -108,7 +115,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.1
+  ghcr.io/wangbo5825/frampp:0.8.2
 ```
 
 Or use Docker Compose from the repository:

@@ -8,6 +8,8 @@
 	frankenphp
 	admin {{ADMIN_ADDR}}
 	auto_https off
+	# pogo_scheduler（v0.8.2，Linux 定制构建）：由 etc/scheduler.caddy 启用/关闭
+	{{SCHEDULER_IMPORT}}
 	# Souin HTTP 缓存（FrankenPHP 定制构建已内置该模块）。
 	# 生产站点可取消注释启用；开发模式建议保持注释，避免缓存干扰调试。
 	# order cache before rewrite

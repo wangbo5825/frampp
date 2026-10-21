@@ -63,9 +63,12 @@ foreach ($f in @(
 )) {
     if (Test-Path -LiteralPath $f) { Remove-Item -LiteralPath $f -Force }
 }
-Get-ChildItem -LiteralPath (Join-Path $StagingDir "htdocs") -Force |
-    Where-Object { $_.Name -notin @("index.php", "adminer.php") } |
-    Remove-Item -Recurse -Force
+$defaultHtdocs = Join-Path $StagingDir "apps\default\htdocs"
+if (Test-Path -LiteralPath $defaultHtdocs) {
+    Get-ChildItem -LiteralPath $defaultHtdocs -Force |
+        Where-Object { $_.Name -notin @("index.php", "adminer.php") } |
+        Remove-Item -Recurse -Force
+}
 
 # 3. Inno Setup（便携安装到 dist/tools/inno）
 New-Item -ItemType Directory -Force -Path $ToolsDir | Out-Null

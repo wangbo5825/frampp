@@ -1,6 +1,6 @@
 services:
   frampp:
-    image: ${FRAMPP_IMAGE:-ghcr.io/wangbo5825/frampp:0.8.1}
+    image: ${FRAMPP_IMAGE:-ghcr.io/wangbo5825/frampp:0.8.2}
     container_name: frampp
     ports:
       - "8080:8080" # 默认站点 / default site
@@ -11,10 +11,13 @@ services:
     volumes:
       - frampp-data:/opt/frampp/var
       - frampp-logs:/opt/frampp/logs
+      - frampp-apps:/opt/frampp/apps
+      # 旧布局兼容卷（新安装请使用 frampp-apps）
       - frampp-htdocs:/opt/frampp/htdocs
     restart: unless-stopped
 
 volumes:
   frampp-data:
   frampp-logs:
+  frampp-apps:
   frampp-htdocs:

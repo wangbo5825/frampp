@@ -93,7 +93,10 @@ $layout = @(
     (Join-Path $StagingDir "bin"),
     (Join-Path $StagingDir "etc"),
     (Join-Path $StagingDir "var"),
-    (Join-Path $StagingDir "htdocs"),
+    (Join-Path $StagingDir "apps/default/htdocs"),
+    (Join-Path $StagingDir "apps/default/config"),
+    (Join-Path $StagingDir "apps/default/src"),
+    (Join-Path $StagingDir "apps/default/var"),
     (Join-Path $StagingDir "logs"),
     (Join-Path $StagingDir "share/templates"),
     (Join-Path $StagingDir "share/docs"),
@@ -183,7 +186,7 @@ Get-ChildItem -LiteralPath (Join-Path $stagingPython "bin") -File | ForEach-Obje
 # Composer / Adminer
 Write-Step "安装 Composer / Adminer"
 Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.composer.cacheFile) -Destination (Join-Path $moduleDir "composer/composer.phar")
-Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination (Join-Path $StagingDir "htdocs/adminer.php")
+Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination (Join-Path $StagingDir "apps/default/htdocs/adminer.php")
 
 # 4. 仓库内容（控制面板 / Agent / 模板 / 文档 / 运行时脚本）
 Write-Step "复制控制面板 / Agent / 模板 / 文档"
@@ -220,7 +223,7 @@ Copy-Item -LiteralPath (Join-Path $Root "LICENSE") -Destination (Join-Path $Stag
 Copy-Item -LiteralPath (Join-Path $Root "VERSION") -Destination (Join-Path $StagingDir "etc/VERSION")
 
 # 默认站点首页
-Copy-Item -LiteralPath (Join-Path $Root "installer/templates/htdocs/index.php") -Destination (Join-Path $StagingDir "htdocs/index.php")
+Copy-Item -LiteralPath (Join-Path $Root "installer/templates/htdocs/index.php") -Destination (Join-Path $StagingDir "apps/default/htdocs/index.php")
 
 # bin 命令包装（Linux）
 Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot "../runtime/bin") -File |

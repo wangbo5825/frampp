@@ -7,23 +7,23 @@ set -euo pipefail
 FRAMPP_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if [[ -x "$FRAMPP_HOME/bin/frampp" ]]; then
-    echo "正在停止服务 / stopping services ..."
+    echo "stopping services / 正在停止服务 ..."
     "$FRAMPP_HOME/bin/frampp" stop all || true
 fi
 if [[ -x "$FRAMPP_HOME/bin/install-systemd" ]]; then
     "$FRAMPP_HOME/bin/install-systemd" --remove || true
 fi
-echo "服务已停止 / services stopped."
+echo "services stopped / 服务已停止."
 
-read -r -p "是否删除数据与日志（var/、logs/，不可恢复）？/ Delete data & logs (irreversible)? [y/N] " ans
+read -r -p "Delete data & logs (var/, logs/; irreversible)? / 是否删除数据与日志（var/、logs/，不可恢复）？ [y/N] " ans
 case "$ans" in
     y|Y|yes|YES)
         rm -rf "$FRAMPP_HOME/var" "$FRAMPP_HOME/logs"
-        echo "已删除 / deleted var/ and logs/."
+        echo "deleted var/ and logs/ / 已删除 var/ 与 logs/."
         ;;
     *)
-        echo "已保留 / kept var/ and logs/."
+        echo "kept var/ and logs/ / 已保留 var/ 与 logs/."
         ;;
 esac
 
-echo "如需完全移除，请删除目录 / to fully remove, delete: $FRAMPP_HOME"
+echo "to fully remove, delete: $FRAMPP_HOME / 如需完全移除，请删除目录"

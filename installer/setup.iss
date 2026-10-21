@@ -29,6 +29,12 @@ UninstallDisplayIcon={app}\modules\frankenphp\frankenphp.exe
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 
+[CustomMessages]
+english.StatusInitializing=Initializing the FRAMPP runtime...
+chinesesimplified.StatusInitializing=正在初始化 FRAMPP 运行时...
+english.StatusStartingServices=Starting services...
+chinesesimplified.StatusStartingServices=正在启动服务...
+
 [Files]
 Source: "..\dist\staging\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs; Excludes: "data\*|var\*|logs\*|*.pid"
 Source: "..\agent\*"; DestDir: "{app}\modules\agent"; Flags: recursesubdirs
@@ -56,8 +62,8 @@ Name: "{group}\默认站点"; Filename: "http://127.0.0.1:8080/"
 Name: "{group}\卸载 FRAMPP"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer\scripts\init.ps1"" -RuntimeDir ""{app}"""; Flags: runhidden; StatusMsg: "正在初始化 FRAMPP 运行时..."
-Filename: "{app}\modules\frankenphp\frankenphp.exe"; Parameters: "php-cli ""{app}\modules\control-panel\bin\frampp"" start all --home ""{app}"""; Flags: runhidden nowait; StatusMsg: "正在启动服务..."
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer\scripts\init.ps1"" -RuntimeDir ""{app}"""; Flags: runhidden; StatusMsg: "{cm:StatusInitializing}"
+Filename: "{app}\modules\frankenphp\frankenphp.exe"; Parameters: "php-cli ""{app}\modules\control-panel\bin\frampp"" start all --home ""{app}"""; Flags: runhidden nowait; StatusMsg: "{cm:StatusStartingServices}"
 Filename: "http://127.0.0.1:8081/"; Description: "打开控制面板"; Flags: postinstall nowait shellexec skipifsilent
 
 [UninstallRun]

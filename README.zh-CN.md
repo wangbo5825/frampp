@@ -11,8 +11,11 @@ LAMPP / XAMPP / NMPP 的产品形态，并内置基于 MCP 的 AI Agent 接入�
 ## 当前状态
 
 - 里程碑：**M4 生产模式 + Linux x86_64 / aarch64 + Docker 变体**
-- 最新版本线：**0.8.1**（Linux 数据库组件为 MySQL 8.0：x86_64 为 glibc 2.17（兼容
-  CentOS 7），aarch64 为 glibc 2.28）
+- 最新版本线：**0.8.2（Linux-only 临时预发布）**：应用目录
+  `apps/<app>/{htdocs,config,src,var}`（仅 `htdocs` 对外）、pogo_scheduler
+  v0.1.0 定时任务、安装器提示英文优先；Linux 数据库为 MySQL 8.0（x86_64
+  glibc 2.17 / aarch64 glibc 2.28）。**Windows 用户请使用 0.8.1**（0.8.2
+  不提供 Windows 安装包）。
 - 当前通道：PHP **8.5** / FrankenPHP **1.12.7**
 
 ## FRAMPP 是什么？
@@ -63,13 +66,13 @@ FRAMPP 把 PHP 应用服务器、MySQL / MariaDB 和 Redis 打包成自包含的
 ### Linux（x86_64 / aarch64）
 
 ```bash
-chmod +x frampp-0.8.1-linux-x86_64.run
-./frampp-0.8.1-linux-x86_64.run
-./frampp-0.8.1-linux-x86_64.run --prefix /opt/frampp
+chmod +x frampp-0.8.2-linux-x86_64.run
+./frampp-0.8.2-linux-x86_64.run
+./frampp-0.8.2-linux-x86_64.run --prefix /opt/frampp
 
-# arm64（aarch64）主机请下载 frampp-0.8.1-linux-aarch64.run：
-chmod +x frampp-0.8.1-linux-aarch64.run
-./frampp-0.8.1-linux-aarch64.run --prefix /opt/frampp
+# arm64（aarch64）主机请下载 frampp-0.8.2-linux-aarch64.run：
+chmod +x frampp-0.8.2-linux-aarch64.run
+./frampp-0.8.2-linux-aarch64.run --prefix /opt/frampp
 ```
 
 安装完成后：
@@ -81,6 +84,11 @@ chmod +x frampp-0.8.1-linux-aarch64.run
   `bin/redis-cli`；环境变量可 `source bin/env` 一次性配置。
 - systemd：`sudo bin/install-systemd` 安装开机自启服务。
 
+0.8.2 为 Linux-only 临时预发布：默认站点根为 `apps/default/htdocs`；
+`frampp new-project` 创建 `apps/<name>/{htdocs,config,src,var}`；可选定时任务
+在 `etc/scheduler.caddy` 配置（`pogo_scheduler`，HTTP 或命令模式），事件写入
+FrankenPHP 日志；旧 `htdocs/` 会在 init 时迁移。
+
 ### Docker
 
 同样的自包含技术栈也发布为单个公开 Docker 镜像，无需安装任何组件即可启动：
@@ -91,7 +99,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.1
+  ghcr.io/wangbo5825/frampp:0.8.2
 ```
 
 也可使用仓库中的 Docker Compose：

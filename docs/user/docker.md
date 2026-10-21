@@ -18,9 +18,14 @@ docker run -d --name frampp \
   -p 8080:8080 -p 8081:8081 \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
+  -v frampp-apps:/opt/frampp/apps \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.1
+  ghcr.io/wangbo5825/frampp:0.8.2
 ```
+
+`frampp-htdocs` 仅为旧布局兼容卷；新安装的站点数据在 `frampp-apps` 中（可省略
+旧卷）。 / `frampp-htdocs` is a legacy compatibility volume only; new installs
+store sites in `frampp-apps`.
 
 首次启动会自动初始化运行时：生成随机密钥（`var/secrets.json`）、初始化
 MySQL 数据目录、由模板生成 `etc/php.ini` / `etc/redis.conf` / `etc/Caddyfile`，随后启动
@@ -49,14 +54,14 @@ docker compose down
 
 默认只映射 8080（站点）与 8081（控制面板）。如需从宿主机直连 MySQL 或
 Redis，取消 `docker-compose.yml` 中 3306 / 6379 端口的注释。
-若使用本地构建的 `frampp:0.8.1` 镜像，可覆盖镜像名：
-`FRAMPP_IMAGE=frampp:0.8.1 docker compose up -d`。
+若使用本地构建的 `frampp:0.8.2` 镜像，可覆盖镜像名：
+`FRAMPP_IMAGE=frampp:0.8.2 docker compose up -d`。
 
 The root `docker-compose.yml` wraps the common ports and named volumes. Only
 8080 (site) and 8081 (control panel) are published by default; uncomment 3306 /
 6379 if you need host access to MySQL or Redis.
-To use a locally built `frampp:0.8.1` image instead, override the image:
-`FRAMPP_IMAGE=frampp:0.8.1 docker compose up -d`.
+To use a locally built `frampp:0.8.2` image instead, override the image:
+`FRAMPP_IMAGE=frampp:0.8.2 docker compose up -d`.
 
 ## 卷 / Volumes
 
@@ -64,7 +69,8 @@ To use a locally built `frampp:0.8.1` image instead, override the image:
 | --- | --- |
 | `/opt/frampp/var` | MySQL 数据、Redis AOF、`runtime.json` 与 `secrets.json` |
 | `/opt/frampp/logs` | FrankenPHP / MySQL / Redis / 控制面板日志 |
-| `/opt/frampp/htdocs` | 默认站点与 `frampp new-project` 创建的项目 |
+| `/opt/frampp/apps` | 应用目录：`apps/<app>/{htdocs,config,src,var}`（仅 `htdocs` 对外） |
+| `/opt/frampp/htdocs` | **旧布局兼容卷**；0.8.2 起默认站点使用 `/opt/frampp/apps/default/htdocs` |
 
 建议使用命名卷或宿主机目录挂载上述路径，避免删除容器后丢失数据。挂载
 `var/` 后，容器重建时不会重新生成密钥与数据库数据。
@@ -109,8 +115,8 @@ pwsh -File installer/scripts/build-docker.ps1 -ImageName frampp
 或直接使用 Docker：
 
 ```bash
-docker build -t frampp:0.8.1 \
-  --build-arg FRAMPP_PACKAGE=dist/installer/frampp-0.8.1-linux-x86_64.run .
+docker build -t frampp:0.8.2 \
+  --build-arg FRAMPP_PACKAGE=dist/installer/frampp-0.8.2-linux-x86_64.run .
 ```
 
 构建时通过 `--extract-only` 仅解压载荷，不生成密钥；`var/` 在容器首次启动时

@@ -28,19 +28,19 @@ SKIP_START=0
 
 usage() {
     cat <<EOF
-FRAMPP $APP_VERSION 一键安装包 / One-Click Installer (channel: $CHANNEL)
+FRAMPP $APP_VERSION One-Click Installer / 一键安装包 (channel: $CHANNEL)
 
-用法 / Usage:
-  ./$(basename "$0") [选项/options]
+Usage / 用法:
+  ./$(basename "$0") [options/选项]
 
-选项 / Options:
-   --prefix <dir>    安装目录 / installation directory（默认 / default: $DEFAULT_PREFIX）
-   --extract-only    仅解压载荷，不执行初始化 / extract payload only, skip init
-   --skip-start      安装时不启动服务 / initialize but do not start services
-   --version         显示版本 / show version
-   --help, -h        显示帮助 / show this help
+Options / 选项:
+   --prefix <dir>    installation directory / 安装目录 (default / 默认: $DEFAULT_PREFIX)
+   --extract-only    extract payload only, skip init / 仅解压载荷，不执行初始化
+   --skip-start      initialize but do not start services / 安装时不启动服务
+   --version         show version / 显示版本
+   --help, -h        show this help / 显示帮助
 
-示例 / Examples:
+Examples / 示例:
   ./$(basename "$0")
   ./$(basename "$0") --prefix ~/apps/frampp
 EOF
@@ -50,7 +50,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --prefix)
             if [ $# -lt 2 ]; then
-                echo "ERROR: --prefix 需要参数 / requires an argument" >&2
+                echo "ERROR: --prefix requires an argument / --prefix 需要参数" >&2
                 exit 2
             fi
             PREFIX="$2"
@@ -73,7 +73,7 @@ while [ $# -gt 0 ]; do
             exit 0
             ;;
         *)
-            echo "ERROR: 未知选项 / unknown option: $1" >&2
+            echo "ERROR: unknown option / 未知选项: $1" >&2
             usage
             exit 2
             ;;
@@ -85,7 +85,7 @@ done
 # 基础工具检查 / basic tool check
 for tool in tail tar; do
     if ! command -v "$tool" >/dev/null 2>&1; then
-        echo "ERROR: 缺少工具 / missing tool: $tool" >&2
+        echo "ERROR: missing tool / 缺少工具: $tool" >&2
         exit 1
     fi
 done
@@ -97,17 +97,17 @@ verify_payload() {
     elif command -v openssl >/dev/null 2>&1; then
         actual=$(tail -c +"$PAYLOAD_OFFSET" "$0" | openssl dgst -sha256 | awk '{print $NF}')
     else
-        echo "WARN: 未找到 sha256sum/openssl，跳过完整性校验 / integrity check skipped" >&2
+        echo "WARN: sha256sum/openssl not found; skipping integrity check / 未找到 sha256sum/openssl，跳过完整性校验" >&2
         return 0
     fi
     if [ "$actual" != "$PAYLOAD_SHA256" ]; then
-        echo "ERROR: 安装包校验失败 / installer integrity check failed" >&2
+        echo "ERROR: installer integrity check failed / 安装包校验失败" >&2
         exit 1
     fi
 }
 
-echo "==> FRAMPP $APP_VERSION 一键安装 / one-click install ($PLATFORM)"
-echo "==> 目标目录 / target directory: $PREFIX"
+echo "==> FRAMPP $APP_VERSION one-click install / 一键安装 ($PLATFORM)"
+echo "==> target directory / 目标目录: $PREFIX"
 
 verify_payload
 
@@ -118,18 +118,18 @@ tail -c +"$PAYLOAD_OFFSET" "$0" | tar -xzf - -C "$PREFIX"
 
 cd "$PREFIX"
 if [ "$EXTRACT_ONLY" -eq 1 ]; then
-    echo "==> 载荷已解压到 / payload extracted to: $PREFIX"
-    echo "==> 已跳过初始化 / init skipped (--extract-only)."
+    echo "==> payload extracted to / 载荷已解压到: $PREFIX"
+    echo "==> init skipped / 已跳过初始化 (--extract-only)."
 elif [ -x "./bin/frampp" ]; then
     ./bin/frampp init
     if [ "$SKIP_START" -eq 1 ]; then
-        echo "==> 已跳过服务启动 / service start skipped (--skip-start)."
+        echo "==> service start skipped / 已跳过服务启动 (--skip-start)."
     else
         ./bin/frampp start all || true
         ./bin/frampp status || true
     fi
 else
-    echo "ERROR: 解压不完整 / extraction incomplete: bin/frampp not found" >&2
+    echo "ERROR: extraction incomplete / 解压不完整: bin/frampp not found" >&2
     exit 1
 fi
 # 显式退出，避免 shell 继续读取尾部二进制载荷（makeself 惯例）

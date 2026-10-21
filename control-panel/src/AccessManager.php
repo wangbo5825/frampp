@@ -162,12 +162,21 @@ final class AccessManager
             $import = '# access-filter disabled';
         }
 
+        // v0.8.2：默认站点位于 apps/default/htdocs；旧布局（根 htdocs）在未迁移时仍可回退
+        $appsHtdocs = $this->config->root . DIRECTORY_SEPARATOR . 'apps' . DIRECTORY_SEPARATOR . 'default' . DIRECTORY_SEPARATOR . 'htdocs';
+        $legacyHtdocs = $this->config->root . DIRECTORY_SEPARATOR . 'htdocs';
+        $htdocs = (is_dir($appsHtdocs) || !is_dir($legacyHtdocs)) ? $appsHtdocs : $legacyHtdocs;
+        $schedulerCaddy = $this->config->etcDir('scheduler.caddy');
+        $schedulerImport = is_file($schedulerCaddy)
+            ? 'import "' . str_replace('\\', '/', $schedulerCaddy) . '"'
+            : '# pogo_scheduler disabled (etc/scheduler.caddy not found)';
         $replace = [
-            '{{HTDOCS}}'            => str_replace('\\', '/', $this->config->root . DIRECTORY_SEPARATOR . 'htdocs'),
+            '{{HTDOCS}}'            => str_replace('\\', '/', $htdocs),
             '{{PANEL_ROOT}}'        => str_replace('\\', '/', $this->config->module('control-panel') . DIRECTORY_SEPARATOR . 'web'),
             '{{CADDY_PANEL_ROOT}}'  => str_replace('\\', '/', $this->config->module('caddy-panel') . DIRECTORY_SEPARATOR . 'public'),
             '{{LOGS_DIR}}'          => str_replace('\\', '/', $this->config->logsDir()),
             '{{ACCESS_IMPORT}}'     => $import,
+            '{{SCHEDULER_IMPORT}}'  => $schedulerImport,
             '{{ADMIN_ADDR}}'        => $this->caddyAdminAddr(),
         ];
         $content = str_replace(array_keys($replace), array_values($replace), $content);

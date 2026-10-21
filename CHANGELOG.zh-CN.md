@@ -2,6 +2,31 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.8.2] - 2026-10-21
+
+Linux-only 临时预发布版本（不提供 Windows 安装包）。
+
+### 新增
+
+- Linux 定制 FrankenPHP 构建集成 **pogo_scheduler v0.1.0**
+  （`github.com/wangbo5825/scheduler/module@e492454`，即 tag `v0.1.0` 对应
+  commit；Go 模块位于 `module/` 子目录，故按 commit 固定）。可在
+  `etc/scheduler.caddy` 中选择 HTTP 任务（推荐，走 PHP worker 请求链路）或
+  外部命令任务，支持 interval / cron 定时与 overlap 控制；调度事件写入
+  FrankenPHP 日志。
+- 新的应用目录布局 `apps/<app>/{htdocs,config,src,var}`：只有
+  `apps/<app>/htdocs` 对外提供。默认站点使用 `apps/default/htdocs`；
+  `frampp new-project` 与控制面板站点管理的默认目录也使用该布局。init 会
+  迁移旧 `htdocs/`（裸机安装保留 `htdocs -> apps/default/htdocs` 符号链接；
+  Docker 保留旧卷并把内容复制到新的 `apps` 卷）。
+
+### 变更
+
+- 安装器与初始化提示改为英文优先、中文第二语言；Windows Inno Setup 的
+  状态提示通过 `[CustomMessages]` 跟随安装器语言。
+
+## [0.8.1] - 2026-10-11
+
 ## [0.8.1] - 2026-10-11
 
 ### 新增

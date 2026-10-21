@@ -104,6 +104,7 @@ Assert-True ($caddy -match '127\.0\.0\.1:8081') "Caddyfile exposes panel on 8081
 Assert-True ($caddy -match '\{\{ACCESS_IMPORT\}\}') "Caddyfile template has access-filter import placeholder"
 Assert-True ($caddy -match '\{\{CADDY_PANEL_ROOT\}\}') "Caddyfile template has caddy-panel webroot placeholder"
 Assert-True ($caddy -match 'handle_path /panel/') "Caddyfile template routes /panel to caddy-panel"
+Assert-True ($caddy -match '\{\{SCHEDULER_IMPORT\}\}') "Caddyfile template has pogo_scheduler import placeholder"
 
 # 4. 安装器资产（Windows + Linux）
 $setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/setup.iss")
@@ -253,7 +254,9 @@ if ($php) {
     Assert-True ($LASTEXITCODE -eq 0) "frampp new-project exits 0"
     $np = $npOut | ConvertFrom-Json
     Assert-True ($np.name -eq "demo") "new-project returns project name"
-    Assert-True (Test-Path -LiteralPath (Join-Path $tmp "htdocs/demo/public/index.php")) "new-project creates public/index.php"
+    Assert-True (Test-Path -LiteralPath (Join-Path $tmp "apps/demo/htdocs/index.php")) "new-project creates apps/<app>/htdocs/index.php"
+    Assert-True (Test-Path -LiteralPath (Join-Path $tmp "apps/demo/config")) "new-project creates apps/<app>/config"
+    Assert-True (Test-Path -LiteralPath (Join-Path $tmp "apps/demo/var")) "new-project creates apps/<app>/var"
 
     Remove-Item -LiteralPath $tmp -Recurse -Force
 

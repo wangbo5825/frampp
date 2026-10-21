@@ -40,6 +40,11 @@ frampp-<version>-<env>.<ext>
 > glibc 2.28 基线），Docker 镜像改为 **多架构**（`linux/amd64` +
 > `linux/arm64`，同一 tag 发布 manifest list）。
 
+> **v0.8.2 起实施 / Implemented since v0.8.2**：应用目录改为
+> `apps/<app>/{htdocs,config,src,var}`（只有 `htdocs` 是 Web 根，默认应用
+> `apps/default`）；集成 pogo_scheduler v0.1.0（可选 `etc/scheduler.caddy`）；
+> 安装器提示改为英文优先。
+
 > Release Note 语言规范 / Language convention for release notes：正文采用
 > **先英文、后中文** 的两段式结构（English section first, then Chinese）。
 
@@ -313,6 +318,30 @@ FRAMPP 0.8.1 在 x86_64 之外新增原生 **arm64（aarch64）** Linux 变体�
   与架构无关，两个变体共用。
 - CI 在 arm64 runner 上构建并冒烟验证 arm64 安装包；Docker 镜像以**多架构
   manifest**（`linux/amd64` + `linux/arm64`）发布版本 tag 与 `latest`。
+
+## 0.8.2 Linux-only preview / 0.8.2 Linux 临时预览
+
+FRAMPP 0.8.2 is a **temporary Linux-only prerelease**. It includes:
+
+- **English-first installer messages** (Linux `.run` / init); Windows Inno
+  status messages follow the selected language.
+- **Application layout** `apps/<app>/{htdocs,config,src,var}`: only
+  `apps/<app>/htdocs` is served by Caddy. The default site uses
+  `apps/default/htdocs`; `frampp new-project` and the site manager default to
+  this layout. Older `htdocs/` content is migrated by init.
+- **pogo_scheduler v0.1.0** integrated into the Linux custom FrankenPHP build.
+  Enable it by editing `etc/scheduler.caddy` (HTTP or command job) and
+  restarting FrankenPHP; scheduler events are logged to the FrankenPHP logs.
+
+FRAMPP 0.8.2 是 **Linux-only 临时预发布版本**：
+
+- **安装器提示英文优先**（Linux `.run` / init）；Windows Inno 提示跟随所选语言。
+- **应用目录** `apps/<app>/{htdocs,config,src,var}`：只有
+  `apps/<app>/htdocs` 对外提供；默认站点使用 `apps/default/htdocs`，
+  `frampp new-project` 与站点管理默认使用该布局；init 会迁移旧 `htdocs/`。
+- **pogo_scheduler v0.1.0** 已集成进 Linux 定制 FrankenPHP 构建：编辑
+  `etc/scheduler.caddy`（HTTP 或命令任务）并重启 FrankenPHP 即可启用；
+  调度事件写入 FrankenPHP 日志。
 
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 

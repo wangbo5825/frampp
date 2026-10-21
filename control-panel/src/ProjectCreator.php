@@ -23,7 +23,12 @@ final class ProjectCreator
             throw new \InvalidArgumentException("未知项目类型: $type（可选 minimal|symfony|api-platform）");
         }
 
-        $target = $this->config->root . DIRECTORY_SEPARATOR . 'htdocs' . DIRECTORY_SEPARATOR . $name;
+        // v0.8.2：应用目录 apps/<name>/{htdocs,config,src,var}，仅 htdocs 为 Web 根
+        $appsDir = $this->config->root . DIRECTORY_SEPARATOR . 'apps';
+        if (!is_dir($appsDir) && !mkdir($appsDir, 0777, true) && !is_dir($appsDir)) {
+            throw new \RuntimeException("无法创建应用目录: {$appsDir}");
+        }
+        $target = $appsDir . DIRECTORY_SEPARATOR . $name;
         if (is_dir($target) || is_file($target)) {
             throw new \RuntimeException("目标已存在: $target");
         }
@@ -47,14 +52,28 @@ final class ProjectCreator
             throw new \RuntimeException('缺少 minimal 项目模板（templates/project-minimal）');
         }
 
-        $this->copyTree($template, $target);
+        $htdocs = $target . DIRECTORY_SEPARATOR . 'htdocs';
+        foreach (['htdocs', 'config', 'src', 'var'] as $sub) {
+            mkdir($target . DIRECTORY_SEPARATOR . $sub, 0777, true);
+        }
+        // minimal 模板的 public/ 即 Web 根，复制到 apps/<name>/htdocs
+        $public = $template . DIRECTORY_SEPARATOR . 'public';
+        if (is_dir($public)) {
+            $this->copyTree($public, $htdocs);
+        }
+        if (is_dir($template . DIRECTORY_SEPARATOR . 'src')) {
+            $this->copyTree($template . DIRECTORY_SEPARATOR . 'src', $target . DIRECTORY_SEPARATOR . 'src');
+        }
         $composerFile = $target . DIRECTORY_SEPARATOR . 'composer.json';
+        if (is_file($template . DIRECTORY_SEPARATOR . 'composer.json')) {
+            copy($template . DIRECTORY_SEPARATOR . 'composer.json', $composerFile);
+        }
         if (is_file($composerFile)) {
             $content = (string) file_get_contents($composerFile);
             $content = str_replace('frampp/hello', 'frampp/' . strtolower($name), $content);
             file_put_contents($composerFile, $content);
         }
-        return ['name' => $name, 'type' => 'minimal', 'path' => $target];
+        return ['name' => $name, 'type' => 'minimal', 'path' => $target, 'htdocs' => $htdocs];
     }
 
     /**
@@ -106,7 +125,22 @@ final class ProjectCreator
             $requires[] = $package;
         }
 
-        return ['name' => $name, 'path' => $target, 'composer_steps' => array_merge([$first], $requires)];
+        // 框架项目通常以 public/ 为 Web 根：创建 htdocs -> public 链接，保持“htdocs 为 Web 根”的约定
+        $htdocs = $target . DIRECTORY_SEPARATOR . 'htdocs';
+        $public = $target . DIRECTORY_SEPARATOR . 'public';
+        if (is_dir($public) && !file_exists($htdocs)) {
+            if (PHP_OS_FAMILY === 'Windows') {
+                exec('cmd /c mklink /J ' . escapeshellarg($htdocs) . ' ' . escapeshellarg($public) . ' 2>NUL');
+            } else {
+                @symlink('public', $htdocs);
+            }
+        }
+        return [
+            'name' => $name,
+            'path' => $target,
+            'htdocs' => is_dir($htdocs) || is_link($htdocs) ? $htdocs : $public,
+            'composer_steps' => array_merge([$first], $requires),
+        ];
     }
 
     /**
@@ -154,7 +188,9 @@ final class ProjectCreator
 
     private function copyTree(string $src, string $dst): void
     {
-        mkdir($dst, 0777, true);
+        if (!is_dir($dst)) {
+            @mkdir($dst, 0777, true);
+        }
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($src, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
@@ -163,7 +199,9 @@ final class ProjectCreator
             $relative = substr($item->getPathname(), strlen($src));
             $dest = $dst . DIRECTORY_SEPARATOR . ltrim($relative, DIRECTORY_SEPARATOR);
             if ($item->isDir()) {
-                mkdir($dest, 0777, true);
+                if (!is_dir($dest)) {
+                    @mkdir($dest, 0777, true);
+                }
             } else {
                 copy($item->getPathname(), $dest);
             }

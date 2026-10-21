@@ -26,10 +26,10 @@ while [[ $# -gt 0 ]]; do
         --runtime-dir) RUNTIME_DIR="$2"; shift 2 ;;
         --skip-db-init) SKIP_DB_INIT=1; shift ;;
         -h|--help)
-            echo "用法: init.sh --runtime-dir <dir> [--cache-dir <dir>] [--skip-db-init]"
+            echo "Usage / 用法: init.sh --runtime-dir <dir> [--cache-dir <dir>] [--skip-db-init]"
             exit 0
             ;;
-        *) echo "未知参数: $1" >&2; exit 2 ;;
+        *) echo "unknown argument / 未知参数: $1" >&2; exit 2 ;;
     esac
 done
 
@@ -108,7 +108,7 @@ mkdir -p "$RUNTIME_DIR"
 RUNTIME_DIR="$(cd "$RUNTIME_DIR" && pwd)"
 
 # 1. 布局
-step "准备运行时布局 / preparing runtime layout: $RUNTIME_DIR"
+step "Preparing runtime layout / 准备运行时布局: $RUNTIME_DIR"
 mkdir -p \
     "$RUNTIME_DIR/modules/frankenphp" \
     "$RUNTIME_DIR/modules/mysql" \
@@ -121,10 +121,43 @@ mkdir -p \
     "$RUNTIME_DIR/bin" \
     "$RUNTIME_DIR/etc" \
     "$RUNTIME_DIR/etc/caddy.d" \
-    "$RUNTIME_DIR/htdocs" \
     "$RUNTIME_DIR/logs" \
     "$RUNTIME_DIR/var/mysql" \
     "$RUNTIME_DIR/var/redis"
+
+# v0.8.2 应用目录结构：apps/<app>/{htdocs,config,src,var}
+# 只有 apps/<app>/htdocs 是 Web 根；config/src/var 位于其上一级，不会被 Caddy 直接提供。
+DEFAULT_APP="$RUNTIME_DIR/apps/default"
+DEFAULT_HTDOCS="$DEFAULT_APP/htdocs"
+mkdir -p "$DEFAULT_APP/htdocs" "$DEFAULT_APP/config" "$DEFAULT_APP/src" "$DEFAULT_APP/var"
+
+# 旧布局兼容：把根目录 htdocs/ 迁移为 apps/default/htdocs。
+# - 裸机安装：迁移后 htdocs 变为相对符号链接（旧路径继续可用）
+# - Docker / bind mount：保留 htdocs 目录（卷挂载点不能替换），只复制内容
+if [[ -L "$RUNTIME_DIR/htdocs" ]]; then
+    :
+elif [[ -d "$RUNTIME_DIR/htdocs" ]]; then
+    if [[ -n "$(ls -A "$RUNTIME_DIR/htdocs" 2>/dev/null || true)" ]]; then
+        step "migrating legacy htdocs to apps/default/htdocs / 迁移旧 htdocs ..."
+        cp -a "$RUNTIME_DIR/htdocs/." "$DEFAULT_HTDOCS/" 2>/dev/null || \
+            warn "legacy htdocs migration failed / 旧 htdocs 迁移失败"
+        keep_mount=0
+        if [[ -f /.dockerenv ]]; then
+            keep_mount=1
+        elif command -v mountpoint >/dev/null 2>&1 && mountpoint -q "$RUNTIME_DIR/htdocs"; then
+            keep_mount=1
+        fi
+        if [[ "$keep_mount" -eq 0 ]]; then
+            rm -rf "$RUNTIME_DIR/htdocs"
+            ln -s "apps/default/htdocs" "$RUNTIME_DIR/htdocs" 2>/dev/null || mkdir -p "$RUNTIME_DIR/htdocs"
+        fi
+    else
+        rmdir "$RUNTIME_DIR/htdocs" 2>/dev/null || true
+        ln -s "apps/default/htdocs" "$RUNTIME_DIR/htdocs" 2>/dev/null || mkdir -p "$RUNTIME_DIR/htdocs"
+    fi
+else
+    ln -s "apps/default/htdocs" "$RUNTIME_DIR/htdocs" 2>/dev/null || mkdir -p "$RUNTIME_DIR/htdocs"
+fi
 
 # 2. 组件就位（安装包场景全部已存在；开发/构建场景从缓存补齐）
 COMPONENT_DIR="$SCRIPT_DIR/../../config"
@@ -148,7 +181,7 @@ extract_nested() { # 提升顶层单目录，保持扁平布局
 if [[ -d "$CACHE_DIR" ]]; then
     # FrankenPHP：源码 -> 定制编译（精简扩展 + Souin + UPX；已有二进制则跳过）
     if [[ ! -x "$RUNTIME_DIR/modules/frankenphp/frankenphp" ]]; then
-        step "编译 FrankenPHP $FRANKENPHP_VERSION（定制 / custom build）..."
+        step "Building FrankenPHP $FRANKENPHP_VERSION (custom build / 定制构建)..."
         bash "$SCRIPT_DIR/build-frankenphp.sh" \
             "$CACHE_DIR/frankenphp-v1.12.7.tar.gz" \
             "$RUNTIME_DIR/modules/frankenphp" \
@@ -157,7 +190,7 @@ if [[ -d "$CACHE_DIR" ]]; then
 
     # MySQL 8.0：官方通用包 -> 裁剪（x86_64 glibc 2.17 minimal / aarch64 glibc 2.28）
     if [[ ! -x "$RUNTIME_DIR/modules/mysql/bin/mysqld" ]]; then
-        step "裁剪 MySQL $MYSQL_VERSION（$FRAMPP_ARCH / slim trim）..."
+        step "Trimming MySQL $MYSQL_VERSION ($FRAMPP_ARCH / 裁剪)..."
         FRAMPP_TARGET_ARCH="$FRAMPP_ARCH" \
         bash "$SCRIPT_DIR/trim-mysql.sh" \
             "$CACHE_DIR/$MYSQL_CACHE_FILE" \
@@ -167,7 +200,7 @@ if [[ -d "$CACHE_DIR" ]]; then
 
     # Redis：官方源码 -> 静态编译（已有二进制则跳过）
     if [[ ! -x "$RUNTIME_DIR/modules/redis/redis-server" ]]; then
-        step "编译 Redis $REDIS_VERSION（静态 / static）..."
+        step "Building Redis $REDIS_VERSION (static / 静态)..."
         mkdir -p "$RUNTIME_DIR/modules/redis"
         bash "$SCRIPT_DIR/build-redis.sh" \
             "$CACHE_DIR/redis-8.10.1.tar.gz" \
@@ -177,7 +210,7 @@ if [[ -d "$CACHE_DIR" ]]; then
 
     # Python：独立精简运行时（install_only_stripped + 二次精简）
     if [[ ! -x "$RUNTIME_DIR/modules/python/bin/python3" ]]; then
-        step "准备 Python $PYTHON_VERSION（精简独立运行时 / standalone runtime）..."
+        step "Preparing Python $PYTHON_VERSION (standalone runtime / 精简独立运行时)..."
         bash "$SCRIPT_DIR/build-python.sh" \
             "$CACHE_DIR/$PYTHON_CACHE_FILE" \
             "$RUNTIME_DIR/modules/python" \
@@ -189,8 +222,8 @@ fi
 if [[ ! -f "$RUNTIME_DIR/modules/composer/composer.phar" && -f "$CACHE_DIR/composer.phar" ]]; then
     cp "$CACHE_DIR/composer.phar" "$RUNTIME_DIR/modules/composer/composer.phar"
 fi
-if [[ ! -f "$RUNTIME_DIR/htdocs/adminer.php" && -f "$CACHE_DIR/adminer-6.0.1.php" ]]; then
-    cp "$CACHE_DIR/adminer-6.0.1.php" "$RUNTIME_DIR/htdocs/adminer.php"
+if [[ ! -f "$DEFAULT_HTDOCS/adminer.php" && -f "$CACHE_DIR/adminer-6.0.1.php" ]]; then
+    cp "$CACHE_DIR/adminer-6.0.1.php" "$DEFAULT_HTDOCS/adminer.php"
 fi
 
 # 4. 项目模板 / 默认站点首页
@@ -206,15 +239,15 @@ if [[ -n "$TPL_SRC" ]]; then
     if [[ ! -d "$RUNTIME_DIR/modules/templates/project-minimal" ]]; then
         cp -a "$TPL_SRC/project-minimal" "$RUNTIME_DIR/modules/templates/"
     fi
-    if [[ ! -f "$RUNTIME_DIR/htdocs/index.php" ]]; then
-        cp "$TPL_SRC/htdocs/index.php" "$RUNTIME_DIR/htdocs/index.php"
+    if [[ ! -f "$DEFAULT_HTDOCS/index.php" ]]; then
+        cp "$TPL_SRC/htdocs/index.php" "$DEFAULT_HTDOCS/index.php"
     fi
 fi
 
 # 5. 随机密钥（仅首次生成）
 SECRETS_FILE="$RUNTIME_DIR/var/secrets.json"
 if [[ ! -f "$SECRETS_FILE" ]]; then
-    step "生成随机密钥 / generating secrets ..."
+    step "Generating secrets / 生成随机密钥 ..."
     cat > "$SECRETS_FILE" <<EOF
 {
     "mysql_root_password": "$(gen_hex 24)",
@@ -226,7 +259,7 @@ if [[ ! -f "$SECRETS_FILE" ]]; then
 EOF
 elif ! grep -q '"mysql_root_password"' "$SECRETS_FILE"; then
     # 升级兼容：0.6.0 及更早只有 mariadb_* 键，补充 mysql_* 密钥
-    step "升级运行时：补充 MySQL 密钥 / upgraded runtime: adding MySQL secrets ..."
+    step "Upgraded runtime: adding MySQL secrets / 升级运行时：补充 MySQL 密钥 ..."
     FRAMPP_SECRETS_FILE="$SECRETS_FILE" \
     FRAMPP_ROOT_PW="$(gen_hex 24)" \
     FRAMPP_RO_PW="$(gen_hex 24)" \
@@ -236,7 +269,7 @@ elif ! grep -q '"mysql_root_password"' "$SECRETS_FILE"; then
             $d["mysql_root_password"] = getenv("FRAMPP_ROOT_PW");
             $d["mysql_readonly_password"] = getenv("FRAMPP_RO_PW");
             file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL);
-        ' || warn "MySQL 密钥补充失败 / failed to add MySQL secrets"
+        ' || warn "failed to add MySQL secrets / MySQL 密钥补充失败"
 fi
 
 # 读取密钥（供配置模板 / 数据库初始化使用）
@@ -260,7 +293,7 @@ json_value() { # json_value <file> <key>
 }
 
 # 6. 配置文件（模板 -> 运行时）
-step "生成配置 / generating configs ..."
+step "Generating configs / 生成配置 ..."
 TPL_DIR="$RUNTIME_DIR/share/templates"
 if [[ ! -f "$TPL_DIR/php.ini.linux.template" && -d "$COMPONENT_DIR/../templates" ]]; then
     TPL_DIR="$COMPONENT_DIR/../templates"
@@ -349,13 +382,44 @@ else
     ACCESS_IMPORT="# access-filter disabled"
 fi
 
+# pogo_scheduler（v0.8.2，Linux 定制构建）：默认关闭；编辑 etc/scheduler.caddy 后重启 FrankenPHP 生效。
+# Scheduler events are written to logs/frankenphp.log (Caddy logger).
+SCHEDULER_CADDY="$RUNTIME_DIR/etc/scheduler.caddy"
+if [[ ! -f "$SCHEDULER_CADDY" ]]; then
+    cat > "$SCHEDULER_CADDY" <<'EOF'
+# FRAMPP scheduler (pogo_scheduler v0.1.0, Linux custom build only)
+# Default: disabled (comments only). Uncomment ONE block and restart FrankenPHP.
+# 默认关闭（仅注释）；取消注释其中一种配置并重启 FrankenPHP 后生效。
+#
+# Mode 1: HTTP job (recommended: no shell, handled by the PHP worker pipeline)
+# pogo_scheduler {
+#     mode http
+#     url http://127.0.0.1:8080/scheduler/run
+#     interval 1m
+#     timeout 30s
+#     overlap skip
+# }
+#
+# Mode 2: command job (upstream-compatible; runs an external process)
+# pogo_scheduler {
+#     mode command
+#     command /opt/frampp/modules/frankenphp/frankenphp php-cli /opt/frampp/apps/default/bin/console schedule:run
+#     interval 1m
+#     timeout 5m
+#     overlap skip
+# }
+EOF
+fi
+SCHEDULER_IMPORT="import $SCHEDULER_CADDY"
+
 CADDY_PANEL_ROOT="$RUNTIME_DIR/modules/caddy-panel/public"
 fill_template "$TPL_DIR/Caddyfile.template" "$RUNTIME_DIR/etc/global.caddy" \
-    HTDOCS "$RUNTIME_DIR/htdocs" \
+    HTDOCS "$DEFAULT_HTDOCS" \
     PANEL_ROOT "$RUNTIME_DIR/modules/control-panel/web" \
     CADDY_PANEL_ROOT "$CADDY_PANEL_ROOT" \
     LOGS_DIR "$RUNTIME_DIR/logs" \
     ACCESS_IMPORT "$ACCESS_IMPORT" \
+    SCHEDULER_IMPORT "$SCHEDULER_IMPORT" \
     ADMIN_ADDR "$ADMIN_ADDR"
 {
     printf '# Assembled by FRAMPP / caddy-panel (global + caddy.d)\n\n' > "$RUNTIME_DIR/etc/Caddyfile"
@@ -417,7 +481,7 @@ EOF
         PANEL_ADMIN_PW="$PANEL_ADMIN_PW" PANEL_ADMIN_API="$PANEL_ADMIN_API" \
             "$RUNTIME_DIR/modules/frankenphp/frankenphp" php-cli "$PANEL_MOD/bin/panel" install \
                 --username=admin --password="$PANEL_ADMIN_PW" --admin-api="$PANEL_ADMIN_API" || \
-            warn "caddy-panel 初始化失败 / caddy-panel init failed"
+            warn "caddy-panel init failed / caddy-panel 初始化失败"
     fi
 fi
 
@@ -513,12 +577,12 @@ if [[ "$SKIP_DB_INIT" -eq 0 && -x "$MYSQLD" ]]; then
     # 然后重建 MySQL 数据目录（用户可手动导入备份数据）。
     if [[ -d "$DATADIR" && ! -f "$DATADIR/mysql.ibd" && -n "$(ls -A "$DATADIR" 2>/dev/null || true)" ]]; then
         BACKUP_DIR="$RUNTIME_DIR/var/mysql-mariadb-backup-$(date +%Y%m%d%H%M%S)"
-        step "检测到不兼容的旧数据库数据目录，已备份 / incompatible legacy datadir backed up: $BACKUP_DIR"
+        step "Incompatible legacy datadir backed up / 检测到不兼容的旧数据库数据目录，已备份: $BACKUP_DIR"
         mv "$DATADIR" "$BACKUP_DIR"
         mkdir -p "$DATADIR"
     fi
     if [[ ! -d "$DATADIR/mysql" || ! -f "$DATADIR/mysql.ibd" ]]; then
-        step "初始化 MySQL 数据目录 / initializing MySQL datadir ..."
+        step "Initializing MySQL datadir / 初始化 MySQL 数据目录 ..."
         mkdir -p "$DATADIR"
         "$MYSQLD" --no-defaults --initialize-insecure \
             --basedir="$RUNTIME_DIR/modules/mysql" \
@@ -526,7 +590,7 @@ if [[ "$SKIP_DB_INIT" -eq 0 && -x "$MYSQLD" ]]; then
             --user="$(id -un)" \
             --log-error="$RUNTIME_DIR/logs/mysql-init.log" 2>&1 || \
             { cat "$RUNTIME_DIR/logs/mysql-init.log" 2>/dev/null || true; \
-              warn "mysqld --initialize-insecure 失败 / failed，见 / see logs/mysql-init.log"; }
+              warn "mysqld --initialize-insecure failed / 初始化失败; see logs/mysql-init.log / 见日志"; }
     fi
 
     if [[ -d "$DATADIR/mysql" ]]; then
@@ -556,7 +620,7 @@ GRANT SELECT, SHOW VIEW ON *.* TO 'frampp_ro'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EOF
 
-        step "临时启动 MySQL 创建账号 / bootstrapping MySQL accounts ..."
+        step "Bootstrapping MySQL accounts / 临时启动 MySQL 创建账号 ..."
         "$MYSQLD" --no-defaults \
             --basedir="$RUNTIME_DIR/modules/mysql" \
             --datadir="$DATADIR" \
@@ -581,13 +645,13 @@ EOF
                 if mysql_php "$BOOT_SOCKET" "$ROOT_PW" "-" >> "$BOOTSTRAP_LOG" 2>&1; then
                     DB_INITIALIZED=1
                 else
-                    warn "MySQL 密码验证失败 / password verification failed，见 / see $BOOTSTRAP_LOG"
+                    warn "MySQL password verification failed / 密码验证失败; see $BOOTSTRAP_LOG / 见日志"
                 fi
             else
-                warn "MySQL 账号初始化失败 / account init failed，见 / see $BOOTSTRAP_LOG"
+                warn "MySQL account init failed / 账号初始化失败; see $BOOTSTRAP_LOG / 见日志"
             fi
         else
-            warn "MySQL 未能就绪（socket: $BOOT_SOCKET），跳过只读账号创建 / not ready, skipped read-only account; 日志见 / log: $ERR_LOG"
+            warn "MySQL not ready (socket: $BOOT_SOCKET); skipped read-only account / 未就绪，跳过只读账号创建; log / 日志: $ERR_LOG"
         fi
         # 优雅关闭（SIGTERM），兜底强杀
         if kill -0 "$DB_PID" 2>/dev/null; then
@@ -604,12 +668,14 @@ EOF
 fi
 
 # 8. 运行时清单
-step "写入运行时清单 / writing runtime manifest ..."
+step "Writing runtime manifest / 写入运行时清单 ..."
 cat > "$RUNTIME_DIR/var/runtime.json" <<EOF
 {
     "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
     "root": "$RUNTIME_DIR",
     "platform": "$FRAMPP_PLATFORM",
+    "default_app": "default",
+    "htdocs": "$DEFAULT_HTDOCS",
     "ports": { "http": $HTTP_PORT, "panel": $PANEL_PORT, "mysql": $MYSQL_PORT, "redis": $REDIS_PORT },
     "components": {
         "frankenphp": "$FRANKENPHP_VERSION",
@@ -622,5 +688,5 @@ cat > "$RUNTIME_DIR/var/runtime.json" <<EOF
 }
 EOF
 
-step "完成 / done. 运行时就绪 / runtime ready: $RUNTIME_DIR"
+step "Done. Runtime ready / 完成，运行时就绪: $RUNTIME_DIR"
 echo "DB_INITIALIZED=$DB_INITIALIZED"

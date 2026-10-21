@@ -228,7 +228,8 @@
 <script>
 "use strict";
 
-var VERSION = "0.8.1";
+var VERSION = "0.8.2";
+var WINDOWS_VERSION = "0.8.1";
 var CHANNEL = "8.5";
 
 var REPO = "https://github.com/wangbo5825/frampp";
@@ -237,7 +238,10 @@ var RELEASES = REPO + "/releases";
 var DL = RELEASES + "/latest/download";
 var LINUX_RUN = DL + "/frampp-" + VERSION + "-linux-x86_64.run";
 var LINUX_ARM_RUN = DL + "/frampp-" + VERSION + "-linux-aarch64.run";
-var WINDOWS_EXE = DL + "/frampp-" + VERSION + "-windows-x64.exe";
+var LINUX_RUN_081 = RELEASES + "/download/v0.8.1/frampp-0.8.1-linux-x86_64.run";
+var LINUX_ARM_RUN_081 = RELEASES + "/download/v0.8.1/frampp-0.8.1-linux-aarch64.run";
+var WINDOWS_EXE = RELEASES + "/download/v" + WINDOWS_VERSION +
+    "/frampp-" + WINDOWS_VERSION + "-windows-x64.exe";
 var DOCKER_LINK = REPO + "/pkgs/container/frampp";
 
 var I18N = {
@@ -254,7 +258,7 @@ var I18N = {
             ["#docs", "文档"]
         ],
         hero: {
-            badge: "最新版本 / Latest v" + VERSION + " · 通道 / channel " + CHANNEL,
+            badge: "Linux-only 临时版 v" + VERSION + " · 通道 / channel " + CHANNEL,
             tagline: "一键安装、开箱即用的现代 PHP 开发平台",
             sub: "延续 LAMPP / XAMPP 的产品形态，把 Web 开发三件套（PHP 应用服务器 + MySQL/MariaDB + Redis）打包成自包含安装包，并内置 AI Agent 接入层（MCP）。",
             badges: "FrankenPHP · Redis · Agent (MCP) · MySQL · PHP · Python",
@@ -263,8 +267,8 @@ var I18N = {
                 linuxOs: ".run · 单文件自解压 / single-file self-extracting",
                 linuxArm: "下载 Linux arm64 安装包 / Download Linux arm64",
                 linuxArmOs: ".run · aarch64 / arm64 主机",
-                windows: "下载 Windows 安装包 / Download Windows",
-                windowsOs: ".exe · Inno Setup 一键安装 / one-click installer",
+                windows: "下载 Windows 0.8.1 / Download Windows",
+                windowsOs: ".exe · 0.8.2 无 Windows 包 / no 0.8.2 Windows package",
                 docker: "Docker 镜像 / Docker Image",
                 dockerOs: "ghcr.io · 单镜像一键启动 / one-click all-in-one image",
                 all: "查看所有版本 / All Releases",
@@ -326,7 +330,7 @@ var I18N = {
                 ["", "  -p 8080:8080 -p 8081:8081 \\"],
                 ["", "  -v frampp-data:/opt/frampp/var \\"],
                 ["", "  -v frampp-logs:/opt/frampp/logs \\"],
-                ["", "  -v frampp-htdocs:/opt/frampp/htdocs \\"],
+                ["", "  -v frampp-apps:/opt/frampp/apps \\"],
                 ["", "  ghcr.io/wangbo5825/frampp:" + VERSION],
                 ["c", "# 或使用 Compose / or use Compose"],
                 ["", "docker compose up -d"]
@@ -363,7 +367,7 @@ var I18N = {
                 ["默认安装到哪里？", "Linux 默认安装到 ~/frampp，可用 --prefix 指定目录；Windows 默认 C:\\Program Files\\FRAMPP。"],
                 ["端口冲突怎么办？", "默认端口：HTTP 8080、控制面板 8081、MySQL 3306、Redis 6379。可通过 runtime.json / 配置调整。"],
                 ["安装目录可以移动吗？", "可以。整个目录可移动，移动后重新运行 bin/frampp init（自动复用 var/ 与密钥，幂等）。"],
-                ["如何升级？", "先备份 var/ 与 htdocs/，停止服务后用新版本安装器覆盖安装到同一目录；初始化会复用已有密钥与数据。"],
+                ["如何升级？", "先备份 apps/ 与 var/（旧版为 htdocs/），停止服务后用新版本安装器覆盖到同一目录。0.8.1 → 0.8.2 会自动迁移旧 htdocs；Windows 继续使用 0.8.1。"],
                 ["如何卸载？", "Linux 运行 bin/uninstall（可保留或删除 var/、logs/）；Windows 使用“卸载 FRAMPP”或 unins000.exe。"],
                 ["支持多 PHP 版本并存吗？", "不提供 Laragon / Herd 式多版本并存。类似 XAMPP，按 FRAMPP 版本 × 通道 × 环境发布安装包。"],
                 ["系统里需要预装 PHP / MySQL 吗？", "不需要。FrankenPHP（含 PHP 8.5）、MySQL、Redis 全部随包提供，不依赖系统包管理器。"]
@@ -374,12 +378,23 @@ var I18N = {
             sub: "类似 XAMPP，按 FRAMPP 版本 × 组件通道 × 环境发布一键安装包。",
             items: [
                 {
+                    ver: "v0.8.2",
+                    date: "2026-10-21",
+                    desc: "Linux-only 临时预览版：安装器英文优先；应用目录改为 apps/<app>/{htdocs,config,src,var}；集成 pogo_scheduler v0.1.0（默认关闭）。Windows 无 0.8.2 安装包，请继续使用 0.8.1。",
+                    links: [
+                        ["Linux .run", LINUX_RUN],
+                        ["Linux arm64 .run", LINUX_ARM_RUN],
+                        ["Windows 0.8.1 .exe", WINDOWS_EXE],
+                        ["Docker image", DOCKER_LINK]
+                    ]
+                },
+                {
                     ver: "v0.8.1",
                     date: "2026-10-11",
                     desc: "新增 Linux arm64（aarch64）一键安装包（MySQL 8.0 glibc 2.28 基线）与多架构 Docker 镜像（amd64 + arm64）；修复 frampp restart 偶发启动失败。",
                     links: [
-                        ["Linux .run", LINUX_RUN],
-                        ["Linux arm64 .run", LINUX_ARM_RUN],
+                        ["Linux .run", LINUX_RUN_081],
+                        ["Linux arm64 .run", LINUX_ARM_RUN_081],
                         ["Windows .exe", WINDOWS_EXE],
                         ["Docker image", DOCKER_LINK]
                     ]
@@ -439,7 +454,7 @@ var I18N = {
             ["#docs", "Docs"]
         ],
         hero: {
-            badge: "Latest v" + VERSION + " · Channel " + CHANNEL,
+            badge: "Linux-only preview v" + VERSION + " · Channel " + CHANNEL,
             tagline: "One-click, out-of-the-box PHP dev platform",
             sub: "Following the LAMPP / XAMPP tradition, FRAMPP bundles the web-dev stack (PHP app server + MySQL/MariaDB + Redis) into self-contained installers, with a built-in AI Agent layer (MCP).",
             badges: "FrankenPHP · Redis · Agent (MCP) · MySQL · PHP · Python",
@@ -448,8 +463,8 @@ var I18N = {
                 linuxOs: ".run · single-file self-extracting installer",
                 linuxArm: "Download Linux arm64",
                 linuxArmOs: ".run · aarch64 / arm64 hosts",
-                windows: "Download Windows",
-                windowsOs: ".exe · one-click Inno Setup installer",
+                windows: "Download Windows 0.8.1",
+                windowsOs: ".exe · no 0.8.2 Windows package",
                 docker: "Docker Image",
                 dockerOs: "ghcr.io · one-click all-in-one image",
                 all: "All Releases",
@@ -511,7 +526,7 @@ var I18N = {
                 ["", "  -p 8080:8080 -p 8081:8081 \\"],
                 ["", "  -v frampp-data:/opt/frampp/var \\"],
                 ["", "  -v frampp-logs:/opt/frampp/logs \\"],
-                ["", "  -v frampp-htdocs:/opt/frampp/htdocs \\"],
+                ["", "  -v frampp-apps:/opt/frampp/apps \\"],
                 ["", "  ghcr.io/wangbo5825/frampp:" + VERSION],
                 ["c", "# or use Compose"],
                 ["", "docker compose up -d"]
@@ -548,7 +563,7 @@ var I18N = {
                 ["Where is it installed?", "Linux defaults to ~/frampp (use --prefix to change); Windows defaults to C:\\Program Files\\FRAMPP."],
                 ["What if a port is already in use?", "Default ports: HTTP 8080, panel 8081, MySQL 3306, Redis 6379. They can be adjusted via runtime.json / configs."],
                 ["Can I move the install directory?", "Yes. The whole directory is relocatable; run bin/frampp init after moving (var/ and secrets are reused idempotently)."],
-                ["How do I upgrade?", "Back up var/ and htdocs/ first, stop services, then run the new installer over the same directory; init reuses existing secrets and data."],
+                ["How do I upgrade?", "Back up apps/ and var/ (legacy installs: htdocs/), stop services, then run the new installer over the same directory. 0.8.1 to 0.8.2 migrates legacy htdocs automatically; Windows remains on 0.8.1."],
                 ["How do I uninstall?", "Linux: run bin/uninstall (optionally delete var/ and logs/); Windows: use \"Uninstall FRAMPP\" or unins000.exe."],
                 ["Do you support multiple PHP versions?", "No — we do not provide Laragon / Herd-style coexistence. Like XAMPP, installers are published per FRAMPP version × channel × environment."],
                 ["Do I need PHP / MySQL pre-installed?", "No. FrankenPHP (with PHP 8.5), MySQL and Redis are all bundled; no system package manager is required."]
@@ -559,12 +574,23 @@ var I18N = {
             sub: "Like XAMPP, one-click installers are published per FRAMPP version × component channel × environment.",
             items: [
                 {
+                    ver: "v0.8.2",
+                    date: "2026-10-21",
+                    desc: "Linux-only preview: English-first installer messages; application layout apps/<app>/{htdocs,config,src,var}; pogo_scheduler v0.1.0 (disabled by default). There is no 0.8.2 Windows package; Windows users stay on 0.8.1.",
+                    links: [
+                        ["Linux .run", LINUX_RUN],
+                        ["Linux arm64 .run", LINUX_ARM_RUN],
+                        ["Windows 0.8.1 .exe", WINDOWS_EXE],
+                        ["Docker image", DOCKER_LINK]
+                    ]
+                },
+                {
                     ver: "v0.8.1",
                     date: "2026-10-11",
                     desc: "New Linux arm64 (aarch64) installer (MySQL 8.0, glibc 2.28 baseline) and multi-arch Docker image (amd64 + arm64); fixes an intermittent frampp restart failure.",
                     links: [
-                        ["Linux .run", LINUX_RUN],
-                        ["Linux arm64 .run", LINUX_ARM_RUN],
+                        ["Linux .run", LINUX_RUN_081],
+                        ["Linux arm64 .run", LINUX_ARM_RUN_081],
                         ["Windows .exe", WINDOWS_EXE],
                         ["Docker image", DOCKER_LINK]
                     ]

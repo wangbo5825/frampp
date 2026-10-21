@@ -48,7 +48,7 @@
       "sha256": "1815C03F26E21D533E729C0B09BC69A59C902A6440409D013105EE679DFF006C",
       "cacheFile": "adminer-6.0.1.php",
       "kind": "phar",
-      "installDir": "htdocs"
+      "installDir": "apps/default/htdocs"
     },
     "python": {
       "name": "Python 3.13 (独立精简运行时, install_only_stripped)",

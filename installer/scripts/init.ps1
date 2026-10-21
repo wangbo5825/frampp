@@ -188,11 +188,19 @@ if (-not (Test-Path -LiteralPath $composerTarget)) {
     Write-Step "Composer installed: $composerTarget"
 }
 
-# Adminer（单文件，放入 htdocs 由 FrankenPHP 直接提供）
+# Adminer（单文件，放入 apps/default/htdocs 由 FrankenPHP 直接提供）
 $adminerTarget = Join-Path $RuntimeDir "apps\default\htdocs\adminer.php"
 if (-not (Test-Path -LiteralPath $adminerTarget)) {
-    Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination $adminerTarget
-    Write-Step "Adminer installed: $adminerTarget"
+    $adminerSource = Join-Path $CacheDir $config.components.adminer.cacheFile
+    if (-not (Test-Path -LiteralPath $adminerSource)) {
+        $adminerSource = Join-Path $RuntimeDir "share\adminer.php"
+    }
+    if (Test-Path -LiteralPath $adminerSource) {
+        Copy-Item -LiteralPath $adminerSource -Destination $adminerTarget
+        Write-Step "Adminer installed: $adminerTarget"
+    } else {
+        Write-Warning "Adminer source not found: $adminerSource"
+    }
 }
 
 # 项目模板（控制面板 new-project 使用）

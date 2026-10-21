@@ -70,6 +70,7 @@ docker run -d --name frampp \
   -p 8080:8080 -p 8081:8081 \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
+  -v frampp-apps:/opt/frampp/apps \
   -v frampp-htdocs:/opt/frampp/htdocs \
   frampp:0.8.2
 ```

@@ -222,8 +222,12 @@ fi
 if [[ ! -f "$RUNTIME_DIR/modules/composer/composer.phar" && -f "$CACHE_DIR/composer.phar" ]]; then
     cp "$CACHE_DIR/composer.phar" "$RUNTIME_DIR/modules/composer/composer.phar"
 fi
-if [[ ! -f "$DEFAULT_HTDOCS/adminer.php" && -f "$CACHE_DIR/adminer-6.0.1.php" ]]; then
-    cp "$CACHE_DIR/adminer-6.0.1.php" "$DEFAULT_HTDOCS/adminer.php"
+if [[ ! -f "$DEFAULT_HTDOCS/adminer.php" ]]; then
+    if [[ -f "$CACHE_DIR/adminer-6.0.1.php" ]]; then
+        cp "$CACHE_DIR/adminer-6.0.1.php" "$DEFAULT_HTDOCS/adminer.php"
+    elif [[ -f "$RUNTIME_DIR/share/adminer.php" ]]; then
+        cp "$RUNTIME_DIR/share/adminer.php" "$DEFAULT_HTDOCS/adminer.php"
+    fi
 fi
 
 # 4. 项目模板 / 默认站点首页

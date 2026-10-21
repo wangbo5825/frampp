@@ -187,6 +187,8 @@ Get-ChildItem -LiteralPath (Join-Path $stagingPython "bin") -File | ForEach-Obje
 Write-Step "安装 Composer / Adminer"
 Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.composer.cacheFile) -Destination (Join-Path $moduleDir "composer/composer.phar")
 Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination (Join-Path $StagingDir "apps/default/htdocs/adminer.php")
+# Adminer 在 share/ 保留一份：Docker 首次初始化时 apps 卷会遮住镜像内 apps/default 内容
+Copy-Item -LiteralPath (Join-Path $CacheDir $config.components.adminer.cacheFile) -Destination (Join-Path $StagingDir "share/adminer.php")
 
 # 4. 仓库内容（控制面板 / Agent / 模板 / 文档 / 运行时脚本）
 Write-Step "复制控制面板 / Agent / 模板 / 文档"

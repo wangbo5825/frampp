@@ -35,7 +35,7 @@ The single-file installer verifies integrity, extracts, runs `init.sh` (configs,
 
 升级步骤 / Steps:
 
-1. **备份数据（重要）/ Back up data (important)**：复制安装目录下的 `var/`（数据库数据、密钥）与 `htdocs/` 中的项目 / copy `var/` and your projects in `htdocs/`
+1. **备份数据（重要）/ Back up data (important)**：复制安装目录下的 `var/`（数据库数据、密钥）与 `apps/` 中的项目（旧版本为 `htdocs/`）/ copy `var/`, projects in `apps/` (or legacy `htdocs/`)
 2. 停止服务 / Stop services：`bin/frampp stop all`
 3. 运行新版本安装器，覆盖安装到同一目录 / Run the new installer over the same directory（Inno Setup 会保留 / keeps `var/` 与 / and `logs/`）
 4. 安装完成后 `init.ps1` 会复用已有密钥与数据目录（幂等），无需重新初始化 / init is idempotent and reuses existing secrets & datadir

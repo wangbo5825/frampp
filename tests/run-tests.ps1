@@ -149,6 +149,7 @@ Assert-True ($buildLinux -match 'trim-mysql\.sh') "build-linux-package.ps1 uses 
 Assert-True ($buildLinux -match '\(Join-Path \$StagingDir "share/templates"\)') "build-linux-package.ps1 stages templates under share/templates"
 Assert-True ($buildLinux -match '\$outName = "frampp-\$AppVersion-\$Env\.run"') "build-linux-package.ps1 uses simplified artifact name"
 Assert-True ($buildLinux -match '\(Join-Path \$moduleDir "mysql"\)') "build-linux-package.ps1 stages the mysql module"
+Assert-True ($buildLinux -match 'frankenphp/php') "build-linux-package.ps1 stages the standalone PHP CLI"
 $buildFrankenPHP = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/build-frankenphp.sh")
 Assert-True ($buildFrankenPHP -match 'FRAMPP_PHP_VERSION:-8\.5\.12') "FrankenPHP build pins PHP 8.5.12"
 Assert-True ($buildFrankenPHP -match 'static-php-cli v3') "FrankenPHP build documents SPC v3"

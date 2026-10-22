@@ -22,6 +22,8 @@ Urgent security update for Windows, Linux x86_64/aarch64 and Docker.
 - UPX compression is now opt-in (`FRAMPP_COMPRESS=1`); the previous arch-specific
   UPX lookup was not executable on the native aarch64 build runner. Builds are
   slightly larger but deterministic across both architectures.
+- Linux package assembly now copies the standalone PHP CLI binary
+  (`modules/frankenphp/php`) together with FrankenPHP.
 
 ### Changed
 

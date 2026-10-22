@@ -19,6 +19,8 @@ FRAMPP 的重要变更记录。
   caddy-access-filter 和 pogo_scheduler 模块。
 - UPX 压缩改为显式 opt-in（`FRAMPP_COMPRESS=1`）：原架构相关 UPX 在原生
   aarch64 runner 上无法执行；关闭后包体略大，但两架构构建更可重复、可验证。
+- Linux 打包阶段在复制 FrankenPHP 的同时复制独立 PHP CLI
+  （`modules/frankenphp/php`）。
 
 ### 变更
 

@@ -122,7 +122,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (T
     Write-Step "复用已编译 FrankenPHP（$fpBinDir）"
 }
 Copy-Item -LiteralPath (Join-Path $fpBinDir "frankenphp") -Destination (Join-Path $moduleDir "frankenphp/frankenphp")
+Copy-Item -LiteralPath (Join-Path $fpBinDir "php") -Destination (Join-Path $moduleDir "frankenphp/php")
 & chmod +x (Join-Path $moduleDir "frankenphp/frankenphp")
+& chmod +x (Join-Path $moduleDir "frankenphp/php")
 
 # MySQL 8.0：官方 glibc 2.17 minimal tarball 裁剪（CentOS 7 兼容，自带 OpenSSL）
 $mysqlBinDir = Join-Path $ToolsDir "mysql-linux-$Arch"

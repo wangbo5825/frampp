@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.14（2026-10-22，v0.8.3：PHP 8.5.12 + FrankenPHP 1.13.2 安全更新）
+> 状态：设计稿 v1.15（2026-10-22，v0.8.3 已发布；v0.9.0 计划纳入 scheduler v0.2.0 多定时器）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -397,6 +397,21 @@
   0.8.3 定位为安全修复版，不引入 v0.9.0 的安装目录 `/opt`、setcap、chroot 或
   上传策略等新功能。升级不修改配置格式、数据库结构或 `apps/` 布局。
 
+### 2.19 v0.9.0 scheduler v0.2.0 多定时器计划（v1.15，2026-10-22，仅记录）
+
+- **版本确认**：`wangbo5825/scheduler` 已有 `v0.2.0` tag，对应 commit
+  `2c8552504066cd276b704b7e6cc357405ef1b84b`。由于 Go module 位于仓库
+  `module/` 子目录，xcaddy 继续按 commit 固定为
+  `github.com/wangbo5825/scheduler/module@2c8552504066cd276b704b7e6cc357405ef1b84b`。
+- **能力变化**：v0.2.0 新增多个命名 job，可在一个 `pogo_scheduler` 全局块中定义多套
+  HTTP / command 任务；每个 job 独立拥有 interval / cron、timeout、overlap 与执行状态。
+  顶层单任务语法继续兼容，但顶层任务参数不能与 `job` 块混用。
+- **实施边界**：该变更排期 v0.9.0，本文只记录计划，不修改当前 v0.8.3 的 scheduler
+  0.1.0 依赖、默认配置或发布产物。实施时需更新构建缓存标记、安装包中的
+  `etc/scheduler.caddy` 示例、中英文用户文档与 Linux 双架构 CI 冒烟。
+- **验收方向**：至少配置两个不同周期任务，验证二者均能独立触发；其中一个任务处于
+  `overlap skip` 运行状态时，另一个任务不受影响；旧 v0.1.0 单任务配置继续可用。
+
 ---
 
 ## 3. 总体架构
@@ -619,8 +634,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 7. ✅ 发布 **v0.7.1**（LAMPP 风格根目录总控命令）与 **v0.7.2**（caddy-access-filter 1.2.1 升级）
 8. ✅ v0.8.0 改进计划已记录（2026-09-01，见 `docs/0.8.0-plan.md`）：README/docs 并入 `share/docs/` 并补齐中文版、启动前端口预检 + 启动后延迟就绪检测、`frampp restart` 指令、安装脚本提示语中英双语、`VERSION` 移入 `etc/`、缺省端口 8080/8081 冲突调研、caddy-exec 服务生命周期钩子、caddy-panel Web 管理界面（caddy-timer 定时模块为 backlog）；实施时在本蓝图补决策记录
 9. ✅ 发布 **v0.8.0**（caddy-panel `/panel`、`frampp restart`、启动就绪检测、`share/docs` 布局、`VERSION`→`etc/`、安装脚本双语）
-10. 下一步：**v0.9.0** 集成 pogo-scheduler 自 fork（`wangbo5825/scheduler`）
-    定时调度（Linux 定制构建 xcaddy 模块）、一键安装器英文优先、应用目录结构
+10. 下一步：**v0.9.0** 升级 scheduler 自 fork 到 v0.2.0 多定时器、一键安装器英文优先、应用目录结构
     （`apps/<app>/htdocs`）、Linux 缺省安装目录 `/opt/frampp`、非 root + setcap
     绑定 80/443、启动 chroot / 沙箱隔离、上传内容禁止 PHP/可执行代码等，见
     `docs/0.9.0-plan.md`；或 macOS / A2A 变体

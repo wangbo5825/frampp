@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.16（2026-10-22，v0.8.3 已发布；v0.9.0 计划纳入 scheduler v0.2.0、libaio 自检与 CSS MIME 修复）
+> 状态：设计稿 v1.17（2026-10-22，v0.8.3 已发布；v0.9.0 计划纳入 scheduler v0.2.0、MySQL 初始化 fail-fast 与 CSS MIME 修复）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -412,13 +412,20 @@
 - **验收方向**：至少配置两个不同周期任务，验证二者均能独立触发；其中一个任务处于
   `overlap skip` 运行状态时，另一个任务不受影响；旧 v0.1.0 单任务配置继续可用。
 
-### 2.20 v0.9.0 运行时依赖与静态资源缺陷计划（v1.16，2026-10-22，仅记录）
+### 2.20 v0.9.0 运行时依赖与静态资源缺陷计划（v1.17，2026-10-22，仅记录）
 
 - **libaio 缺陷**：部分 Linux 环境启动 MySQL 时报
   `error while loading shared libraries: libaio.so.1`。MySQL 8.0 官方通用包动态依赖
   `libaio.so.1`，而新发行版的 t64 迁移通常只提供 `libaio.so.1t64`。v0.9.0 在拉起
   MySQL 前检查 ELF `DT_NEEDED` / `ldd`，提供发行版对应安装指引；优先将兼容库或 shim
   放在 FRAMPP 自有库目录，禁止静默写入系统 `/usr/lib`。
+- **空数据目录案例**：首次初始化失败后，现场曾手工执行
+  `mysqld --initialize --user=<user> --datadir=<FRAMPP_HOME>/modules/mysql/data`。
+  当前 FRAMPP 的权威目录是 `var/mysql`，ServiceManager 也只使用该目录，因此
+  `modules/mysql/data` 即使初始化成功也不会被识别。现有 init 在
+  `mysqld --initialize-insecure` 失败后只警告并继续，属于延迟暴露失败；v0.9.0 必须
+  fail-fast、打印权威目录与初始化日志，并由 `frampp db doctor` 检查
+  `var/mysql/mysql.ibd`、`runtime.json.db_initialized` 与非标准数据目录。
 - **CSS MIME 缺陷**：部分静态 CSS 请求返回 `text/html`。根因风险是
   `try_files {path} {path}/index.php index.php` 将缺失或路径映射错误的静态资源回退到
   PHP/HTML。v0.9.0 对 CSS/JS/字体/图片/sourcemap 等资源增加 fallback 前的短路路由：

@@ -31,6 +31,8 @@ FRAMPP 的重要变更记录。
   把旧 ZIP 与新数据拼接。
 - musl 构建容器补充 `file` / `binutils`，静态链接断言不再因缺少校验工具而
   误报失败。
+- 静态校验改为检查 ELF `PT_INTERP` / `DT_NEEDED`，正确接受 static-php-cli v3
+  生成的 static-PIE 二进制。
 
 ## [0.8.2] - 2026-10-21
 

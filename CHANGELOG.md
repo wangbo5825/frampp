@@ -37,6 +37,8 @@ Urgent security update for Windows, Linux x86_64/aarch64 and Docker.
 - The musl builder now installs `file`/`binutils`, so its static-link assertion
   reports the real binary format instead of failing because the verifier is
   missing.
+- Static verification now uses ELF `PT_INTERP` / `DT_NEEDED` checks, correctly
+  accepting static-PIE binaries produced by static-php-cli v3.
 
 ## [0.8.2] - 2026-10-21
 

@@ -162,6 +162,7 @@ Assert-True ($setupIss -match 'modules\\frankenphp\\php\.exe') "Windows installe
 $smokeLinux = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/smoke-test.sh")
 Assert-True ($smokeLinux -match 'PHP_FULL.*!=.*8\.5\.12' -or $smokeLinux -match '8\.5\.12') "Linux smoke test asserts PHP 8.5.12"
 Assert-True ($smokeLinux -match 'FRANKENPHP_VERSION_UNSAFE') "Linux smoke test asserts FrankenPHP security version"
+Assert-True ($smokeLinux -match 'PT_INTERP / DT_NEEDED') "Linux smoke test accepts static-PIE and checks ELF dependencies"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/config/channels.json")) "channels.json exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/releases.md")) "docs/releases.md exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/README.md")) "docs/user/README.md exists"

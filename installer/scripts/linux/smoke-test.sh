@@ -110,12 +110,15 @@ if [ -d modules/mysql/mysql-test ]; then
 fi
 echo "SLIM_OK"
 echo "=== portability checks ==="
-echo "--- FrankenPHP must be static (musl, no glibc dep) ---"
-if file modules/frankenphp/frankenphp | grep -qi "statically linked"; then
-  echo "FRANKENPHP_STATIC_OK"
-else
-  echo "FRANKENPHP_NOT_STATIC"; exit 1
-fi
+echo "--- FrankenPHP and PHP must be static (no PT_INTERP / DT_NEEDED) ---"
+assert_static_elf() {
+  file "$1"
+  ! readelf -l "$1" | grep -q 'INTERP' && ! readelf -d "$1" 2>/dev/null | grep -q '(NEEDED)'
+}
+assert_static_elf modules/frankenphp/frankenphp || { echo "FRANKENPHP_NOT_STATIC"; exit 1; }
+assert_static_elf modules/frankenphp/php || { echo "PHP_CLI_NOT_STATIC"; exit 1; }
+echo "FRANKENPHP_STATIC_OK"
+echo "PHP_CLI_STATIC_OK"
 echo "--- MySQL glibc baseline must be <= $GLIBC_BASELINE ---"
 bash "$WORKSPACE/installer/scripts/linux/assert-glibc-max.sh" modules/mysql "$GLIBC_BASELINE" mysql
 echo "PORTABLE_OK"

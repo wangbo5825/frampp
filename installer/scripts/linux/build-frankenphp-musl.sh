@@ -77,15 +77,22 @@ bash /build-frankenphp.sh /src/frankenphp.tar.gz /out "$FP_VERSION"
 chown -R "$HOST_UID:$HOST_GID" /out
 '
 
-echo "==> 校验产物为静态二进制（无 GLIBC 依赖）..."
-if file "$OUT_DIR/frankenphp" | grep -qi "statically linked"; then
-    echo "FRANKENPHP_STATIC_OK version=$FP_VERSION"
-else
-    echo "警告: 产物未报告为静态链接，请确认无 glibc 依赖" >&2
-fi
-if file "$OUT_DIR/php" | grep -qi "statically linked"; then
-    echo "PHP_CLI_STATIC_OK version=${FRAMPP_PHP_VERSION:-8.5.12}"
-else
-    echo "PHP_CLI_NOT_STATIC"; exit 1
-fi
+assert_static_elf() { # accepts classic static and static-PIE; rejects PT_INTERP/DT_NEEDED
+    local bin="$1"
+    file "$bin"
+    if readelf -l "$bin" | grep -q 'INTERP' ||
+       readelf -d "$bin" 2>/dev/null | grep -q '(NEEDED)'; then
+        return 1
+    fi
+}
+
+echo "==> 校验产物为静态二进制（无 PT_INTERP / DT_NEEDED）..."
+assert_static_elf "$OUT_DIR/frankenphp" || {
+    echo "FRANKENPHP_NOT_STATIC"; exit 1;
+}
+echo "FRANKENPHP_STATIC_OK version=$FP_VERSION"
+assert_static_elf "$OUT_DIR/php" || {
+    echo "PHP_CLI_NOT_STATIC"; exit 1;
+}
+echo "PHP_CLI_STATIC_OK version=${FRAMPP_PHP_VERSION:-8.5.12}"
 echo "FRANKENPHP_MUSL_BUILD_OK version=$FP_VERSION php=${FRAMPP_PHP_VERSION:-8.5.12} spc=v3 image=$IMAGE"

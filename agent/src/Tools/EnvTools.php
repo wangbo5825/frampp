@@ -22,7 +22,7 @@ final class EnvTools
             throw new \RuntimeException('FRAMPP 运行时不可用');
         }
         $bin = $this->config->runtimeDir() . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'frankenphp'
-            . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'frankenphp.exe' : 'frankenphp');
+            . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
         return is_file($bin) ? $bin : 'php';
     }
 
@@ -55,7 +55,7 @@ final class EnvTools
     #[AsTool('env.php_version', '查看 PHP 版本与环境信息（只读）')]
     public function phpVersion(array $args = []): array
     {
-        $text = $this->execTemplate('{php} php-cli -v', ['php' => $this->phpBin()]);
+        $text = $this->execTemplate('{php} -v', ['php' => $this->phpBin()]);
         return ['text' => $text];
     }
 
@@ -75,7 +75,7 @@ final class EnvTools
         }
         $flag = !empty($args['direct_only']) ? ' --direct' : '';
         $text = $this->execTemplate(
-            '{php} php-cli {composer} show --no-ansi --no-interaction' . $flag,
+            '{php} {composer} show --no-ansi --no-interaction' . $flag,
             ['php' => $this->phpBin(), 'composer' => $composer],
             $this->config->projectDir
         );
@@ -94,7 +94,7 @@ final class EnvTools
             return ['isError' => true, 'text' => '未找到控制面板 CLI'];
         }
         $text = $this->execTemplate(
-            '{php} php-cli {cli} status --json --home {home}',
+            '{php} {cli} status --json --home {home}',
             ['php' => $this->phpBin(), 'cli' => $cli, 'home' => $this->config->runtimeDir()]
         );
         return ['text' => $text];

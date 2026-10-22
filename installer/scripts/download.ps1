@@ -74,6 +74,10 @@ foreach ($prop in $config.components.PSObject.Properties) {
         if ($c.sha256 -ne "PENDING") {
             Write-Warning "Hash mismatch for $name (expected $($c.sha256), got $actual); redownloading"
         }
+        # 不复用哈希错误的旧文件做断点续传，否则新旧内容拼接后仍会校验失败。
+        Remove-Item -LiteralPath $target -Force
+    } elseif ($Force -and (Test-Path -LiteralPath $target)) {
+        Remove-Item -LiteralPath $target -Force
     }
 
     # 下载：断点续传 + 自动重试（github.com 在部分网络环境不稳定）

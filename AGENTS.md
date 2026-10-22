@@ -11,7 +11,7 @@ FRAMPP = FrankenPHP + Redis + Agent(MCP) + MySQL + PHP + Python：面向现代 P
 - 当前里程碑：**M4 生产模式（已实现）**——Inno Setup 安装器、发布管线（channels / releases）、升级文档
 - Linux 变体（M5 部分）：**linux-x86_64 / linux-aarch64 一键安装包**已实现——`versions-linux-{x86_64,aarch64}.json` + `installer/scripts/linux/*`（init/install/uninstall/build-redis/trim-mysql/smoke-test）+ `build-linux-package.ps1`，CI 分别在 ubuntu-latest 与 ubuntu-24.04-arm 上构建并冒烟
 - Docker 变体（M5 部分）：**多架构单镜像 all-in-one**已实现——`Dockerfile` + `docker-compose.yml` + `installer/scripts/linux/docker-*.sh` + `build-docker.ps1`，复用 `.run` 产物，CI 构建/冒烟/tag 推送 GHCR 并通过 manifest list 合并 amd64 + arm64
-- 临时版本 **v0.8.2（Linux-only，2026-10-21）**：`apps/<app>/{htdocs,config,src,var}` 布局、pogo_scheduler v0.1.0 定时任务、安装器提示英文优先；Windows 继续使用 v0.8.1
+- 当前安全版本 **v0.8.3（2026-10-22）**：PHP 8.5.12 + FrankenPHP 1.13.2，修复严重 RCE 与 FrankenPHP 安全问题；Windows、Linux x86_64/aarch64 与多架构 Docker 统一使用该基线
 - 下一步：**v0.9.0** 集成 pogo-scheduler 自 fork（wangbo5825/scheduler）定时调度（Linux 定制构建 xcaddy 模块），或 macOS / A2A 变体
 
 ## 目录约定

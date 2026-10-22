@@ -1,10 +1,11 @@
 {
   "schema": 1,
-  "updatedAt": "2026-08-20",
+  "updatedAt": "2026-10-22",
   "channels": [
     {
       "id": "8.5",
       "label": "PHP 8.5（默认稳定通道）",
+      "phpVersion": "8.5.12",
       "default": true,
       "envs": ["windows-x64", "linux-x86_64", "linux-aarch64"]
     }

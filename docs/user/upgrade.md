@@ -13,13 +13,13 @@
 ### Linux（x86_64 / aarch64）
 
 ```bash
-chmod +x frampp-0.8.2-linux-x86_64.run
-./frampp-0.8.2-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.8.2-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+chmod +x frampp-0.8.3-linux-x86_64.run
+./frampp-0.8.3-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.3-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
 
-# arm64（aarch64）主机使用 frampp-0.8.2-linux-aarch64.run（glibc ≥ 2.28）
-chmod +x frampp-0.8.2-linux-aarch64.run
-./frampp-0.8.2-linux-aarch64.run --prefix /opt/frampp
+# arm64（aarch64）主机使用 frampp-0.8.3-linux-aarch64.run（glibc ≥ 2.28）
+chmod +x frampp-0.8.3-linux-aarch64.run
+./frampp-0.8.3-linux-aarch64.run --prefix /opt/frampp
 ```
 
 单文件安装器会自动校验完整性、解压并执行 `bin/frampp init`
@@ -88,6 +88,20 @@ The single-file installer verifies integrity, extracts, runs `init.sh` (configs,
 > `pogo_scheduler` is disabled by default — edit `etc/scheduler.caddy` and restart
 > FrankenPHP to enable it. Windows users stay on 0.8.1 (no 0.8.2 Windows package).
 > Installer messages are now English-first with Chinese second.
+>
+> **0.8.2 → 0.8.3 / 0.8.1 → 0.8.3（紧急安全更新）**：PHP 升级到 8.5.12，
+> 修复 CVE-2026-109618 与 CVE-2026-109619 两个严重未认证 RCE；FrankenPHP
+> 升级到 1.13.2，修复 4 个自身安全漏洞。Windows、Linux x86_64/aarch64 和
+> Docker 均需升级。配置格式、`apps/` 布局、数据库格式与密钥无需迁移；备份
+> `apps/` 与 `var/` 后覆盖安装即可。升级后运行 `bin/frampp version`，并确认
+> `bin/php -v` 显示 PHP 8.5.12。
+> **0.8.2 → 0.8.3 / 0.8.1 → 0.8.3 (urgent security update)**: PHP is upgraded
+> to 8.5.12 for CVE-2026-109618 / CVE-2026-109619, two critical
+> unauthenticated RCE vulnerabilities; FrankenPHP is upgraded to 1.13.2 for
+> four additional security fixes. Windows, Linux x86_64/aarch64 and Docker must
+> all be upgraded. Config formats, the `apps/` layout, database formats and
+> secrets require no migration; back up `apps/` and `var/`, then install over the
+> same directory. Verify `bin/frampp version` and PHP 8.5.12 with `bin/php -v`.
 >
 > 版本间数据库结构变化（如数据库大版本升级）时，建议先在备份上演练。
 > If the database schema changes between versions (e.g. a major DB upgrade), rehearse on a backup first.

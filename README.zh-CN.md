@@ -11,12 +11,14 @@ LAMPP / XAMPP / NMPP 的产品形态，并内置基于 MCP 的 AI Agent 接入�
 ## 当前状态
 
 - 里程碑：**M4 生产模式 + Linux x86_64 / aarch64 + Docker 变体**
-- 最新版本线：**0.8.2（Linux-only 临时预发布）**：应用目录
-  `apps/<app>/{htdocs,config,src,var}`（仅 `htdocs` 对外）、pogo_scheduler
-  v0.1.0 定时任务、安装器提示英文优先；Linux 数据库为 MySQL 8.0（x86_64
-  glibc 2.17 / aarch64 glibc 2.28）。**Windows 用户请使用 0.8.1**（0.8.2
-  不提供 Windows 安装包）。
-- 当前通道：PHP **8.5** / FrankenPHP **1.12.7**
+- 最新版本线：**0.8.3 安全更新**，提供 Windows x64、Linux x86_64/aarch64
+  安装包和多架构 Docker 镜像。**PHP 8.5.12** 修复 PHP2Shell 两个严重远程代码
+  执行漏洞（CVE-2026-109618 / CVE-2026-109619），**FrankenPHP 1.13.2**
+  同时修复 4 个 FrankenPHP 自身安全漏洞。
+- 保留能力：`apps/<app>/{htdocs,config,src,var}` 应用布局、pogo_scheduler
+  v0.1.0 定时任务、安装器英文优先；Linux 数据库为 MySQL 8.0（x86_64
+  glibc 2.17 / aarch64 glibc 2.28）。
+- 当前通道：PHP **8.5.12** / FrankenPHP **1.13.2**
 
 ## FRAMPP 是什么？
 
@@ -60,19 +62,19 @@ FRAMPP 把 PHP 应用服务器、MySQL / MariaDB 和 Redis 打包成自包含的
 ### Windows
 
 从 [GitHub Releases](https://github.com/wangbo5825/frampp/releases) 下载
-`frampp-0.8.1-windows-x64.exe`，双击安装。安装器会自动初始化并启动
+`frampp-0.8.3-windows-x64.exe`，双击安装。安装器会自动初始化并启动
 整套环境。
 
 ### Linux（x86_64 / aarch64）
 
 ```bash
-chmod +x frampp-0.8.2-linux-x86_64.run
-./frampp-0.8.2-linux-x86_64.run
-./frampp-0.8.2-linux-x86_64.run --prefix /opt/frampp
+chmod +x frampp-0.8.3-linux-x86_64.run
+./frampp-0.8.3-linux-x86_64.run
+./frampp-0.8.3-linux-x86_64.run --prefix /opt/frampp
 
-# arm64（aarch64）主机请下载 frampp-0.8.2-linux-aarch64.run：
-chmod +x frampp-0.8.2-linux-aarch64.run
-./frampp-0.8.2-linux-aarch64.run --prefix /opt/frampp
+# arm64（aarch64）主机请下载 frampp-0.8.3-linux-aarch64.run：
+chmod +x frampp-0.8.3-linux-aarch64.run
+./frampp-0.8.3-linux-aarch64.run --prefix /opt/frampp
 ```
 
 安装完成后：
@@ -84,10 +86,10 @@ chmod +x frampp-0.8.2-linux-aarch64.run
   `bin/redis-cli`；环境变量可 `source bin/env` 一次性配置。
 - systemd：`sudo bin/install-systemd` 安装开机自启服务。
 
-0.8.2 为 Linux-only 临时预发布：默认站点根为 `apps/default/htdocs`；
-`frampp new-project` 创建 `apps/<name>/{htdocs,config,src,var}`；可选定时任务
-在 `etc/scheduler.caddy` 配置（`pogo_scheduler`，HTTP 或命令模式），事件写入
-FrankenPHP 日志；旧 `htdocs/` 会在 init 时迁移。
+0.8.3 是紧急安全更新，覆盖 Windows 与 Linux。默认站点根为
+`apps/default/htdocs`；`frampp new-project` 创建
+`apps/<name>/{htdocs,config,src,var}`；可选 Linux 定时任务在
+`etc/scheduler.caddy` 配置；旧 `htdocs/` 会在 init 时迁移。
 
 ### Docker
 
@@ -100,7 +102,7 @@ docker run -d --name frampp \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-apps:/opt/frampp/apps \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.2
+  ghcr.io/wangbo5825/frampp:0.8.3
 ```
 
 也可使用仓库中的 Docker Compose：

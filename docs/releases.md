@@ -10,11 +10,11 @@ Positioning: **one-click installers for everyday users** (XAMPP-style), publishe
 
 ```text
 frampp-<version>-<env>.<ext>
-示例 / e.g. frampp-0.8.1-windows-x64.exe
-示例 / e.g. frampp-0.8.1-linux-x86_64.run
+示例 / e.g. frampp-0.8.3-windows-x64.exe
+示例 / e.g. frampp-0.8.3-linux-x86_64.run
 ```
 
-- `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.12.7 / PHP 8.5.9 / MySQL 8.0.46（Linux）/ Redis 8.10.1；Windows 数据库仍为 MariaDB 12.3.2）
+- `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.13.2 / PHP 8.5.12 / MySQL 8.0.46（Linux）/ Redis 8.10.1；Windows 数据库仍为 MariaDB 12.3.2）
 - `<version>`：FRAMPP 版本号（语义化，随 Release 递增，来源：仓库 `VERSION` 文件）/ semantic version, bumped per release (from repo `VERSION`)
 - `<env>`：目标环境 / target environment（`windows-x64` / `linux-x86_64`；macOS 属后续里程碑，Docker 以 `ghcr.io/wangbo5825/frampp:<version>` 镜像发布）
 - `<ext>`：`.exe`（Windows，Inno Setup）或 `.run`（Linux，自解压单文件安装器 / self-extracting single-file installer）
@@ -44,6 +44,11 @@ frampp-<version>-<env>.<ext>
 > `apps/<app>/{htdocs,config,src,var}`（只有 `htdocs` 是 Web 根，默认应用
 > `apps/default`）；集成 pogo_scheduler v0.1.0（可选 `etc/scheduler.caddy`）；
 > 安装器提示改为英文优先。
+
+> **v0.8.3 起实施 / Implemented since v0.8.3**：PHP 升级到 **8.5.12**，
+> FrankenPHP 升级到 **1.13.2**，修复 PHP2Shell 两个严重未认证 RCE
+> （CVE-2026-109618 / CVE-2026-109619）及 FrankenPHP 自身 4 个安全漏洞；
+> Windows、Linux 双架构和 Docker 统一切换到安全基线。
 
 > Release Note 语言规范 / Language convention for release notes：正文采用
 > **先英文、后中文** 的两段式结构（English section first, then Chinese）。
@@ -82,8 +87,8 @@ docker run -d --name frampp \
   -p 8080:8080 -p 8081:8081 \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
-  -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.1
+  -v frampp-apps:/opt/frampp/apps \
+  ghcr.io/wangbo5825/frampp:0.8.3
 ```
 
 发布到 GitHub Container Registry：
@@ -319,6 +324,35 @@ FRAMPP 0.8.1 在 x86_64 之外新增原生 **arm64（aarch64）** Linux 变体�
 - CI 在 arm64 runner 上构建并冒烟验证 arm64 安装包；Docker 镜像以**多架构
   manifest**（`linux/amd64` + `linux/arm64`）发布版本 tag 与 `latest`。
 
+## 0.8.3 Security update / 0.8.3 安全更新
+
+FRAMPP 0.8.3 is an urgent security release for Windows, Linux x86_64/aarch64
+and Docker:
+
+- **PHP 8.5.12** fixes CVE-2026-109618 (OOM state corruption) and
+  CVE-2026-109619 (stale global request state), both of which can enable
+  unauthenticated remote code execution. PHP states that upgrading is the only
+  complete fix.
+- **FrankenPHP 1.13.2** fixes four security issues in FrankenPHP, including
+  embedded-app temp-directory precreation, disconnected clients retaining PHP
+  threads, cyclic-array stack overflow and worker error-state leakage.
+- The Linux custom build migrates to **static-php-cli v3** and remains a
+  fully-static musl binary with Souin, caddy-access-filter and pogo_scheduler.
+- Configuration formats, the `apps/` layout and database formats are unchanged;
+  an over-the-top installation preserves `apps/`, `var/` and secrets.
+
+FRAMPP 0.8.3 是面向 Windows、Linux x86_64/aarch64 和 Docker 的紧急安全更新：
+
+- **PHP 8.5.12** 修复 CVE-2026-109618（OOM 状态破坏）与
+  CVE-2026-109619（陈旧全局请求状态），二者均可导致未认证远程代码执行；
+  PHP 官方明确说明完整修复只能升级。
+- **FrankenPHP 1.13.2** 修复嵌入式应用临时目录抢占、断连请求占用线程池、
+  循环数组导致崩溃及 worker 错误状态跨请求泄漏等 4 个安全问题。
+- Linux 定制构建迁移到 **static-php-cli v3**，仍是完全静态 musl 二进制，并
+  保留 Souin、caddy-access-filter 与 pogo_scheduler。
+- 配置格式、`apps/` 布局和数据库格式不变；覆盖安装会保留 `apps/`、`var/`
+  与密钥。
+
 ## 0.8.2 Linux-only preview / 0.8.2 Linux 临时预览
 
 FRAMPP 0.8.2 is a **temporary Linux-only prerelease**. It includes:
@@ -346,10 +380,10 @@ FRAMPP 0.8.2 是 **Linux-only 临时预发布版本**：
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash
-chmod +x frampp-0.8.1-linux-x86_64.run
-./frampp-0.8.1-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.8.1-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
-./frampp-0.8.1-linux-x86_64.run --help           # 帮助 / help
+chmod +x frampp-0.8.3-linux-x86_64.run
+./frampp-0.8.3-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.3-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+./frampp-0.8.3-linux-x86_64.run --help           # 帮助 / help
 
 ~/frampp/bin/frampp status        # 查看服务状态 / check status
 ~/frampp/bin/uninstall            # 停止服务并可选清理数据 / stop services, optionally clean data

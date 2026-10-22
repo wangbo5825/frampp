@@ -1,6 +1,6 @@
 # FRAMPP 定时任务 / Scheduler
 
-> 适用版本：v0.8.2 Linux 定制构建（x86_64 / aarch64）。Windows 官方
+> 适用版本：v0.8.2+ Linux 定制构建（x86_64 / aarch64，含 v0.8.3）。Windows 官方
 > FrankenPHP 构建不含该模块。
 
 FRAMPP 集成 [pogo_scheduler v0.1.0](https://github.com/wangbo5825/scheduler)
@@ -47,7 +47,7 @@ pogo_scheduler {
 ```caddy
 pogo_scheduler {
     mode     command
-    command  /opt/frampp/modules/frankenphp/frankenphp php-cli /opt/frampp/apps/default/bin/console schedule:run
+    command  /opt/frampp/modules/frankenphp/php /opt/frampp/apps/default/bin/console schedule:run
     dir      /opt/frampp
     interval 1m
     timeout  5m
@@ -74,7 +74,8 @@ pogo_scheduler {
 
 ## 兼容性
 
-- **Linux x86_64 / aarch64**：0.8.2 定制构建内置 `pogo_scheduler`。
+- **Linux x86_64 / aarch64**：0.8.2+ 定制构建（包括 0.8.3）内置
+  `pogo_scheduler`。
 - **Windows**：官方预编译 FrankenPHP 不含该模块，`etc/scheduler.caddy` 不会被导入；
   可使用 Windows 任务计划程序调用应用 CLI 作为等价方案。
 - 检查模块是否存在：`modules/frankenphp/frankenphp list-modules | grep pogo_scheduler`。

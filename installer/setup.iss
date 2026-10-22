@@ -63,11 +63,11 @@ Name: "{group}\卸载 FRAMPP"; Filename: "{uninstallexe}"
 
 [Run]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\installer\scripts\init.ps1"" -RuntimeDir ""{app}"""; Flags: runhidden; StatusMsg: "{cm:StatusInitializing}"
-Filename: "{app}\modules\frankenphp\frankenphp.exe"; Parameters: "php-cli ""{app}\modules\control-panel\bin\frampp"" start all --home ""{app}"""; Flags: runhidden nowait; StatusMsg: "{cm:StatusStartingServices}"
+Filename: "{app}\modules\frankenphp\php.exe"; Parameters: """{app}\modules\control-panel\bin\frampp"" start all --home ""{app}"""; Flags: runhidden nowait; StatusMsg: "{cm:StatusStartingServices}"
 Filename: "http://127.0.0.1:8081/"; Description: "打开控制面板"; Flags: postinstall nowait shellexec skipifsilent
 
 [UninstallRun]
-Filename: "{app}\modules\frankenphp\frankenphp.exe"; Parameters: "php-cli ""{app}\modules\control-panel\bin\frampp"" stop all --home ""{app}"""; Flags: runhidden
+Filename: "{app}\modules\frankenphp\php.exe"; Parameters: """{app}\modules\control-panel\bin\frampp"" stop all --home ""{app}"""; Flags: runhidden
 Filename: "taskkill.exe"; Parameters: "/IM frankenphp.exe /F"; Flags: runhidden
 Filename: "taskkill.exe"; Parameters: "/IM mariadbd.exe /F"; Flags: runhidden
 Filename: "taskkill.exe"; Parameters: "/IM redis-server.exe /F"; Flags: runhidden

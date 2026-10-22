@@ -6,14 +6,14 @@
 # 构建前请先生成对应架构的 Linux 安装包：
 #   pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64   # 或 linux-aarch64
 # 然后：
-#   docker build -t frampp:0.8.2 \
-#     --build-arg FRAMPP_PACKAGE=dist/installer/frampp-0.8.2-linux-x86_64.run .
+#   docker build -t frampp:0.8.3 \
+#     --build-arg FRAMPP_PACKAGE=dist/installer/frampp-0.8.3-linux-x86_64.run .
 #
 ARG BASE_IMAGE=debian:bookworm-slim
 
 FROM ${BASE_IMAGE} AS runtime
 
-ARG FRAMPP_PACKAGE=dist/installer/frampp-0.8.2-linux-x86_64.run
+ARG FRAMPP_PACKAGE=dist/installer/frampp-0.8.3-linux-x86_64.run
 
 ENV FRAMPP_HOME=/opt/frampp \
     LANG=C.UTF-8 \

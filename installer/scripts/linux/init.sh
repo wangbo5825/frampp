@@ -73,6 +73,15 @@ REDIS_PORT=6379
 step() { printf '\033[36m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[33mWARN: %s\033[0m\n' "$*" >&2; }
 
+php_cli() { # php_cli <args...>; 0.8.3+ uses standalone CLI, 0.8.2 fallback retained
+    local php_bin="$RUNTIME_DIR/modules/frankenphp/php"
+    if [[ -x "$php_bin" ]]; then
+        "$php_bin" "$@"
+    else
+        "$RUNTIME_DIR/modules/frankenphp/frankenphp" php-cli "$@"
+    fi
+}
+
 gen_hex() { # gen_hex <bytes>
     local n="$1"
     if command -v openssl >/dev/null 2>&1; then
@@ -88,6 +97,16 @@ json_version() { # json_version <file> <component> -> version
         in_c && /"version"/ {
             v=$0; sub(/^.*"version"[[:space:]]*:[[:space:]]*"/, "", v);
             sub(/".*$/, "", v); print v; exit
+        }
+    ' "$1"
+}
+
+json_component_field() { # json_component_field <file> <component> <field>
+    awk -v c="$2" -v f="$3" '
+        $0 ~ "\"" c "\"[[:space:]]*:[[:space:]]*\\{" { in_c=1; next }
+        in_c && $0 ~ "\"" f "\"[[:space:]]*:" {
+            v=$0; sub("^.*\"" f "\"[[:space:]]*:[[:space:]]*\"", "", v);
+            sub("\".*$", "", v); print v; exit
         }
     ' "$1"
 }
@@ -162,6 +181,8 @@ fi
 # 2. 组件就位（安装包场景全部已存在；开发/构建场景从缓存补齐）
 COMPONENT_DIR="$SCRIPT_DIR/../../config"
 FRANKENPHP_VERSION="$(json_version "$VERSIONS_FILE" frankenphp)"
+FRANKENPHP_PHP_VERSION="$(json_component_field "$VERSIONS_FILE" frankenphp phpVersion)"
+FRANKENPHP_CACHE_FILE="$(json_component_field "$VERSIONS_FILE" frankenphp cacheFile)"
 MYSQL_VERSION="$(json_version "$VERSIONS_FILE" mysql)"
 REDIS_VERSION="$(json_version "$VERSIONS_FILE" redis)"
 COMPOSER_VERSION="$(json_version "$VERSIONS_FILE" composer)"
@@ -182,8 +203,9 @@ if [[ -d "$CACHE_DIR" ]]; then
     # FrankenPHP：源码 -> 定制编译（精简扩展 + Souin + UPX；已有二进制则跳过）
     if [[ ! -x "$RUNTIME_DIR/modules/frankenphp/frankenphp" ]]; then
         step "Building FrankenPHP $FRANKENPHP_VERSION (custom build / 定制构建)..."
+        FRAMPP_PHP_VERSION="$FRANKENPHP_PHP_VERSION" \
         bash "$SCRIPT_DIR/build-frankenphp.sh" \
-            "$CACHE_DIR/frankenphp-v1.12.7.tar.gz" \
+            "$CACHE_DIR/$FRANKENPHP_CACHE_FILE" \
             "$RUNTIME_DIR/modules/frankenphp" \
             "$FRANKENPHP_VERSION"
     fi
@@ -267,7 +289,7 @@ elif ! grep -q '"mysql_root_password"' "$SECRETS_FILE"; then
     FRAMPP_SECRETS_FILE="$SECRETS_FILE" \
     FRAMPP_ROOT_PW="$(gen_hex 24)" \
     FRAMPP_RO_PW="$(gen_hex 24)" \
-        "$RUNTIME_DIR/modules/frankenphp/frankenphp" php-cli -r '
+        php_cli -r '
             $f = getenv("FRAMPP_SECRETS_FILE");
             $d = json_decode((string) file_get_contents($f), true);
             $d["mysql_root_password"] = getenv("FRAMPP_ROOT_PW");
@@ -407,7 +429,7 @@ if [[ ! -f "$SCHEDULER_CADDY" ]]; then
 # Mode 2: command job (upstream-compatible; runs an external process)
 # pogo_scheduler {
 #     mode command
-#     command /opt/frampp/modules/frankenphp/frankenphp php-cli /opt/frampp/apps/default/bin/console schedule:run
+#     command /opt/frampp/modules/frankenphp/php /opt/frampp/apps/default/bin/console schedule:run
 #     interval 1m
 #     timeout 5m
 #     overlap skip
@@ -450,7 +472,7 @@ EOF
     if [[ -z "$PANEL_ADMIN_PW" ]]; then
         PANEL_ADMIN_PW="$(gen_hex 16)"
         FRAMPP_SECRETS_FILE="$SECRETS_FILE" FRAMPP_PANEL_PW="$PANEL_ADMIN_PW" \
-            "$RUNTIME_DIR/modules/frankenphp/frankenphp" php-cli -r '
+            php_cli -r '
                 $f = getenv("FRAMPP_SECRETS_FILE");
                 $d = json_decode((string) file_get_contents($f), true);
                 if (!isset($d["panel_admin_password"])) {
@@ -483,7 +505,7 @@ return array (
 EOF
     if [[ ! -f "$PANEL_MOD/var/installed" ]]; then
         PANEL_ADMIN_PW="$PANEL_ADMIN_PW" PANEL_ADMIN_API="$PANEL_ADMIN_API" \
-            "$RUNTIME_DIR/modules/frankenphp/frankenphp" php-cli "$PANEL_MOD/bin/panel" install \
+            php_cli "$PANEL_MOD/bin/panel" install \
                 --username=admin --password="$PANEL_ADMIN_PW" --admin-api="$PANEL_ADMIN_API" || \
             warn "caddy-panel init failed / caddy-panel 初始化失败"
     fi
@@ -556,7 +578,7 @@ mysql_php() { # mysql_php <socket> <password> <sql-file 或 "-">
     local sock="$1" pw="$2" sql="$3"
     FRAMPP_BOOT_SOCKET="$sock" FRAMPP_BOOT_PW="$pw" FRAMPP_BOOT_SQL="$sql" \
         PHPRC="$RUNTIME_DIR/etc/php.ini" \
-        "$FRANKENPHP_BIN" php-cli -r '
+        php_cli -r '
             $sock = getenv("FRAMPP_BOOT_SOCKET");
             $pw = getenv("FRAMPP_BOOT_PW");
             $sql = getenv("FRAMPP_BOOT_SQL");
@@ -683,6 +705,7 @@ cat > "$RUNTIME_DIR/var/runtime.json" <<EOF
     "ports": { "http": $HTTP_PORT, "panel": $PANEL_PORT, "mysql": $MYSQL_PORT, "redis": $REDIS_PORT },
     "components": {
         "frankenphp": "$FRANKENPHP_VERSION",
+        "php": "$FRANKENPHP_PHP_VERSION",
         "mysql": "$MYSQL_VERSION",
         "redis": "$REDIS_VERSION",
         "composer": "$COMPOSER_VERSION",

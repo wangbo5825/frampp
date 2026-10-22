@@ -28,8 +28,11 @@ param(
 )
 
 if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path }
+$Root = [System.IO.Path]::GetFullPath($Root)
 if (-not $CacheDir) { $CacheDir = Join-Path $Root "dist\binaries" }
+$CacheDir = [System.IO.Path]::GetFullPath($CacheDir)
 if (-not $RuntimeDir) { $RuntimeDir = Join-Path $Root "dist\runtime" }
+$RuntimeDir = [System.IO.Path]::GetFullPath($RuntimeDir)
 
 $ErrorActionPreference = "Stop"
 
@@ -176,6 +179,16 @@ foreach ($prop in $config.components.PSObject.Properties) {
     }
     Write-Step "Extracting $name ..."
     $zip = Join-Path $CacheDir $c.cacheFile
+    if ($name -eq "apcu" -and (Test-Path -LiteralPath $targetDir)) {
+        # APCu shares modules/frankenphp/ext with the PHP distribution;
+        # remove only old component markers and overwrite its own DLL files.
+        Get-ChildItem -LiteralPath $targetDir -Filter ".extracted-*" -Force -ErrorAction SilentlyContinue |
+            Remove-Item -Force
+    } elseif (Test-Path -LiteralPath $targetDir) {
+        Write-Step "Removing stale $name module ($targetDir)"
+        Remove-Item -LiteralPath $targetDir -Recurse -Force
+    }
+    New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
     Expand-Archive -LiteralPath $zip -DestinationPath $targetDir -Force
     Move-ExtractedIfNested $targetDir
     New-Item -ItemType File -Path $marker -Force | Out-Null
@@ -251,6 +264,15 @@ $templatesDir = Join-Path $Root "installer\templates"
 $phpIni = Join-Path $RuntimeDir "etc\php.ini"
 if (-not (Test-Path -LiteralPath $phpIni)) {
     Copy-Item -LiteralPath (Join-Path $templatesDir "php.ini.template") -Destination $phpIni
+}
+# 0.8.3+ uses standalone php.exe: relative extension_dir depends on CWD and
+# breaks Composer/MySQL/OpenSSL. Migrate existing installs on every init.
+$phpIniText = [System.IO.File]::ReadAllText($phpIni, [System.Text.Encoding]::UTF8)
+$extensionDir = Convert-PathToForward (Join-Path $RuntimeDir "modules\frankenphp\ext")
+$updatedPhpIni = $phpIniText -replace '(?m)^extension_dir\s*=\s*"ext"\s*$',
+    ('extension_dir = "' + $extensionDir + '"')
+if ($updatedPhpIni -ne $phpIniText) {
+    [System.IO.File]::WriteAllText($phpIni, $updatedPhpIni, (New-Object System.Text.UTF8Encoding($false)))
 }
 
 $redisConf = Join-Path $RuntimeDir "etc\redis.conf"
@@ -339,9 +361,9 @@ if (Test-Path -LiteralPath (Join-Path $caddyPanelModule "bin\panel")) {
         (New-Object System.Text.UTF8Encoding($false))
     )
     $panelPw = [string]$secrets.panel_admin_password
-    $frankenPhp = Join-Path $RuntimeDir "modules\frankenphp\frankenphp.exe"
-    if ((Test-Path -LiteralPath $frankenPhp) -and -not (Test-Path -LiteralPath (Join-Path $caddyPanelModule "var\installed"))) {
-        & $frankenPhp php-cli (Join-Path $caddyPanelModule "bin\panel") install `
+    $phpCli = Join-Path $RuntimeDir "modules\frankenphp\php.exe"
+    if ((Test-Path -LiteralPath $phpCli) -and -not (Test-Path -LiteralPath (Join-Path $caddyPanelModule "var\installed"))) {
+        & $phpCli (Join-Path $caddyPanelModule "bin\panel") install `
             --username=admin --password=$panelPw --admin-api=$adminApi 2>&1 | Out-Null
     }
 }
@@ -503,6 +525,7 @@ $runtime = [ordered]@{
     ports       = $ports
     components  = @{
         frankenphp = $config.components.frankenphp.version
+        php        = $config.components.frankenphp.phpVersion
         mariadb    = $config.components.mariadb.version
         redis      = $config.components.redis.version
         composer   = $config.components.composer.version

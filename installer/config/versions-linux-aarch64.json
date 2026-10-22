@@ -1,16 +1,17 @@
 {
   "schema": 1,
   "platform": "linux-aarch64",
-  "lockedAt": "2026-10-11T00:00:00Z",
+  "lockedAt": "2026-10-22T00:00:00Z",
   "channel": "8.5",
   "channelLabel": "PHP 8.5（默认稳定通道）",
   "components": {
     "frankenphp": {
-      "name": "FrankenPHP (定制构建: 精简扩展 + Souin + UPX, musl 完全静态)",
-      "version": "1.12.7",
-      "url": "https://github.com/php/frankenphp/archive/refs/tags/v1.12.7.tar.gz",
-      "sha256": "4F8636315CC3748DF02A27F36B3456B96EAEBF505029E26DBD5FB473896D94C5",
-      "cacheFile": "frankenphp-v1.12.7.tar.gz",
+      "name": "FrankenPHP 1.13.2 security build (PHP 8.5.12, SPC v3, musl static)",
+      "version": "1.13.2",
+      "phpVersion": "8.5.12",
+      "url": "https://github.com/php/frankenphp/archive/refs/tags/v1.13.2.tar.gz",
+      "sha256": "A2557E793F325EE7CA64DA3FECFDF942F5C428D8F1E1574FD7E20BD28B346F57",
+      "cacheFile": "frankenphp-v1.13.2.tar.gz",
       "kind": "src",
       "installDir": "modules/frankenphp"
     },

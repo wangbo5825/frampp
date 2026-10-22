@@ -2,6 +2,32 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.8.3] - 2026-10-22
+
+面向 Windows、Linux x86_64/aarch64 和 Docker 的紧急安全更新。
+
+### 安全
+
+- 内置运行时升级到 **PHP 8.5.12**，修复 CVE-2026-109618（OOM 状态破坏）
+  与 CVE-2026-109619（陈旧全局请求状态）。二者均为可导致未认证远程代码执行
+  的严重漏洞；PHP 官方说明升级是唯一完整修复方式。
+- FrankenPHP 从 1.12.7 升级到 **1.13.2**，修复 4 个 FrankenPHP 自身安全
+  问题：嵌入式应用临时目录抢占、断连请求占用 PHP 线程、循环数组导致进程
+  崩溃，以及 worker 错误状态跨请求泄漏。
+- Linux 定制构建迁移到 static-php-cli v3（`LIBC` / `XCADDY_ARGS` /
+  `spc craft`），继续保持完全静态 musl 产物，并锁定 Souin、
+  caddy-access-filter 和 pogo_scheduler 模块。
+
+### 变更
+
+- Windows、Linux x86_64/aarch64 与多架构 Docker 镜像统一切换到
+  PHP 8.5.12 + FrankenPHP 1.13.2 安全基线。
+- 组件清单显式记录 `phpVersion=8.5.12`；Linux 冒烟测试断言 PHP 8.5.12
+  且 FrankenPHP 不低于 1.13.2。
+- Windows 升级解压新版本前会清理旧 FrankenPHP 模块目录，避免遗留旧二进制。
+- 组件下载器发现缓存哈希不匹配时会先删除旧文件再重新下载，避免断点续传
+  把旧 ZIP 与新数据拼接。
+
 ## [0.8.2] - 2026-10-21
 
 Linux-only 临时预发布版本（不提供 Windows 安装包）。

@@ -36,5 +36,11 @@ case "${1:-}" in
         ;;
 esac
 
+PHP_BIN="$FRAMPP_HOME/modules/frankenphp/php"
+if [ -x "$PHP_BIN" ]; then
+    exec "$PHP_BIN" "$FRAMPP_HOME/modules/control-panel/bin/frampp" "$@"
+fi
+
+# 0.8.2 兼容回退
 exec "$FRAMPP_HOME/modules/frankenphp/frankenphp" php-cli \
     "$FRAMPP_HOME/modules/control-panel/bin/frampp" "$@"

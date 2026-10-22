@@ -83,8 +83,7 @@ final class ProjectCreator
      */
     private function createFromComposer(string $name, string $target, array $steps): array
     {
-        $php = $this->config->module('frankenphp') . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'frankenphp.exe' : 'frankenphp');
-        $phpCli = 'php-cli';
+        $php = $this->config->module('frankenphp') . DIRECTORY_SEPARATOR . (PHP_OS_FAMILY === 'Windows' ? 'php.exe' : 'php');
         $composer = $this->config->module('composer') . DIRECTORY_SEPARATOR . 'composer.phar';
         foreach ([$php, $composer] as $file) {
             if (!is_file($file)) {
@@ -93,9 +92,8 @@ final class ProjectCreator
         }
         $first = array_shift($steps);
         $cmd = sprintf(
-            '%s %s -d memory_limit=1G %s create-project %s %s --no-interaction --no-ansi --no-progress --prefer-dist 2>&1',
+            '%s -d memory_limit=1G %s create-project %s %s --no-interaction --no-ansi --no-progress --prefer-dist 2>&1',
             escapeshellarg($php),
-            $phpCli,
             escapeshellarg($composer),
             escapeshellarg((string) $first),
             escapeshellarg($target)

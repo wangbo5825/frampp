@@ -2,12 +2,12 @@
 #
 # 定制构建 FrankenPHP（Linux: x86_64 / aarch64 —— 与构建主机架构一致）。
 #
-# 基于官方 build-static.sh（static-php-cli / spc）：
+# 基于官方 build-static.sh（static-php-cli v3 / spc craft）：
 #   - PHP 扩展：官方默认集去掉 intl / soap / gmp / bcmath / exif / imagick
 #     （xdebug 不在官方默认集，天然不包含）
 #   - Caddy 模块：去掉 Mercure / Vulcain，加入 Souin（HTTP 缓存）、caddy-cbrotli
 #     与 caddy-access-filter（access/filter 可编程钩子）
-#   - SPC_LIBC=glibc：glibc mostly static（静态库除 glibc 外全部打入）
+#   - LIBC=musl：完全静态二进制（不依赖目标系统 libc）
 #   - COMPRESS=1：最终二进制用 UPX 压缩
 #   - Go 链接器 -w -s 去符号（spc 默认执行）
 #
@@ -50,13 +50,26 @@ tar -tzf "$SRC_TAR" > "$WORK/list.txt"
 SRC_NAME="$(head -n1 "$WORK/list.txt" | cut -d/ -f1)"
 cd "$WORK/$SRC_NAME"
 
+# PHP 8.5 的 FrankenPHP 1.13.2 不再提供 `frankenphp php-cli` 子命令；
+# 同时构建独立 CLI SAPI，FRAMPP 才能保留标准 bin/php 命令。
+if ! grep -q '^sapi:' craft.yml; then
+    echo "缺少 FrankenPHP craft.yml sapi 配置" >&2
+    exit 1
+fi
+sed -i 's/^sapi:.*/sapi: "frankenphp,cli"/' craft.yml
+
 # PHP 版本与精简扩展集（默认集去掉 intl/soap/gmp/bcmath/exif/imagick）
-export PHP_VERSION="${FRAMPP_PHP_VERSION:-8.5.9}"
+# 8.5.12 修复 CVE-2026-109618 / CVE-2026-109619（PHP2Shell），不得降级。
+export PHP_VERSION="${FRAMPP_PHP_VERSION:-8.5.12}"
 export PHP_EXTENSIONS="amqp,apcu,ast,brotli,bz2,calendar,ctype,curl,dba,dom,fileinfo,filter,ftp,gd,gettext,iconv,igbinary,ldap,lz4,mbregex,mbstring,memcached,mysqli,mysqlnd,opcache,openssl,password-argon2,parallel,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,protobuf,readline,redis,session,shmop,simplexml,sockets,sodium,sqlite3,ssh2,sysvmsg,sysvsem,sysvshm,tidy,tokenizer,xlswriter,xml,xmlreader,xmlwriter,xsl,xz,zip,zlib,yaml,zstd"
 
-# musl 完全静态（无 glibc 依赖，可运行于任意 glibc 版本）+ UPX 压缩
-export SPC_LIBC="${FRAMPP_SPC_LIBC:-musl}"
+# static-php-cli v3 使用 LIBC 选择工具链；unset 旧 v2 变量，避免构建链混用。
+export LIBC="${FRAMPP_SPC_LIBC:-musl}"
+unset SPC_LIBC
 export COMPRESS=1
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    export SPC_GITHUB_TOKEN="$GITHUB_TOKEN"
+fi
 
 # 版本固定（解压目录无 .git，必须显式给出版本）
 export FRANKENPHP_VERSION="${FP_VERSION#v}"
@@ -67,11 +80,11 @@ export FRANKENPHP_VERSION="${FP_VERSION#v}"
 # 不同架构/不同时间构建出的产物会出现版本漂移（0.8.1 曾出现 2.11.4 vs 2.11.7）。
 # scheduler 的 go.mod 位于仓库 module/ 子目录，根目录 tag v0.1.0 不适用于子模块；
 # 用 v0.1.0 对应的 commit（e492454）固定版本，Go 会解析为 pseudo-version。
-export SPC_CMD_VAR_FRANKENPHP_XCADDY_MODULES="--with github.com/dunglas/caddy-cbrotli@v1.0.1 --with github.com/darkweak/souin/plugins/caddy@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/souin@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/storages/otter/caddy@v0.0.20 --with github.com/wangbo5825/caddy-access-filter@v1.2.1 --with github.com/wangbo5825/scheduler/module@e492454bf1ad75cafd2648b99c1840f0a8706c61"
+export XCADDY_ARGS="--with github.com/dunglas/caddy-cbrotli@v1.0.1 --with github.com/darkweak/souin/plugins/caddy@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/souin@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/storages/otter/caddy@v0.0.20 --with github.com/wangbo5825/caddy-access-filter@v1.2.1 --with github.com/wangbo5825/scheduler/module@e492454bf1ad75cafd2648b99c1840f0a8706c61"
 
-echo "==> 构建 FrankenPHP $FRANKENPHP_VERSION（PHP $PHP_VERSION, libc=$SPC_LIBC, UPX=$COMPRESS）..."
+echo "==> 构建 FrankenPHP $FRANKENPHP_VERSION（PHP $PHP_VERSION, libc=$LIBC, SPC=v3, UPX=$COMPRESS）..."
 echo "    扩展: ${PHP_EXTENSIONS//,/, }"
-echo "    Caddy 模块: $SPC_CMD_VAR_FRANKENPHP_XCADDY_MODULES"
+echo "    Caddy 模块: $XCADDY_ARGS"
 bash ./build-static.sh
 
 echo "==> 复制产物到 $OUT_DIR ..."
@@ -84,6 +97,14 @@ fi
 cp "$FP_BIN" "$OUT_DIR/frankenphp"
 chmod +x "$OUT_DIR/frankenphp"
 
+PHP_BIN="dist/buildroot/bin/php"
+if [[ ! -x "$PHP_BIN" ]]; then
+    echo "未找到 PHP CLI 产物（$PHP_BIN）" >&2
+    exit 1
+fi
+cp "$PHP_BIN" "$OUT_DIR/php"
+chmod +x "$OUT_DIR/php"
+
 # sudo 重执行时产物归 root，交还属主给原用户，便于后续脚本读写
 if [[ -n "${SUDO_USER:-}" ]]; then
     chown -R "$SUDO_USER":"$SUDO_USER" "$OUT_DIR"
@@ -92,5 +113,6 @@ fi
 echo "==> 验证:"
 "$OUT_DIR/frankenphp" version
 "$OUT_DIR/frankenphp" build-info || true
-ls -lh "$OUT_DIR/frankenphp"
-echo "FRANKENPHP_BUILD_OK version=$FP_VERSION"
+"$OUT_DIR/php" -v
+ls -lh "$OUT_DIR/frankenphp" "$OUT_DIR/php"
+echo "FRANKENPHP_BUILD_OK version=$FP_VERSION php=$PHP_VERSION spc=v3"

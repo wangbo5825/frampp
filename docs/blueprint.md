@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.13（2026-10-21，v0.8.2 Linux-only：apps 布局 + pogo_scheduler + 英文优先安装器）
+> 状态：设计稿 v1.14（2026-10-22，v0.8.3：PHP 8.5.12 + FrankenPHP 1.13.2 安全更新）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -49,8 +49,11 @@
 
 - **M = MariaDB（默认）**：再分发许可更宽松、与 XAMPP 先例一致、Windows 原生支持成熟；MySQL 保留为可选。字母含义不变。
 - **R = Redis（Windows 直接用 Redis）**：官方无原生 Windows 构建（官方文档推荐 Memurai / WSL）。采用社区活跃维护的 `redis-windows` 构建（随官方源码同步发布、含安全修复），固定版本 + SHA-256 校验 + 仅绑定 127.0.0.1 + 随机密码。风险中低、可接受并文档化；若维护滞后则切换 Memurai（Redis 官方 Windows 合作伙伴）。
-- **P = PHP 由 FrankenPHP 提供（CLI 模式）**：不单独安装 PHP；Web 用 `frankenphp php-server`，命令行用 `frankenphp php-cli`。FrankenPHP v1.12+ 原生支持 Windows（链接官方 Visual Studio 编译的 PHP 二进制，扩展齐全）。
-- **Composer 随包集成**：以 `composer.phar` 分发，由 `frankenphp php-cli composer.phar` 执行；M1 需验证 mbstring / openssl / xml 等 Composer 依赖扩展可用。
+- **P = PHP 由 FrankenPHP 提供**：不额外安装系统 PHP；Web 用
+  `frankenphp php-server`，命令行使用同版本独立 `php` / `php.exe`
+  （0.8.3 / FrankenPHP 1.13.2 起；0.8.2 及更早使用 `frankenphp php-cli`）。
+- **Composer 随包集成**：以 `composer.phar` 分发，由独立 `php` /
+  `php.exe` 执行；需验证 mbstring / openssl / xml 等 Composer 依赖扩展可用。
 - **APCu / Adminer 保留**：均为轻量附赠（APCu 扩展 DLL、Adminer 单文件），不占字母，保留在默认发行中。
 - **Python 保留为嵌入式轻量方案**：默认勾选的可选组件，用 uv / 嵌入式发行版按需安装，控制包体积。
 
@@ -58,7 +61,7 @@
 
 - **产品定位**：只解决普通用户"一键安装、开箱即用"问题，**不提供**高级用户的多 PHP 版本并存（Laragon / Herd 式切换）。
 - **发布形态**：类似 XAMPP——按 **FRAMPP 版本 × 组件通道 × 环境** 发布不同的一键安装包：`frampp-setup-<channel>-<version>-<env>.exe`。
-- **通道**：当前仅 `8.5`（FrankenPHP 1.12.7 / PHP 8.5.9 / MariaDB 12.3.2 / Redis 8.10.1）；新增通道需 FrankenPHP 提供对应 Windows 构建并在 `channels.json` / `versions-<channel>.json` 注册。
+- **通道**：当前仅 `8.5`（FrankenPHP 1.13.2 / PHP 8.5.12 / MariaDB 12.3.2 / Redis 8.10.1）；新增通道需 FrankenPHP 提供对应 Windows 构建并在 `channels.json` / `versions-<channel>.json` 注册。
 - **发布管线**：`installer/scripts/release.ps1` 构建各通道、生成 SHA256SUMS、可选直发 GitHub Releases（tag `v<version>`）。流程见 [docs/releases.md](releases.md)。
 - **命名简化（v0.7.0 计划，2026-08-29 记录）**：FRAMPP 与 PHP 大版本保持一致（当前通道 `8.5`），安装包命名自 v0.7.0 起简化为
   `frampp-<version>-<env>.<ext>`（去掉通道段）；版本与 PHP / 组件矩阵的对应关系在 Release note 中说明。
@@ -73,7 +76,10 @@
   - **MySQL 8.0**（v0.7.0 起）：官方 glibc 2.17 minimal 包裁剪（`installer/scripts/linux/trim-mysql.sh`，CentOS 7 兼容、自带 OpenSSL）；v0.6.0 及以前为 MariaDB bintar / 源码编译，见 §2.12。
   - **Redis**：**官方源码 8.10.1 静态编译**（首选 Alpine musl 静态，Docker 不可用时回退宿主编译），保证与 Windows 版本一致、品牌一致且无 glibc 依赖；不用 Valkey 预编译包（品牌不一致且将 glibc 基线抬到 2.35）。
   - Composer / Adminer：与 Windows 同一文件（跨平台 phar/php），复用同一缓存。
-- **运行模型**：php.ini 由 `php.ini.linux.template` 生成（静态扩展无 `extension=` 指令）；CLI 与服务器统一通过 `bin/frampp` 包装器启动（`frankenphp php-cli -c <php.ini>` + `PHPRC` 环境变量），控制面板 `ServiceManager` 已跨平台（`kill`/`/dev/null`、去 `.exe`）。
+- **运行模型**：php.ini 由 `php.ini.linux.template` 生成（静态扩展无
+  `extension=` 指令）；CLI 与服务器统一通过 `bin/frampp` 包装器启动，
+  CLI 使用随包 `modules/frankenphp/php` + `PHPRC`，控制面板
+  `ServiceManager` 已跨平台（`kill`/`/dev/null`、去 `.exe`）。
 - **安全基线不变**：127.0.0.1 绑定、随机密码、只读账号 `frampp_ro`、审计日志。
 
 ### 2.7 0.3.0 组件精简决策（v1.4，2026-08-20）
@@ -153,7 +159,7 @@
   ```
 
 - **命令统一**：`bin/` 收集必要命令；Linux 对 `modules/` 内命令建立符号链接，Windows 用 `.cmd`
-  包装器。新增 `php`（`frankenphp php-cli` 兼容标准 PHP CLI）、`composer`、`python`、`pip`、
+  包装器。新增 `php`（独立 PHP CLI，兼容标准 `php` 命令）、`composer`、`python`、`pip`、
   `mysql`、`redis-cli` 等，并提供 `env` 脚本统一设置 `PATH` / `FRAMPP_HOME` / `PHPRC`。
 - **安装脚本清理**：安装包运行时不再包含 `install.sh` 与构建脚本；`.run` 解压后直接调用
   `bin/frampp init`。`uninstall.sh` 移入 `bin/uninstall`。`installer/` 只保留运行时必要的
@@ -350,6 +356,44 @@
 - **验证**：两架构安装包 CI 冒烟新增 apps 布局断言、`pogo_scheduler` 模块存在性
   与 HTTP 模式定时触发（写入 `var/scheduler-smoke.log`）测试。
 
+### 2.18 v0.8.3 严重安全更新决策（v1.14，2026-10-22）
+
+- **安全背景**：PHP 官方于 2026-10-21 发布 8.5.12 安全版本，修复
+  CVE-2026-109618（OOM 处理破坏请求内部状态）与 CVE-2026-109619
+  （释放后的全局状态被后续请求复用）两个可导致未认证远程代码执行的严重漏洞；
+  PHP 官方明确说明没有完整缓解措施，必须升级。FrankenPHP 1.13.2 同时是安全
+  版本，修复 4 个 FrankenPHP 自身漏洞，包括嵌入式应用临时目录抢占导致的本地
+  代码执行、断连请求占用线程池、循环数组导致进程崩溃、worker 错误状态跨请求
+  泄漏。
+- **版本结论**：只修改 `PHP_VERSION=8.5.12` 不足以覆盖 FrankenPHP 自身漏洞，
+  因此 v0.8.3 同步将 FrankenPHP 从 1.12.7 升级至 **1.13.2**，PHP 固定为
+  **8.5.12**。Windows、Linux x86_64/aarch64 与 Docker 必须使用同一安全基线；
+  不再发布仍含 PHP 8.5.9 或 FrankenPHP 1.12.7 的安装包。
+- **构建链变化**：FrankenPHP 1.13.2 静态构建切换到 **static-php-cli v3**。定制
+  脚本由旧变量 `SPC_LIBC` / `SPC_CMD_VAR_FRANKENPHP_XCADDY_MODULES` 迁移到
+  `LIBC` / `XCADDY_ARGS`，使用官方 `craft.yml` 与 `spc craft`；仍构建完全静态
+  musl 二进制，并保留 Souin、`caddy-access-filter` v1.2.1、
+  `pogo_scheduler` v0.1.0 等锁定模块。
+- **CLI 兼容变化**：PHP 8.5 下的 FrankenPHP 1.13.2 不再提供
+  `frankenphp php-cli` 子命令；Linux craft 同时构建 `frankenphp,cli` SAPI，
+  安装包提供 `modules/frankenphp/php`，Windows 官方包使用独立
+  `modules/frankenphp/php.exe`。所有 `bin/php`、Composer、MCP、控制面板与
+  init 内部调用均改用独立 CLI，并保留 0.8.2 回退路径。
+- **供应链锁定**：FrankenPHP 1.13.2 源码 tarball SHA-256
+  `A2557E793F325EE7CA64DA3FECFDF942F5C428D8F1E1574FD7E20BD28B346F57`；
+  Windows x86_64 官方 ZIP SHA-256
+  `7D856ED29A14197EF40593C50B24E2B1A030930C1AE4C6616D2A7FF2FDBE45AD`。
+  版本清单显式记录 `phpVersion=8.5.12`，Windows 解压遇到新版本时先清理旧
+  FrankenPHP 模块目录，避免旧二进制残留。
+- **验证门槛**：Linux 两架构冒烟必须断言 PHP 精确为 8.5.12、FrankenPHP 至少为
+  1.13.2、自定义 Caddy 模块仍存在且 scheduler 可触发；Windows 安装包必须
+  验证内置 `php.exe` 为 8.5.12。Docker 继续由两架构 `.run` 载荷构建并发布
+  manifest list。
+- **兼容性评估**：PHP 8.5.9 → 8.5.12 属同一 8.5 系列补丁升级，预期应用 ABI /
+  行为兼容；主要风险来自 static-php-cli v3 和 Caddy/FrankenPHP 新版本，故
+  0.8.3 定位为安全修复版，不引入 v0.9.0 的安装目录 `/opt`、setcap、chroot 或
+  上传策略等新功能。升级不修改配置格式、数据库结构或 `apps/` 布局。
+
 ---
 
 ## 3. 总体架构
@@ -393,7 +437,9 @@ flowchart LR
 - FrankenPHP 采用 ZTS 线程模型，worker 模式为默认（Symfony 7.4+ / API Platform 官方支持）
 - 官方基准：API Platform 应用在 worker 模式下比 FPM 快约 3.5 倍
 - 自动 HTTPS：本地证书 + hosts 管理
-- PHP 运行时由 FrankenPHP 自带：Web 与命令行均走 CLI 模式（`php-server` / `php-cli`），不单独安装 PHP；内置 Composer（`php-cli composer.phar`）供项目模板与 Agent 使用
+- PHP 运行时由 FrankenPHP 自带：Web 使用 `frankenphp php-server`，命令行使用
+  随包的独立 `php` / `php.exe`，不安装系统 PHP；Composer 供项目模板与
+  Agent 使用
 
 ---
 
@@ -496,7 +542,8 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 ### 6.1 FrankenPHP
 
 - worker 模式为默认运行方式
-- PHP 由 FrankenPHP 自带，默认 CLI 模式：`frankenphp php-server`（Web）、`frankenphp php-cli`（命令行）；Composer 以 `php-cli composer.phar` 方式集成
+- PHP 由 FrankenPHP 自带：`frankenphp php-server`（Web）和独立
+  `php` / `php.exe`（命令行）；Composer 通过该 CLI 集成
 - 原生 Windows 支持自 v1.12 起（链接官方 Visual Studio 编译的 PHP 二进制，扩展齐全）；M1 锁定版本并校验哈希
 - APCu 扩展默认启用；worker 模式需 `apc.enable_cli=1`（官方镜像默认不带，是最易踩的坑）
 - `apc.shm_size` 默认预设 128M，控制面板可调
@@ -518,7 +565,7 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 ### 6.4 模板与生态
 
 - **API Platform starter**：与 FrankenPHP 同作者（Kévin Dunglas），官方 demo 即 Symfony + API Platform；v4.x 提供 Symfony / Laravel 适配。示例项目预配 worker 模式 + MariaDB + Redis，装完即可演示完整 API（Swagger + Admin + 自动文档）
-- 项目模板创建通过内置 Composer 完成（`frankenphp php-cli composer.phar create-project ...`）
+- 项目模板创建通过内置 Composer 完成（`php composer.phar create-project ...`）
 - Adminer：单文件数据库管理，由 FrankenPHP 直接提供
 
 ---
@@ -578,3 +625,5 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
     `frampp restart` 竞态修复）
 12. ✅ 发布 **v0.8.2**（Linux-only 临时版：`apps/<app>` 布局、pogo_scheduler
     v0.1.0、安装器英文优先）
+13. ✅ v0.8.3 安全更新：PHP **8.5.12**、FrankenPHP **1.13.2**、static-php-cli v3；
+    Linux x86_64/aarch64、Windows x64 与多架构 Docker 统一切换到安全基线

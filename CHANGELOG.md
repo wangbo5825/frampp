@@ -2,6 +2,36 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.8.3] - 2026-10-22
+
+Urgent security update for Windows, Linux x86_64/aarch64 and Docker.
+
+### Security
+
+- Upgraded the bundled runtime to **PHP 8.5.12**, fixing CVE-2026-109618
+  (OOM state corruption) and CVE-2026-109619 (stale global request state).
+  Both are critical vulnerabilities that can enable unauthenticated remote
+  code execution; PHP advises that upgrading is the only complete mitigation.
+- Upgraded FrankenPHP from 1.12.7 to **1.13.2**, fixing four FrankenPHP
+  security issues: embedded-app temp-directory precreation, disconnected
+  clients retaining PHP threads, cyclic-array stack overflow and worker
+  error-state leakage.
+- Linux custom builds now use static-php-cli v3 (`LIBC` / `XCADDY_ARGS` /
+  `spc craft`) while retaining the fully static musl output and pinned Souin,
+  caddy-access-filter and pogo_scheduler modules.
+
+### Changed
+
+- Windows, Linux x86_64/aarch64 and multi-arch Docker images now share the
+  PHP 8.5.12 + FrankenPHP 1.13.2 security baseline.
+- Component manifests explicitly record `phpVersion=8.5.12`; Linux smoke tests
+  assert PHP 8.5.12 and FrankenPHP >= 1.13.2.
+- Windows upgrades remove a stale FrankenPHP module directory before extracting
+  a new version, preventing old binaries from being retained.
+- The component downloader now deletes a hash-mismatched cached archive before
+  retrying, preventing an old ZIP from being resumed and concatenated with new
+  data.
+
 ## [0.8.2] - 2026-10-21
 
 Temporary Linux-only prerelease (no Windows installer).

@@ -30,6 +30,19 @@ echo "=== status ==="
 ./bin/frampp status --json || true
 echo "=== version ==="
 ./bin/frampp version || true
+PHP_FULL="$(./modules/frankenphp/php -r 'echo PHP_VERSION;' 2>/dev/null || true)"
+echo "PHP_VERSION=$PHP_FULL"
+if [[ "$PHP_FULL" != "8.5.12" ]]; then
+  echo "PHP_VERSION_UNSAFE ($PHP_FULL != 8.5.12)"; exit 1
+fi
+echo "PHP_VERSION_OK $PHP_FULL"
+FP_FULL="$(./modules/frankenphp/frankenphp version 2>&1 || true)"
+echo "$FP_FULL"
+FP_VER="$(printf '%s\n' "$FP_FULL" | sed -n 's/.*FrankenPHP v\([0-9][0-9.]*\).*/\1/p' | head -n1)"
+if [[ -z "$FP_VER" ]] || [ "$(printf '%s\n%s\n' "1.13.2" "$FP_VER" | sort -V | head -n1)" != "1.13.2" ]; then
+  echo "FRANKENPHP_VERSION_UNSAFE ($FP_VER < 1.13.2)"; exit 1
+fi
+echo "FRANKENPHP_VERSION_OK $FP_VER"
 echo "=== root master command (LAMPP-style symlink) ==="
 ls -la frampp
 if [ ! -L frampp ] || [ ! -e frampp ]; then
@@ -48,7 +61,7 @@ test -f apps/default/htdocs/adminer.php
 test -L htdocs
 readlink htdocs
 echo "=== extensions ==="
-./modules/frankenphp/frankenphp php-cli -r "printf('apcu=%s redis=%s mysqli=%s pdo_sqlite=%s simplexml=%s openssl=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', extension_loaded('pdo_sqlite')?'yes':'NO', extension_loaded('simplexml')?'yes':'NO', extension_loaded('openssl')?'yes':'NO', PHP_EOL);" || true
+./modules/frankenphp/php -r "printf('apcu=%s redis=%s mysqli=%s pdo_sqlite=%s simplexml=%s openssl=%s%s', extension_loaded('apcu')?'yes':'NO', extension_loaded('redis')?'yes':'NO', extension_loaded('mysqli')?'yes':'NO', extension_loaded('pdo_sqlite')?'yes':'NO', extension_loaded('simplexml')?'yes':'NO', extension_loaded('openssl')?'yes':'NO', PHP_EOL);" || true
 echo "=== pogo_scheduler module ==="
 ./modules/frankenphp/frankenphp list-modules | grep -q 'pogo_scheduler' || { echo "SCHEDULER_MODULE_MISSING"; exit 1; }
 echo "SCHEDULER_MODULE_OK"
@@ -127,7 +140,7 @@ mysql_ready || { echo "MYSQL_PORT_NOT_READY"; exit 1; }
 ROOT_PW="$(sed -n 's/.*"mysql_root_password"[^"]*"\([^"]*\)".*/\1/p' var/secrets.json)"
 REDIS_PW="$(sed -n 's/.*"redis_password"[^"]*"\([^"]*\)".*/\1/p' var/secrets.json)"
 echo "--- MySQL via PHP PDO (mysqlnd, 与控制面板同一链路) ---"
-ROOT_PW="$ROOT_PW" ./modules/frankenphp/frankenphp php-cli -r '
+ROOT_PW="$ROOT_PW" ./modules/frankenphp/php -r '
   $pdo = new PDO("mysql:host=127.0.0.1;port=3306;charset=utf8mb4", "root", getenv("ROOT_PW"), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
   echo "MYSQL_VERSION=", $pdo->query("SELECT VERSION()")->fetchColumn(), PHP_EOL;
 '

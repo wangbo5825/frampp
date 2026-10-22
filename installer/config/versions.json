@@ -1,15 +1,16 @@
 {
   "schema": 1,
   "platform": "windows-x64",
-  "lockedAt": "2026-08-19",
+  "lockedAt": "2026-10-22",
   "channel": "8.5",
   "channelLabel": "PHP 8.5（默认稳定通道）",
   "components": {
     "frankenphp": {
-      "name": "FrankenPHP",
-      "version": "1.12.7",
-      "url": "https://github.com/php/frankenphp/releases/download/v1.12.7/frankenphp-windows-x86_64.zip",
-      "sha256": "4CDFC5F9B9B10E9657CE3BB47260D6A59A8F6789A885A0FA65061522B6C5981C",
+      "name": "FrankenPHP 1.13.2 security build (PHP 8.5.12)",
+      "version": "1.13.2",
+      "phpVersion": "8.5.12",
+      "url": "https://github.com/php/frankenphp/releases/download/v1.13.2/frankenphp-windows-x86_64.zip",
+      "sha256": "7D856ED29A14197EF40593C50B24E2B1A030930C1AE4C6616D2A7FF2FDBE45AD",
       "cacheFile": "frankenphp-windows-x86_64.zip",
       "kind": "zip",
       "installDir": "modules/frankenphp"

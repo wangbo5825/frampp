@@ -6,7 +6,8 @@
 # 甚至 Alpine 本身），从根本上避免 "GLIBC_x.yy not found"。这也是 FrankenPHP
 # 官方静态构建的默认方式。
 #
-# spc（static-php-cli）运行需要 PHP >= 8.4，Alpine 3.21 通过 apk 提供 php84。
+# 官方 build-static.sh 默认下载 static-php-cli v3 二进制；若下载失败，回退源码
+# 构建需要 PHP >= 8.4，Alpine 3.21 通过 apk 提供 php84。
 #
 # 环境变量:
 #   FRAMPP_BUILD_IMAGE 构建镜像（默认 alpine:3.21）
@@ -48,8 +49,9 @@ fi
 echo "==> 使用 Docker ($IMAGE, $DOCKER_PLATFORM) musl 完全静态构建 FrankenPHP $FP_VERSION ..."
 docker run --rm --platform "$DOCKER_PLATFORM" \
     -e "HOST_UID=$(id -u)" -e "HOST_GID=$(id -g)" \
-    -e "FRAMPP_PHP_VERSION=${FRAMPP_PHP_VERSION:-8.5.9}" \
+    -e "FRAMPP_PHP_VERSION=${FRAMPP_PHP_VERSION:-8.5.12}" \
     -e "FRAMPP_SPC_LIBC=musl" \
+    -e "LIBC=musl" \
     -e "FP_VERSION=$FP_VERSION" \
     -e "GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
     -e "SPC_GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
@@ -81,4 +83,9 @@ if file "$OUT_DIR/frankenphp" | grep -qi "statically linked"; then
 else
     echo "警告: 产物未报告为静态链接，请确认无 glibc 依赖" >&2
 fi
-echo "FRANKENPHP_MUSL_BUILD_OK version=$FP_VERSION image=$IMAGE"
+if file "$OUT_DIR/php" | grep -qi "statically linked"; then
+    echo "PHP_CLI_STATIC_OK version=${FRAMPP_PHP_VERSION:-8.5.12}"
+else
+    echo "PHP_CLI_NOT_STATIC"; exit 1
+fi
+echo "FRANKENPHP_MUSL_BUILD_OK version=$FP_VERSION php=${FRAMPP_PHP_VERSION:-8.5.12} spc=v3 image=$IMAGE"

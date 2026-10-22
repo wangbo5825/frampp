@@ -20,12 +20,13 @@ param(
 )
 
 if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path }
+$ErrorActionPreference = "Stop"
 if (-not $CacheDir) { $CacheDir = Join-Path $Root "dist\binaries" }
 if (-not $StagingDir) { $StagingDir = Join-Path $Root "dist\staging" }
 if (-not $ToolsDir) { $ToolsDir = Join-Path $Root "dist\tools" }
 if (-not $AppVersion) { $AppVersion = (Get-Content -LiteralPath (Join-Path $Root "VERSION") -Raw).Trim() }
-
-$ErrorActionPreference = "Stop"
+$versionConfigPath = Join-Path $Root "installer\config\versions.json"
+$versionConfig = Get-Content -Raw -LiteralPath $versionConfigPath | ConvertFrom-Json
 
 function Write-Step([string]$Message) { Write-Host "==> $Message" -ForegroundColor Cyan }
 
@@ -34,14 +35,16 @@ if (-not (Test-Path -LiteralPath (Join-Path $CacheDir "frankenphp-windows-x86_64
     Write-Step "组件缓存缺失，先运行 download.ps1"
     & (Join-Path $PSScriptRoot "download.ps1") -Root $Root -CacheDir $CacheDir
 }
-$fpMarker = Get-ChildItem -LiteralPath (Join-Path $StagingDir "modules\frankenphp") -Filter ".extracted-*" -Force -ErrorAction SilentlyContinue
-if (-not $fpMarker) {
+$expectedFpMarker = Join-Path $StagingDir ("modules\frankenphp\.extracted-" + $versionConfig.components.frankenphp.version)
+if (-not (Test-Path -LiteralPath $expectedFpMarker)) {
     if (Test-Path -LiteralPath $StagingDir) {
         Remove-Item -LiteralPath $StagingDir -Recurse -Force
     }
-    Write-Step "准备分发暂存目录（fresh init, SkipDbInit）"
-    & (Join-Path $PSScriptRoot "init.ps1") -Root $Root -CacheDir $CacheDir -RuntimeDir $StagingDir -SkipDbInit
 }
+
+# 即使组件已解压也要重新执行 init，把最新的命令包装、模板和文档同步到暂存目录。
+Write-Step "刷新分发暂存目录（init, SkipDbInit）"
+& (Join-Path $PSScriptRoot "init.ps1") -Root $Root -CacheDir $CacheDir -RuntimeDir $StagingDir -SkipDbInit
 
 # 2. 清理开发机产物，仅保留可分发内容
 Write-Step "清理暂存目录中的开发机数据"

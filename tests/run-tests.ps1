@@ -38,6 +38,8 @@ function Test-VersionsFile([string]$Path, [string]$Platform) {
     Assert-True ($config.schema -eq 1) "$label schema = 1"
     Assert-True ($config.platform -eq $Platform) "$label declares platform"
     Assert-True ([string]$config.channel -ne "") "$label declares channel"
+    Assert-True ($config.components.frankenphp.version -eq "1.13.2") "$label uses FrankenPHP 1.13.2"
+    Assert-True ($config.components.frankenphp.phpVersion -eq "8.5.12") "$label pins PHP 8.5.12"
 
     $required = @("name", "version", "url", "sha256", "cacheFile", "kind", "installDir")
     foreach ($prop in $config.components.PSObject.Properties) {
@@ -87,6 +89,9 @@ $tpl = Join-Path $Root "installer/templates"
 $phpIni = Get-Content -Raw -LiteralPath (Join-Path $tpl "php.ini.template")
 Assert-True ($phpIni -match 'apc\.enable_cli\s*=\s*1') "php.ini template enables APCu CLI"
 Assert-True ($phpIni -match 'extension\s*=\s*apcu') "php.ini template loads apcu extension"
+$initPs1 = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/init.ps1")
+Assert-True ($initPs1 -match 'extension_dir = "') "Windows init writes an absolute PHP extension_dir"
+Assert-True ($initPs1 -match 'APCu shares modules/frankenphp/ext') "Windows init preserves shared FrankenPHP extension directory"
 
 $phpIniLinux = Get-Content -Raw -LiteralPath (Join-Path $tpl "php.ini.linux.template")
 Assert-True ($phpIniLinux -match 'apc\.enable_cli\s*=\s*1') "php.ini.linux template enables APCu CLI"
@@ -144,6 +149,18 @@ Assert-True ($buildLinux -match 'trim-mysql\.sh') "build-linux-package.ps1 uses 
 Assert-True ($buildLinux -match '\(Join-Path \$StagingDir "share/templates"\)') "build-linux-package.ps1 stages templates under share/templates"
 Assert-True ($buildLinux -match '\$outName = "frampp-\$AppVersion-\$Env\.run"') "build-linux-package.ps1 uses simplified artifact name"
 Assert-True ($buildLinux -match '\(Join-Path \$moduleDir "mysql"\)') "build-linux-package.ps1 stages the mysql module"
+$buildFrankenPHP = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/build-frankenphp.sh")
+Assert-True ($buildFrankenPHP -match 'FRAMPP_PHP_VERSION:-8\.5\.12') "FrankenPHP build pins PHP 8.5.12"
+Assert-True ($buildFrankenPHP -match 'static-php-cli v3') "FrankenPHP build documents SPC v3"
+Assert-True ($buildFrankenPHP -match 'export LIBC=') "FrankenPHP build uses SPC v3 LIBC"
+Assert-True ($buildFrankenPHP -match 'export XCADDY_ARGS=') "FrankenPHP build uses SPC v3 XCADDY_ARGS"
+Assert-True ($buildFrankenPHP -match 'sapi: "frankenphp,cli"') "FrankenPHP build also creates a standalone PHP CLI"
+$phpWrapper = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/runtime/bin/php")
+Assert-True ($phpWrapper -match 'modules/frankenphp/php') "Linux bin/php uses standalone PHP CLI"
+Assert-True ($setupIss -match 'modules\\frankenphp\\php\.exe') "Windows installer runs control panel through standalone php.exe"
+$smokeLinux = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/smoke-test.sh")
+Assert-True ($smokeLinux -match 'PHP_FULL.*!=.*8\.5\.12' -or $smokeLinux -match '8\.5\.12') "Linux smoke test asserts PHP 8.5.12"
+Assert-True ($smokeLinux -match 'FRANKENPHP_VERSION_UNSAFE') "Linux smoke test asserts FrankenPHP security version"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "installer/config/channels.json")) "channels.json exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/releases.md")) "docs/releases.md exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/README.md")) "docs/user/README.md exists"

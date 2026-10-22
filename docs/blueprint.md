@@ -374,6 +374,9 @@
   `LIBC` / `XCADDY_ARGS`，使用官方 `craft.yml` 与 `spc craft`；仍构建完全静态
   musl 二进制，并保留 Souin、`caddy-access-filter` v1.2.1、
   `pogo_scheduler` v0.1.0 等锁定模块。
+- **UPX 取舍**：SPC v3 下载的 arm64 UPX 在 Alpine aarch64 构建环境中返回
+  exit 127。UPX 仅为体积优化，故 0.8.3 默认关闭压缩，保留
+  `FRAMPP_COMPRESS=1` 作为显式 opt-in，避免安全版本因非必要工具失败。
 - **CLI 兼容变化**：PHP 8.5 下的 FrankenPHP 1.13.2 不再提供
   `frankenphp php-cli` 子命令；Linux craft 同时构建 `frankenphp,cli` SAPI，
   安装包提供 `modules/frankenphp/php`，Windows 官方包使用独立

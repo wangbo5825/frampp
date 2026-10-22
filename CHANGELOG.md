@@ -19,6 +19,9 @@ Urgent security update for Windows, Linux x86_64/aarch64 and Docker.
 - Linux custom builds now use static-php-cli v3 (`LIBC` / `XCADDY_ARGS` /
   `spc craft`) while retaining the fully static musl output and pinned Souin,
   caddy-access-filter and pogo_scheduler modules.
+- UPX compression is now opt-in (`FRAMPP_COMPRESS=1`); the previous arch-specific
+  UPX lookup was not executable on the native aarch64 build runner. Builds are
+  slightly larger but deterministic across both architectures.
 
 ### Changed
 

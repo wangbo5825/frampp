@@ -154,6 +154,7 @@ Assert-True ($buildFrankenPHP -match 'FRAMPP_PHP_VERSION:-8\.5\.12') "FrankenPHP
 Assert-True ($buildFrankenPHP -match 'static-php-cli v3') "FrankenPHP build documents SPC v3"
 Assert-True ($buildFrankenPHP -match 'export LIBC=') "FrankenPHP build uses SPC v3 LIBC"
 Assert-True ($buildFrankenPHP -match 'export XCADDY_ARGS=') "FrankenPHP build uses SPC v3 XCADDY_ARGS"
+Assert-True ($buildFrankenPHP -match 'FRAMPP_COMPRESS:-0') "FrankenPHP build makes UPX compression opt-in"
 Assert-True ($buildFrankenPHP -match 'sapi: "frankenphp,cli"') "FrankenPHP build also creates a standalone PHP CLI"
 $phpWrapper = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/runtime/bin/php")
 Assert-True ($phpWrapper -match 'modules/frankenphp/php') "Linux bin/php uses standalone PHP CLI"

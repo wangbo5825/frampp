@@ -17,6 +17,8 @@ FRAMPP 的重要变更记录。
 - Linux 定制构建迁移到 static-php-cli v3（`LIBC` / `XCADDY_ARGS` /
   `spc craft`），继续保持完全静态 musl 产物，并锁定 Souin、
   caddy-access-filter 和 pogo_scheduler 模块。
+- UPX 压缩改为显式 opt-in（`FRAMPP_COMPRESS=1`）：原架构相关 UPX 在原生
+  aarch64 runner 上无法执行；关闭后包体略大，但两架构构建更可重复、可验证。
 
 ### 变更
 

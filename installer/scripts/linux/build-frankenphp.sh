@@ -8,7 +8,7 @@
 #   - Caddy 模块：去掉 Mercure / Vulcain，加入 Souin（HTTP 缓存）、caddy-cbrotli
 #     与 caddy-access-filter（access/filter 可编程钩子）
 #   - LIBC=musl：完全静态二进制（不依赖目标系统 libc）
-#   - COMPRESS=1：最终二进制用 UPX 压缩
+#   - 默认不启用 UPX：static-php-cli v3 的 arm64 UPX 工具在部分构建环境不可执行
 #   - Go 链接器 -w -s 去符号（spc 默认执行）
 #
 # 依赖：git, composer, curl, jq, 以及 build-static.sh 所需的编译工具链
@@ -66,7 +66,11 @@ export PHP_EXTENSIONS="amqp,apcu,ast,brotli,bz2,calendar,ctype,curl,dba,dom,file
 # static-php-cli v3 使用 LIBC 选择工具链；unset 旧 v2 变量，避免构建链混用。
 export LIBC="${FRAMPP_SPC_LIBC:-musl}"
 unset SPC_LIBC
-export COMPRESS=1
+if [[ "${FRAMPP_COMPRESS:-0}" == "1" ]]; then
+    export COMPRESS=1
+else
+    unset COMPRESS
+fi
 if [[ -n "${GITHUB_TOKEN:-}" ]]; then
     export SPC_GITHUB_TOKEN="$GITHUB_TOKEN"
 fi
@@ -82,7 +86,7 @@ export FRANKENPHP_VERSION="${FP_VERSION#v}"
 # 用 v0.1.0 对应的 commit（e492454）固定版本，Go 会解析为 pseudo-version。
 export XCADDY_ARGS="--with github.com/dunglas/caddy-cbrotli@v1.0.1 --with github.com/darkweak/souin/plugins/caddy@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/souin@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/storages/otter/caddy@v0.0.20 --with github.com/wangbo5825/caddy-access-filter@v1.2.1 --with github.com/wangbo5825/scheduler/module@e492454bf1ad75cafd2648b99c1840f0a8706c61"
 
-echo "==> 构建 FrankenPHP $FRANKENPHP_VERSION（PHP $PHP_VERSION, libc=$LIBC, SPC=v3, UPX=$COMPRESS）..."
+echo "==> 构建 FrankenPHP $FRANKENPHP_VERSION（PHP $PHP_VERSION, libc=$LIBC, SPC=v3, UPX=${COMPRESS:-0}）..."
 echo "    扩展: ${PHP_EXTENSIONS//,/, }"
 echo "    Caddy 模块: $XCADDY_ARGS"
 bash ./build-static.sh

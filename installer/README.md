@@ -20,7 +20,7 @@ Windows：
 
 Linux（x86_64 / aarch64）：
 
-- FrankenPHP 1.13.2：源码定制构建（PHP 8.5.12、static-php-cli v3、去部分扩展 + Souin + `caddy-access-filter` + UPX，musl 完全静态），在目标架构上原生编译
+- FrankenPHP 1.13.2：源码定制构建（PHP 8.5.12、static-php-cli v3、去部分扩展 + Souin + `caddy-access-filter`，musl 完全静态），在目标架构上原生编译
 - pogo_scheduler 0.1.0：`github.com/wangbo5825/scheduler/module@v0.1.0`，可通过 `etc/scheduler.caddy` 启用 HTTP / 命令定时任务（Linux 定制构建）
 - MySQL 8.0.46：官方通用包裁剪（`installer/scripts/linux/trim-mysql.sh`，自带 OpenSSL）——x86_64 用 glibc 2.17 minimal（CentOS 7 兼容），aarch64 用 glibc 2.28 通用包（官方无 arm64 minimal 变体）
 - Redis 8.10.1：官方源码静态编译（目标架构原生）

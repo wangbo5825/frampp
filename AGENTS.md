@@ -12,7 +12,7 @@ FRAMPP = FrankenPHP + Redis + Agent(MCP) + MySQL + PHP + Python：面向现代 P
 - Linux 变体（M5 部分）：**linux-x86_64 / linux-aarch64 一键安装包**已实现——`versions-linux-{x86_64,aarch64}.json` + `installer/scripts/linux/*`（init/install/uninstall/build-redis/trim-mysql/smoke-test）+ `build-linux-package.ps1`，CI 分别在 ubuntu-latest 与 ubuntu-24.04-arm 上构建并冒烟
 - Docker 变体（M5 部分）：**多架构单镜像 all-in-one**已实现——`Dockerfile` + `docker-compose.yml` + `installer/scripts/linux/docker-*.sh` + `build-docker.ps1`，复用 `.run` 产物，CI 构建/冒烟/tag 推送 GHCR 并通过 manifest list 合并 amd64 + arm64
 - 当前安全版本 **v0.8.3（2026-10-22）**：PHP 8.5.12 + FrankenPHP 1.13.2，修复严重 RCE 与 FrankenPHP 安全问题；Windows、Linux x86_64/aarch64 与多架构 Docker 统一使用该基线
-- 下一步：**v0.9.0** 将 pogo-scheduler 自 fork 升级到 **v0.2.0**，支持多个独立定时器；修复缺失 `libaio.so.1` 的启动诊断与 CSS `text/html` MIME 回退
+- 下一步：**v0.9.0** 将 pogo-scheduler 自 fork 升级到 **v0.2.0**，支持多个独立定时器；修复缺失 `libaio.so.1` 的启动诊断，以及裸 `php` 导致静态文件被 PHP 处理 / CSS `text/html` 回退
 
 ## 目录约定
 

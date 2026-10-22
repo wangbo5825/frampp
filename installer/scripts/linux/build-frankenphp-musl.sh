@@ -61,7 +61,7 @@ docker run --rm --platform "$DOCKER_PLATFORM" \
     "$IMAGE" sh -c '
 set -eu
 apk add --no-cache \
-    bash git curl jq xz unzip ca-certificates \
+    bash git curl jq xz unzip ca-certificates file binutils \
     build-base cmake bison re2c pkgconf autoconf automake libtool \
     php84 php84-curl php84-mbstring php84-xml php84-sodium \
     php84-dom php84-openssl php84-posix php84-pcntl php84-phar php84-iconv \

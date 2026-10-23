@@ -10,7 +10,7 @@ Compatibility update retaining the 0.8.3 security baseline.
 
 - Rebuilt the Linux x86_64 FrankenPHP and PHP binaries with a reproducible
   **x86-64-v2** CPU baseline (`SPC_TARGET=x86_64-linux-musl`,
-  `-march=x86-64-v2 -mtune=generic`). AVX2/ADX are no longer required, fixing
+  `-march=x86-64-v2`). AVX2/ADX are no longer required, fixing
   immediate `Illegal instruction` failures on Sandy Bridge / Xeon E5-2660.
 - Linux CI now runs both binaries under QEMU's Sandy Bridge CPU model and fails
   if legacy CPU startup regresses.

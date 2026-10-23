@@ -120,7 +120,7 @@
 - **根因**：glibc 向下兼容——新 glibc 编译的二进制不能在旧 glibc 运行，反之可以。
 - **FrankenPHP → musl 完全静态**：改为在 `alpine:3.21` 容器内以 `SPC_LIBC=musl` 构建（`installer/scripts/linux/build-frankenphp-musl.sh`），产物不链接 glibc，可运行于任意 glibc 版本甚至 Alpine；这也是 FrankenPHP 官方静态构建默认方式。spc 运行需 PHP ≥ 8.4，由 Alpine 的 `php84` 包提供。
 - **CPU ISA 基线（v0.8.4 补充）**：musl 静态只解决 libc 依赖，不保证 CPU 指令集兼容。x86_64 构建不得使用 SPC 的 `native-native-musl` 或 `-march=native`；固定为
-  `SPC_TARGET=x86_64-linux-musl` 和 `-march=x86-64-v2 -mtune=generic`，
+  `SPC_TARGET=x86_64-linux-musl` 和 `-march=x86-64-v2`，
   确保 Sandy Bridge / Xeon E5-2660（AVX，无 AVX2/ADX）可启动。CI 使用
   QEMU Sandy Bridge 模型验证 PHP CLI 与 FrankenPHP。
 - **MariaDB → glibc 2.31 基线**：MariaDB 无法轻易静态化，改在 `ubuntu:20.04` 容器内编译（`installer/scripts/linux/build-mariadb-glibc.sh`），把最低 glibc 要求锁到 2.31，覆盖 Ubuntu 20.04+、Debian 11+、RHEL 9 / Rocky 9 / Alma 9（glibc 2.34）。新增 `assert-glibc-max.sh` 校验，CI 冒烟断言防止回归。
@@ -415,7 +415,7 @@
   v0.1.0 顶层单任务语法继续兼容，但禁止与 `job` 块混用。
 - **CPU 兼容性结果**：v0.8.3 的 x86_64 产物由 SPC `native-native-musl`
   路径生成，入口无条件使用 AVX2，导致 Sandy Bridge 启动 `SIGILL`。v0.8.4 固定
-  `SPC_TARGET=x86_64-linux-musl` 与 `-march=x86-64-v2 -mtune=generic`，
+  `SPC_TARGET=x86_64-linux-musl` 与 `-march=x86-64-v2`，
   构建缓存标记包含脚本指纹与 CPU 基线，CI 使用 QEMU `-cpu SandyBridge`
   分别运行独立 PHP CLI 和 FrankenPHP。PHP 8.5.12 / FrankenPHP 1.13.2
   安全修复保持不变。

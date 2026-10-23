@@ -163,6 +163,8 @@ Assert-True ($buildFrankenPHP -match '2c8552504066cd276b704b7e6cc357405ef1b84b')
 Assert-True ($buildFrankenPHP -match 'export XCADDY_ARGS=') "FrankenPHP build uses SPC v3 XCADDY_ARGS"
 Assert-True ($buildFrankenPHP -match 'FRAMPP_COMPRESS:-0') "FrankenPHP build makes UPX compression opt-in"
 Assert-True ($buildFrankenPHP -match 'sapi: "frankenphp,cli"') "FrankenPHP build also creates a standalone PHP CLI"
+$buildFrankenPHPMusl = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/build-frankenphp-musl.sh")
+Assert-True ($buildFrankenPHPMusl -match 'FRAMPP_SCHEDULER_REF:-2c8552504066cd276b704b7e6cc357405ef1b84b') "Docker build wrapper passes scheduler v0.2.0 override"
 $phpWrapper = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/runtime/bin/php")
 Assert-True ($phpWrapper -match 'modules/frankenphp/php') "Linux bin/php uses standalone PHP CLI"
 Assert-True ($setupIss -match 'modules\\frankenphp\\php\.exe') "Windows installer runs control panel through standalone php.exe"

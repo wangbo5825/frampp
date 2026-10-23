@@ -76,7 +76,7 @@ case "$BUILD_ARCH" in
     x86_64|amd64)
         export SPC_TARGET="x86_64-linux-musl"
         CPU_BASELINE="x86-64-v2"
-        CPU_FLAGS="-march=x86-64-v2 -mtune=generic"
+        CPU_FLAGS="-march=x86-64-v2"
         export GOAMD64="v1"
         ;;
     aarch64|arm64)
@@ -121,7 +121,16 @@ echo "    扩展: ${PHP_EXTENSIONS//,/, }"
 echo "    CPU flags: $SPC_DEFAULT_CFLAGS"
 echo "    scheduler ref: $SCHEDULER_REF"
 echo "    Caddy 模块: $XCADDY_ARGS"
+set +e
 bash ./build-static.sh
+BUILD_STATUS=$?
+set -e
+if [[ "$BUILD_STATUS" -ne 0 ]]; then
+    echo "==> FrankenPHP 构建失败，输出 SPC 日志 / build failed, SPC logs follow ..." >&2
+    tail -n 240 dist/log/spc.output.log 2>/dev/null || true
+    tail -n 240 dist/log/spc.shell.log 2>/dev/null || true
+    exit "$BUILD_STATUS"
+fi
 
 echo "==> 复制产物到 $OUT_DIR ..."
 # spc 按构建容器/主机架构命名产物（x86_64 / aarch64），这里按实际文件复制

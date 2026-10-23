@@ -9,7 +9,7 @@ FRAMPP 的重要变更记录。
 ### 修复
 
 - Linux x86_64 的 FrankenPHP 与 PHP 使用可复现的 **x86-64-v2** CPU 基线
-  （`SPC_TARGET=x86_64-linux-musl`、`-march=x86-64-v2 -mtune=generic`）
+  （`SPC_TARGET=x86_64-linux-musl`、`-march=x86-64-v2`）
   重新构建，不再要求 AVX2/ADX，修复 Sandy Bridge / Xeon E5-2660 启动即
   `Illegal instruction` 的问题。
 - Linux CI 使用 QEMU Sandy Bridge CPU 模型分别运行两个二进制，防止旧 CPU

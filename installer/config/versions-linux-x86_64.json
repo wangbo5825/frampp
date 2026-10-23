@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "platform": "linux-x86_64",
-  "lockedAt": "2026-10-22T00:00:00Z",
+  "lockedAt": "2026-10-23T00:00:00Z",
   "channel": "8.5",
   "channelLabel": "PHP 8.5（默认稳定通道）",
   "components": {
     "frankenphp": {
-      "name": "FrankenPHP 1.13.2 security build (PHP 8.5.12, SPC v3, musl static)",
+      "name": "FrankenPHP 1.13.2 security build (PHP 8.5.12, SPC v3, musl static, x86-64-v2, scheduler 0.2.0)",
       "version": "1.13.2",
       "phpVersion": "8.5.12",
       "url": "https://github.com/php/frankenphp/archive/refs/tags/v1.13.2.tar.gz",

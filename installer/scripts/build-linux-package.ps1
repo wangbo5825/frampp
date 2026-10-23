@@ -38,8 +38,8 @@ $ErrorActionPreference = "Stop"
 function Write-Step([string]$Message) { Write-Host "==> $Message" -ForegroundColor Cyan }
 
 switch ($Env) {
-    "linux-x86_64" { $Arch = "x86_64"; $GlibcBaseline = "2.17"; $PlatformLabel = "Linux x86_64" }
-    "linux-aarch64" { $Arch = "aarch64"; $GlibcBaseline = "2.28"; $PlatformLabel = "Linux aarch64" }
+    "linux-x86_64" { $Arch = "x86_64"; $GlibcBaseline = "2.17"; $PlatformLabel = "Linux x86_64"; $CpuBaseline = "x86-64-v2" }
+    "linux-aarch64" { $Arch = "aarch64"; $GlibcBaseline = "2.28"; $PlatformLabel = "Linux aarch64"; $CpuBaseline = "generic" }
     default { throw "不支持的环境: $Env（支持 linux-x86_64 / linux-aarch64）" }
 }
 
@@ -54,7 +54,7 @@ if ($config.platform -ne $Env) {
     throw "versions 文件平台不匹配: $versionsFile"
 }
 $env:FRAMPP_TARGET_ARCH = $Arch
-Write-Step "目标架构 / target arch: $Arch (env=$Env, glibc baseline $GlibcBaseline)"
+Write-Step "目标架构 / target arch: $Arch (env=$Env, glibc baseline $GlibcBaseline, CPU baseline $CpuBaseline)"
 
 $installerDir = Join-Path $Root "dist/installer"
 New-Item -ItemType Directory -Force -Path $installerDir | Out-Null
@@ -109,7 +109,21 @@ Write-Step "暂存目录就绪: $StagingDir"
 # FrankenPHP：定制源码构建（精简扩展 + Souin + UPX + musl 完全静态）
 # 在 Alpine 容器内 musl 静态构建，产物无 glibc 依赖，兼容任意发行版。
 $fpBinDir = Join-Path $ToolsDir "frankenphp-linux-$Arch"
-$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-php$($config.components.frankenphp.phpVersion)-musl-spcv3-accessfilter1.2.1-modpins1-scheduler0.1.0"
+$fingerprintInputs = @(
+    $versionsFile,
+    (Join-Path $PSScriptRoot "linux/build-frankenphp.sh"),
+    (Join-Path $PSScriptRoot "linux/build-frankenphp-musl.sh")
+)
+$inputHashes = ($fingerprintInputs | ForEach-Object { (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }) -join ':'
+$sha = [Security.Cryptography.SHA256]::Create()
+try {
+    $buildFingerprint = ([BitConverter]::ToString(
+        $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($inputHashes))
+    ) -replace '-', '').Substring(0, 16).ToLowerInvariant()
+} finally {
+    $sha.Dispose()
+}
+$fpMarker = Join-Path $fpBinDir ".built-$($config.components.frankenphp.version)-php$($config.components.frankenphp.phpVersion)-musl-spcv3-accessfilter1.2.1-modpins1-scheduler0.2.0-cpu$CpuBaseline-$buildFingerprint"
 if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (Test-Path -LiteralPath $fpMarker)) {
     Write-Step "编译 FrankenPHP $($config.components.frankenphp.version)（定制: 精简扩展 + Souin + UPX）"
     & bash (Join-Path $PSScriptRoot "linux/build-frankenphp-musl.sh") `
@@ -123,6 +137,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $fpBinDir "frankenphp")) -or -not (T
 }
 Copy-Item -LiteralPath (Join-Path $fpBinDir "frankenphp") -Destination (Join-Path $moduleDir "frankenphp/frankenphp")
 Copy-Item -LiteralPath (Join-Path $fpBinDir "php") -Destination (Join-Path $moduleDir "frankenphp/php")
+Copy-Item -LiteralPath (Join-Path $fpBinDir "build-info.txt") -Destination (Join-Path $moduleDir "frankenphp/build-info.txt")
 & chmod +x (Join-Path $moduleDir "frankenphp/frankenphp")
 & chmod +x (Join-Path $moduleDir "frankenphp/php")
 

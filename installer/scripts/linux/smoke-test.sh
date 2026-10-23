@@ -20,6 +20,20 @@ chmod +x "$PKG"
 ./"$PKG" --prefix "$PWD/frampp"
 cd frampp
 
+echo "=== legacy x86 CPU compatibility (Sandy Bridge: AVX, no AVX2) ==="
+if [[ "$ENV_NAME" == "linux-x86_64" ]]; then
+  if ! command -v qemu-x86_64 >/dev/null 2>&1; then
+    if [[ "${FRAMPP_REQUIRE_CPU_COMPAT:-0}" == "1" ]]; then
+      echo "QEMU_X86_64_MISSING"; exit 1
+    fi
+    echo "CPU_COMPAT_SKIPPED qemu-x86_64 not installed"
+  else
+    qemu-x86_64 -cpu SandyBridge ./modules/frankenphp/php -v
+    qemu-x86_64 -cpu SandyBridge ./modules/frankenphp/frankenphp version
+    echo "CPU_COMPAT_OK cpu=SandyBridge baseline=x86-64-v2"
+  fi
+fi
+
 echo "=== env / platform ==="
 uname -m
 echo "=== init already ran inside .run; verify idempotent init ==="
@@ -157,26 +171,42 @@ for i in $(seq 1 30); do (exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null && break;
 echo "=== caddy-panel /panel api (after restart) ==="
 curl -fsS http://127.0.0.1:8081/panel/api/status | head -c 300
 echo
-echo "=== pogo_scheduler smoke (HTTP mode, v0.8.2) ==="
+echo "=== pogo_scheduler smoke (v0.2.0 multi-job) ==="
 cat > apps/default/htdocs/scheduler-smoke.php <<'PHP'
 <?php
-$log = dirname(__DIR__, 3) . '/var/scheduler-smoke.log';
-file_put_contents($log, 'tick ' . date('c') . PHP_EOL, FILE_APPEND);
+$job = $_GET['job'] ?? 'unknown';
+if ($job === 'slow') {
+    sleep(4);
+}
+$log = dirname(__DIR__, 3) . '/var/scheduler-' . $job . '.log';
+file_put_contents($log, 'job=' . $job . ' tick=' . date('c') . PHP_EOL, FILE_APPEND);
 http_response_code(204);
 PHP
 cat > etc/scheduler.caddy <<'CADDY'
 pogo_scheduler {
-    mode http
-    url http://127.0.0.1:8080/scheduler-smoke.php
-    interval 2s
-    timeout 5s
-    overlap skip
+    shutdown_grace 10s
+
+    job fast {
+        mode http
+        url http://127.0.0.1:8080/scheduler-smoke.php?job=fast
+        interval 1s
+        timeout 5s
+        overlap skip
+    }
+
+    job slow {
+        mode http
+        url http://127.0.0.1:8080/scheduler-smoke.php?job=slow
+        interval 2s
+        timeout 10s
+        overlap skip
+    }
 }
 CADDY
 ./bin/frampp restart frankenphp
 SCHED_OK=0
 for i in $(seq 1 30); do
-  if [ -s var/scheduler-smoke.log ]; then SCHED_OK=1; break; fi
+  if [ -s var/scheduler-fast.log ] && [ -s var/scheduler-slow.log ]; then SCHED_OK=1; break; fi
   sleep 1
 done
 if [ "$SCHED_OK" -ne 1 ]; then
@@ -184,7 +214,37 @@ if [ "$SCHED_OK" -ne 1 ]; then
   tail -n 40 logs/frankenphp.err.log logs/frankenphp.log 2>/dev/null || true
   exit 1
 fi
-echo "SCHEDULER_OK $(head -n1 var/scheduler-smoke.log)"
+FAST_TICKS="$(wc -l < var/scheduler-fast.log)"
+SLOW_TICKS="$(wc -l < var/scheduler-slow.log)"
+if [[ "$FAST_TICKS" -lt 2 || "$SLOW_TICKS" -lt 1 ]]; then
+  echo "SCHEDULER_MULTI_JOB_NOT_INDEPENDENT fast=$FAST_TICKS slow=$SLOW_TICKS"
+  exit 1
+fi
+echo "SCHEDULER_MULTI_JOB_OK fast=$FAST_TICKS slow=$SLOW_TICKS"
+
+echo "=== pogo_scheduler legacy v0.1.0 syntax compatibility ==="
+cat > etc/scheduler.caddy <<'CADDY'
+pogo_scheduler {
+    mode http
+    url http://127.0.0.1:8080/scheduler-smoke.php?job=legacy
+    interval 1s
+    timeout 5s
+    overlap skip
+}
+CADDY
+rm -f var/scheduler-legacy.log
+./bin/frampp restart frankenphp
+LEGACY_OK=0
+for i in $(seq 1 10); do
+  if [ -s var/scheduler-legacy.log ]; then LEGACY_OK=1; break; fi
+  sleep 1
+done
+if [ "$LEGACY_OK" -ne 1 ]; then
+  echo "SCHEDULER_LEGACY_NOT_FIRED"
+  tail -n 40 logs/frankenphp.err.log logs/frankenphp.log 2>/dev/null || true
+  exit 1
+fi
+echo "SCHEDULER_LEGACY_OK $(head -n1 var/scheduler-legacy.log)"
 echo "=== stop ==="
 ./bin/frampp stop all || true
 ./bin/frampp status --json || true

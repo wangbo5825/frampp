@@ -103,7 +103,7 @@ jobs:
           path: |
             dist/binaries
             dist/tools
-          key: linux-build-${{ hashFiles('installer/config/versions-linux-x86_64.json') }}
+          key: linux-build-${{ hashFiles('installer/config/versions-linux-x86_64.json', 'installer/scripts/linux/build-frankenphp.sh', 'installer/scripts/linux/build-frankenphp-musl.sh') }}-cpu-x86-64-v2
           restore-keys: |
             linux-build-
 
@@ -114,7 +114,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential make gcc \
             xz-utils unzip upx-ucl \
-            curl ca-certificates
+            curl ca-certificates qemu-user
           # MySQL 8.0 服务端需要 libaio；Ubuntu 24.04+ 包名为 libaio1t64（t64 迁移）
           sudo apt-get install -y --no-install-recommends libaio1t64 || \
             sudo apt-get install -y --no-install-recommends libaio1
@@ -131,6 +131,8 @@ jobs:
 
       - name: Smoke test (extract + install + HTTP / MySQL / Redis)
         shell: bash
+        env:
+          FRAMPP_REQUIRE_CPU_COMPAT: "1"
         run: bash installer/scripts/linux/smoke-test.sh linux-x86_64 2.17 "$GITHUB_WORKSPACE"
       - name: Upload Linux package artifact
         uses: actions/upload-artifact@v4
@@ -197,7 +199,7 @@ jobs:
           path: |
             dist/binaries
             dist/tools
-          key: linux-aarch64-build-${{ hashFiles('installer/config/versions-linux-aarch64.json') }}
+          key: linux-aarch64-build-${{ hashFiles('installer/config/versions-linux-aarch64.json', 'installer/scripts/linux/build-frankenphp.sh', 'installer/scripts/linux/build-frankenphp-musl.sh') }}-cpu-generic
           restore-keys: |
             linux-aarch64-build-
 

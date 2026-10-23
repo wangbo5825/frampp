@@ -2,6 +2,32 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.8.4] - 2026-10-23
+
+Compatibility update retaining the 0.8.3 security baseline.
+
+### Fixed
+
+- Rebuilt the Linux x86_64 FrankenPHP and PHP binaries with a reproducible
+  **x86-64-v2** CPU baseline (`SPC_TARGET=x86_64-linux-musl`,
+  `-march=x86-64-v2 -mtune=generic`). AVX2/ADX are no longer required, fixing
+  immediate `Illegal instruction` failures on Sandy Bridge / Xeon E5-2660.
+- Linux CI now runs both binaries under QEMU's Sandy Bridge CPU model and fails
+  if legacy CPU startup regresses.
+- FrankenPHP build cache identity now includes the relevant build-script hashes
+  and CPU baseline, preventing stale AVX2 binaries from being reused.
+
+### Added
+
+- Upgraded pogo_scheduler to **v0.2.0**, with multiple independent `job` blocks.
+  Each job supports its own interval/cron, timeout and overlap policy.
+- Added multi-job and legacy single-job scheduler smoke tests.
+
+### Security
+
+- Retains **PHP 8.5.12** (CVE-2026-109618 / CVE-2026-109619) and
+  **FrankenPHP 1.13.2** security fixes.
+
 ## [0.8.3] - 2026-10-22
 
 Urgent security update for Windows, Linux x86_64/aarch64 and Docker.

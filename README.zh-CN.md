@@ -11,13 +11,14 @@ LAMPP / XAMPP / NMPP 的产品形态，并内置基于 MCP 的 AI Agent 接入�
 ## 当前状态
 
 - 里程碑：**M4 生产模式 + Linux x86_64 / aarch64 + Docker 变体**
-- 最新版本线：**0.8.3 安全更新**，提供 Windows x64、Linux x86_64/aarch64
-  安装包和多架构 Docker 镜像。**PHP 8.5.12** 修复 PHP2Shell 两个严重远程代码
-  执行漏洞（CVE-2026-109618 / CVE-2026-109619），**FrankenPHP 1.13.2**
-  同时修复 4 个 FrankenPHP 自身安全漏洞。
-- 保留能力：`apps/<app>/{htdocs,config,src,var}` 应用布局、pogo_scheduler
-  v0.1.0 定时任务、安装器英文优先；Linux 数据库为 MySQL 8.0（x86_64
-  glibc 2.17 / aarch64 glibc 2.28）。
+- 最新版本线：**0.8.4 兼容性更新**，提供 Windows x64、Linux x86_64/aarch64
+  安装包和多架构 Docker 镜像。继续使用 **PHP 8.5.12** 修复 PHP2Shell 两个严重
+  远程代码执行漏洞（CVE-2026-109618 / CVE-2026-109619），以及
+  **FrankenPHP 1.13.2** 的 4 个自身安全修复。
+- 兼容性：Linux x86_64 固定 **x86-64-v2** CPU 基线，不再要求 AVX2/ADX，
+  CI 使用 Sandy Bridge CPU 模型验证启动；**pogo_scheduler v0.2.0** 支持多个
+  独立定时任务。保留 `apps/<app>/{htdocs,config,src,var}` 应用布局与安装器
+  英文优先；Linux 数据库为 MySQL 8.0（x86_64 glibc 2.17 / aarch64 glibc 2.28）。
 - 当前通道：PHP **8.5.12** / FrankenPHP **1.13.2**
 
 ## FRAMPP 是什么？
@@ -62,19 +63,19 @@ FRAMPP 把 PHP 应用服务器、MySQL / MariaDB 和 Redis 打包成自包含的
 ### Windows
 
 从 [GitHub Releases](https://github.com/wangbo5825/frampp/releases) 下载
-`frampp-0.8.3-windows-x64.exe`，双击安装。安装器会自动初始化并启动
+`frampp-0.8.4-windows-x64.exe`，双击安装。安装器会自动初始化并启动
 整套环境。
 
 ### Linux（x86_64 / aarch64）
 
 ```bash
-chmod +x frampp-0.8.3-linux-x86_64.run
-./frampp-0.8.3-linux-x86_64.run
-./frampp-0.8.3-linux-x86_64.run --prefix /opt/frampp
+chmod +x frampp-0.8.4-linux-x86_64.run
+./frampp-0.8.4-linux-x86_64.run
+./frampp-0.8.4-linux-x86_64.run --prefix /opt/frampp
 
-# arm64（aarch64）主机请下载 frampp-0.8.3-linux-aarch64.run：
-chmod +x frampp-0.8.3-linux-aarch64.run
-./frampp-0.8.3-linux-aarch64.run --prefix /opt/frampp
+# arm64（aarch64）主机请下载 frampp-0.8.4-linux-aarch64.run：
+chmod +x frampp-0.8.4-linux-aarch64.run
+./frampp-0.8.4-linux-aarch64.run --prefix /opt/frampp
 ```
 
 安装完成后：
@@ -86,10 +87,12 @@ chmod +x frampp-0.8.3-linux-aarch64.run
   `bin/redis-cli`；环境变量可 `source bin/env` 一次性配置。
 - systemd：`sudo bin/install-systemd` 安装开机自启服务。
 
-0.8.3 是紧急安全更新，覆盖 Windows 与 Linux。默认站点根为
-`apps/default/htdocs`；`frampp new-project` 创建
+0.8.4 延续 PHP 8.5.12 / FrankenPHP 1.13.2 安全基线，并修复 Linux x86_64
+发布包的 CPU 兼容性：构建固定 `x86-64-v2`，CI 使用 Sandy Bridge 模型验证。
+默认站点根为 `apps/default/htdocs`；`frampp new-project` 创建
 `apps/<name>/{htdocs,config,src,var}`；可选 Linux 定时任务在
-`etc/scheduler.caddy` 配置；旧 `htdocs/` 会在 init 时迁移。
+`etc/scheduler.caddy` 中用多个 `job` 配置，支持独立周期与重叠策略；
+旧 `htdocs/` 会在 init 时迁移。
 
 ### Docker
 
@@ -102,7 +105,7 @@ docker run -d --name frampp \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-apps:/opt/frampp/apps \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.3
+  ghcr.io/wangbo5825/frampp:0.8.4
 ```
 
 也可使用仓库中的 Docker Compose：
@@ -121,11 +124,13 @@ FrankenPHP、MySQL 与 Redis。默认站点 <http://127.0.0.1:8080/>，控制面
 - **Linux（x86_64）**：任意 glibc ≥ 2.17 的发行版（CentOS 7、Ubuntu 20.04+、
   Debian 11+、RHEL 8+ / Rocky 8+ / Alma 8+）。FrankenPHP 与 Redis 为完全静态
   的 musl 二进制（不依赖 glibc），MySQL 8.0 为官方 glibc 2.17 通用构建
-  （自带 OpenSSL，服务端仅需 `libaio`）。
+  （自带 OpenSSL，服务端仅需 `libaio`）。CPU 基线为 **x86-64-v2**
+  （SSE4.2/POPCNT，不要求 AVX2/ADX），包括 Sandy Bridge / Xeon E5-2660。
 - **Docker**：任意安装 Docker 引擎的主机；镜像基于 `debian:bookworm-slim`。
 
 CI 在冒烟测试中断言该可移植性（`PORTABLE_OK`：FrankenPHP 静态 + MySQL
-GLIBC ≤ 2.17）。详见 [docs/releases.md](docs/releases.md)。
+GLIBC ≤ 2.17，并在 Sandy Bridge QEMU 模型下输出 `CPU_COMPAT_OK`）。
+详见 [docs/releases.md](docs/releases.md)。
 
 ## 文档
 

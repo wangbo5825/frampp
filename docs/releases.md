@@ -10,8 +10,8 @@ Positioning: **one-click installers for everyday users** (XAMPP-style), publishe
 
 ```text
 frampp-<version>-<env>.<ext>
-示例 / e.g. frampp-0.8.3-windows-x64.exe
-示例 / e.g. frampp-0.8.3-linux-x86_64.run
+示例 / e.g. frampp-0.8.4-windows-x64.exe
+示例 / e.g. frampp-0.8.4-linux-x86_64.run
 ```
 
 - `<channel>`：组件通道 / component channel（当前 / current `8.5` = FrankenPHP 1.13.2 / PHP 8.5.12 / MySQL 8.0.46（Linux）/ Redis 8.10.1；Windows 数据库仍为 MariaDB 12.3.2）
@@ -49,6 +49,11 @@ frampp-<version>-<env>.<ext>
 > FrankenPHP 升级到 **1.13.2**，修复 PHP2Shell 两个严重未认证 RCE
 > （CVE-2026-109618 / CVE-2026-109619）及 FrankenPHP 自身 4 个安全漏洞；
 > Windows、Linux 双架构和 Docker 统一切换到安全基线。
+
+> **v0.8.4 起实施 / Implemented since v0.8.4**：Linux x86_64 构建固定为
+> `x86-64-v2` CPU 基线，不再继承构建机的 AVX2/ADX 特性；CI 使用 QEMU
+> Sandy Bridge 模型验证启动。pogo_scheduler 升级到 v0.2.0，支持多个独立
+> `job`，并继续兼容 v0.1.0 顶层单任务配置。
 
 > Release Note 语言规范 / Language convention for release notes：正文采用
 > **先英文、后中文** 的两段式结构（English section first, then Chinese）。
@@ -88,7 +93,7 @@ docker run -d --name frampp \
   -v frampp-data:/opt/frampp/var \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-apps:/opt/frampp/apps \
-  ghcr.io/wangbo5825/frampp:0.8.3
+  ghcr.io/wangbo5825/frampp:0.8.4
 ```
 
 发布到 GitHub Container Registry：
@@ -324,6 +329,32 @@ FRAMPP 0.8.1 在 x86_64 之外新增原生 **arm64（aarch64）** Linux 变体�
 - CI 在 arm64 runner 上构建并冒烟验证 arm64 安装包；Docker 镜像以**多架构
   manifest**（`linux/amd64` + `linux/arm64`）发布版本 tag 与 `latest`。
 
+## 0.8.4 Compatibility update / 0.8.4 兼容性更新
+
+FRAMPP 0.8.4 keeps the PHP 8.5.12 / FrankenPHP 1.13.2 security baseline and
+adds:
+
+- A reproducible **x86-64-v2** baseline for the Linux x86_64 FrankenPHP and PHP
+  binaries. AVX2 and ADX are no longer required, so Sandy Bridge-class CPUs
+  including the Xeon E5-2660 can start the stack.
+- A QEMU **Sandy Bridge** startup check in Linux CI for both the standalone PHP
+  CLI and FrankenPHP, preventing future runner-specific instruction sets from
+  reaching release artifacts.
+- **pogo_scheduler v0.2.0** with multiple independent `job` blocks, per-job
+  interval/cron, timeout and overlap policy. Existing v0.1.0 top-level
+  single-job configurations remain compatible.
+- No data, secrets, layout or configuration migration is required.
+
+FRAMPP 0.8.4 保持 PHP 8.5.12 / FrankenPHP 1.13.2 安全基线，并新增：
+
+- Linux x86_64 的 FrankenPHP 与 PHP 二进制固定为可复现的 **x86-64-v2** 基线，
+  不再要求 AVX2/ADX，可在 Sandy Bridge / Xeon E5-2660 等旧 CPU 上启动。
+- Linux CI 使用 QEMU **Sandy Bridge** 模型分别验证独立 PHP CLI 与
+  FrankenPHP，防止构建机 CPU 特性再次进入发布包。
+- **pogo_scheduler v0.2.0** 支持多个独立 `job`，每个任务可单独配置
+  interval/cron、超时和重叠策略；v0.1.0 顶层单任务配置继续兼容。
+- 数据、密钥、目录布局和配置格式均无需迁移。
+
 ## 0.8.3 Security update / 0.8.3 安全更新
 
 FRAMPP 0.8.3 is an urgent security release for Windows, Linux x86_64/aarch64
@@ -380,10 +411,10 @@ FRAMPP 0.8.2 是 **Linux-only 临时预发布版本**：
 ## Linux 一键安装（用户侧）/ Linux One-Click Install (user side)
 
 ```bash
-chmod +x frampp-0.8.3-linux-x86_64.run
-./frampp-0.8.3-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.8.3-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
-./frampp-0.8.3-linux-x86_64.run --help           # 帮助 / help
+chmod +x frampp-0.8.4-linux-x86_64.run
+./frampp-0.8.4-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.4-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+./frampp-0.8.4-linux-x86_64.run --help           # 帮助 / help
 
 ~/frampp/bin/frampp status        # 查看服务状态 / check status
 ~/frampp/bin/uninstall            # 停止服务并可选清理数据 / stop services, optionally clean data

@@ -2,6 +2,32 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.8.4] - 2026-10-23
+
+兼容性更新，继续使用 0.8.3 安全基线。
+
+### 修复
+
+- Linux x86_64 的 FrankenPHP 与 PHP 使用可复现的 **x86-64-v2** CPU 基线
+  （`SPC_TARGET=x86_64-linux-musl`、`-march=x86-64-v2 -mtune=generic`）
+  重新构建，不再要求 AVX2/ADX，修复 Sandy Bridge / Xeon E5-2660 启动即
+  `Illegal instruction` 的问题。
+- Linux CI 使用 QEMU Sandy Bridge CPU 模型分别运行两个二进制，防止旧 CPU
+  启动能力回归。
+- FrankenPHP 构建缓存身份现在包含相关构建脚本哈希与 CPU 基线，避免复用旧
+  AVX2 产物。
+
+### 新增
+
+- pogo_scheduler 升级到 **v0.2.0**，支持多个独立 `job`；每个任务可单独设置
+  interval/cron、超时和重叠策略。
+- 冒烟测试同时覆盖多任务独立触发与 v0.1.0 单任务配置兼容。
+
+### 安全
+
+- 保留 **PHP 8.5.12**（CVE-2026-109618 / CVE-2026-109619）与
+  **FrankenPHP 1.13.2** 安全修复。
+
 ## [0.8.3] - 2026-10-22
 
 面向 Windows、Linux x86_64/aarch64 和 Docker 的紧急安全更新。

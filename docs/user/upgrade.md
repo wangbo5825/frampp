@@ -13,21 +13,21 @@
 ### Linux（x86_64 / aarch64）
 
 ```bash
-chmod +x frampp-0.8.3-linux-x86_64.run
-./frampp-0.8.3-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.8.3-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+chmod +x frampp-0.8.4-linux-x86_64.run
+./frampp-0.8.4-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.4-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
 
-# arm64（aarch64）主机使用 frampp-0.8.3-linux-aarch64.run（glibc ≥ 2.28）
-chmod +x frampp-0.8.3-linux-aarch64.run
-./frampp-0.8.3-linux-aarch64.run --prefix /opt/frampp
+# arm64（aarch64）主机使用 frampp-0.8.4-linux-aarch64.run（glibc ≥ 2.28）
+chmod +x frampp-0.8.4-linux-aarch64.run
+./frampp-0.8.4-linux-aarch64.run --prefix /opt/frampp
 ```
 
 单文件安装器会自动校验完整性、解压并执行 `bin/frampp init`
 （生成配置、随机密钥、初始化 MySQL 数据目录与只读账号）并启动三件套；安装目录可整体移动。
 The single-file installer verifies integrity, extracts, runs `init.sh` (configs, secrets, MySQL datadir & read-only account) and starts the stack; the install directory is relocatable.
 
-> 系统要求：Linux x86_64 需 glibc ≥ 2.17（CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9+）；FrankenPHP 与 Redis 为 musl 静态，MySQL 8.0 为官方 glibc 2.17 通用二进制（自带 OpenSSL，服务端需 `libaio`）。完整系统要求与安装包校验见 `share/docs/README.md`（v0.8.0 起）。
-> Requirement: Linux x86_64 needs glibc ≥ 2.17 (CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9+); FrankenPHP and Redis are musl-static and MySQL 8.0 is the official glibc 2.17 generic build (bundled OpenSSL; the server needs `libaio`). See `share/docs/README.md` for full requirements and installer verification (since v0.8.0).
+> 系统要求：Linux x86_64 需 glibc ≥ 2.17（CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9+）且 CPU 支持 x86-64-v2；FrankenPHP 与 Redis 为 musl 静态，MySQL 8.0 为官方 glibc 2.17 通用二进制（自带 OpenSSL，服务端需 `libaio`）。完整系统要求与安装包校验见 `share/docs/README.md`（v0.8.0 起）。
+> Requirement: Linux x86_64 needs glibc ≥ 2.17 (CentOS 7 / Ubuntu 20.04+ / Debian 11+ / RHEL 8+ / RHEL 9+) and an x86-64-v2 CPU; FrankenPHP and Redis are musl-static and MySQL 8.0 is the official glibc 2.17 generic build (bundled OpenSSL; the server needs `libaio`). See `share/docs/README.md` for full requirements and installer verification (since v0.8.0).
 
 ## 升级 / Upgrade
 
@@ -102,6 +102,21 @@ The single-file installer verifies integrity, extracts, runs `init.sh` (configs,
 > all be upgraded. Config formats, the `apps/` layout, database formats and
 > secrets require no migration; back up `apps/` and `var/`, then install over the
 > same directory. Verify `bin/frampp version` and PHP 8.5.12 with `bin/php -v`.
+>
+> **0.8.3 → 0.8.4（Linux x86_64 兼容性与 scheduler 多任务）**：Linux x86_64
+> 重新构建为 `x86-64-v2` 基线，修复旧 CPU（含 Sandy Bridge / Xeon E5-2660）
+> 启动时 `Illegal instruction` 的问题；PHP 8.5.12 与 FrankenPHP 1.13.2 安全修复
+> 保持不变。pogo_scheduler 升级到 v0.2.0，可在 `etc/scheduler.caddy` 中用多个
+> `job` 块配置独立任务；v0.1.0 顶层单任务语法继续兼容。数据、密钥和配置格式
+> 不变，停止服务后覆盖安装并运行 `bin/frampp restart all` 即可。
+> **0.8.3 → 0.8.4 (Linux x86_64 compatibility and multi-job scheduler)**:
+> the Linux x86_64 build now targets `x86-64-v2`, fixing startup `SIGILL` on
+> older CPUs including Sandy Bridge / Xeon E5-2660, while retaining PHP 8.5.12
+> and FrankenPHP 1.13.2 security fixes. pogo_scheduler v0.2.0 supports multiple
+> independent `job` blocks in `etc/scheduler.caddy`; the v0.1.0 top-level syntax
+> remains compatible. Data, secrets and configuration formats are unchanged;
+> stop services, install over the existing directory, then run
+> `bin/frampp restart all`.
 >
 > 版本间数据库结构变化（如数据库大版本升级）时，建议先在备份上演练。
 > If the database schema changes between versions (e.g. a major DB upgrade), rehearse on a backup first.

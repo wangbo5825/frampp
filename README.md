@@ -7,13 +7,14 @@
 [中文](README.zh-CN.md) · [Blueprint](docs/blueprint.md) ·
 [Releases](https://github.com/wangbo5825/frampp/releases)
 
-> Current status: **v0.8.3 security update** — **PHP 8.5.12** and
-> **FrankenPHP 1.13.2** fix critical PHP2Shell RCE vulnerabilities
-> (CVE-2026-109618 / CVE-2026-109619) and four FrankenPHP vulnerabilities.
+> Current status: **v0.8.4 compatibility update** — **PHP 8.5.12** and
+> **FrankenPHP 1.13.2** retain the critical PHP2Shell fixes
+> (CVE-2026-109618 / CVE-2026-109619) and four FrankenPHP security fixes.
 > Windows x64, Linux x86_64/aarch64 installers and the multi-arch Docker image
 > all use this security baseline. The `apps/<app>/{htdocs,config,src,var}`
-> layout, pogo_scheduler v0.1.0 and English-first installer messages remain
-> available.
+> layout and English-first installer messages remain available. The Linux
+> x86_64 build now targets the documented `x86-64-v2` CPU baseline, and
+> pogo_scheduler v0.2.0 supports multiple independent jobs.
 > Full design & decision records: [docs/blueprint.md](docs/blueprint.md).
 
 [![GitHub](https://img.shields.io/badge/GitHub-wangbo5825%2Fframpp-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/wangbo5825/frampp)
@@ -57,7 +58,7 @@ Key characteristics:
 #### Windows
 
 ```powershell
-# Download frampp-0.8.3-windows-x64.exe from GitHub Releases,
+# Download frampp-0.8.4-windows-x64.exe from GitHub Releases,
 # then double-click to install; the installer initializes and starts the stack automatically.
 
 # Dev preview (run from source)
@@ -71,24 +72,25 @@ php control-panel/bin/frampp stop all                                     # stop
 #### Linux (x86_64 / aarch64, one-click installer)
 
 ```bash
-# Download frampp-0.8.3-linux-x86_64.run from GitHub Releases
-chmod +x frampp-0.8.3-linux-x86_64.run
-./frampp-0.8.3-linux-x86_64.run                              # installs to ~/frampp
-./frampp-0.8.3-linux-x86_64.run --prefix /opt/frampp         # custom directory
+# Download frampp-0.8.4-linux-x86_64.run from GitHub Releases
+chmod +x frampp-0.8.4-linux-x86_64.run
+./frampp-0.8.4-linux-x86_64.run                              # installs to ~/frampp
+./frampp-0.8.4-linux-x86_64.run --prefix /opt/frampp         # custom directory
 
-# arm64 (aarch64) hosts: download frampp-0.8.3-linux-aarch64.run instead
-chmod +x frampp-0.8.3-linux-aarch64.run
-./frampp-0.8.3-linux-aarch64.run --prefix /opt/frampp
+# arm64 (aarch64) hosts: download frampp-0.8.4-linux-aarch64.run instead
+chmod +x frampp-0.8.4-linux-aarch64.run
+./frampp-0.8.4-linux-aarch64.run --prefix /opt/frampp
 ```
 
 The installer verifies package integrity, extracts the bundle, initializes the runtime (random secrets, MySQL data directory) and starts all services, then prints the URLs.
 
-0.8.3 is an urgent security update and is available for Windows and Linux.
-PHP 8.5.12 fixes two critical unauthenticated RCE vulnerabilities, while
-FrankenPHP 1.13.2 fixes four additional server vulnerabilities. The default
-site is `apps/default/htdocs`; `frampp new-project` creates
+0.8.4 keeps the PHP 8.5.12 / FrankenPHP 1.13.2 security baseline and fixes
+Linux x86_64 portability by pinning the `x86-64-v2` ISA baseline. The Linux
+build now runs a Sandy Bridge CPU compatibility check in CI. The default site
+is `apps/default/htdocs`; `frampp new-project` creates
 `apps/<name>/{htdocs,config,src,var}`. Optional Linux scheduling is configured
-in `etc/scheduler.caddy`, and older `htdocs/` content is migrated by `init`.
+in `etc/scheduler.caddy` using multiple independent `job` blocks, and older
+`htdocs/` content is migrated by `init`.
 
 After install, visit:
 
@@ -117,7 +119,7 @@ docker run -d --name frampp \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-apps:/opt/frampp/apps \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.3
+  ghcr.io/wangbo5825/frampp:0.8.4
 ```
 
 Or use Docker Compose from the repository:
@@ -150,11 +152,14 @@ Download & verify: [GitHub Releases](https://github.com/wangbo5825/frampp/releas
   Debian 11+, RHEL 8+ / Rocky 8+ / Alma 8+). FrankenPHP and Redis are fully
   static musl binaries (no glibc dependency), and MySQL 8.0 is the official
   glibc 2.17 generic build (bundled OpenSSL; the server needs `libaio`).
+  The x86_64 build targets **x86-64-v2** (SSE4.2/POPCNT, no AVX2/ADX
+  requirement) and is smoke-tested with QEMU's Sandy Bridge CPU model.
 - **Docker** — any host with a Docker engine; the image is based on
   `debian:bookworm-slim`.
 
 CI enforces this portability in the smoke test (`PORTABLE_OK`: FrankenPHP static
- MySQL GLIBC ≤ 2.17). See [docs/releases.md](docs/releases.md).
+and MySQL GLIBC ≤ 2.17, plus `CPU_COMPAT_OK` under Sandy Bridge emulation).
+See [docs/releases.md](docs/releases.md).
 
 ### Documentation
 

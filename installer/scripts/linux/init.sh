@@ -408,32 +408,51 @@ else
     ACCESS_IMPORT="# access-filter disabled"
 fi
 
-# pogo_scheduler（v0.8.2，Linux 定制构建）：默认关闭；编辑 etc/scheduler.caddy 后重启 FrankenPHP 生效。
+# pogo_scheduler v0.2.0（Linux 定制构建）：默认关闭；编辑 etc/scheduler.caddy 后重启 FrankenPHP 生效。
 # Scheduler events are written to logs/frankenphp.log (Caddy logger).
 SCHEDULER_CADDY="$RUNTIME_DIR/etc/scheduler.caddy"
 if [[ ! -f "$SCHEDULER_CADDY" ]]; then
     cat > "$SCHEDULER_CADDY" <<'EOF'
-# FRAMPP scheduler (pogo_scheduler v0.1.0, Linux custom build only)
-# Default: disabled (comments only). Uncomment ONE block and restart FrankenPHP.
-# 默认关闭（仅注释）；取消注释其中一种配置并重启 FrankenPHP 后生效。
+# FRAMPP scheduler (pogo_scheduler v0.2.0, Linux custom build only)
+# Default: disabled (comments only). Uncomment the block and restart FrankenPHP.
+# 默认关闭（仅注释）；取消注释并重启 FrankenPHP 后生效。
+# Each job has an independent schedule and overlap policy.
+# 每个 job 使用独立的时间表与重叠策略。
 #
-# Mode 1: HTTP job (recommended: no shell, handled by the PHP worker pipeline)
+# HTTP jobs are recommended: no shell, handled by the PHP worker pipeline.
 # pogo_scheduler {
-#     mode http
-#     url http://127.0.0.1:8080/scheduler/run
-#     interval 1m
-#     timeout 30s
-#     overlap skip
+#     shutdown_grace 30s
+#
+#     job heartbeat {
+#         mode http
+#         url http://127.0.0.1:8080/scheduler/heartbeat
+#         interval 1m
+#         timeout 30s
+#         overlap skip
+#     }
+#
+#     job nightly {
+#         mode http
+#         url http://127.0.0.1:8080/scheduler/nightly
+#         schedule "0 3 * * *"
+#         timeout 10m
+#         overlap skip
+#     }
 # }
 #
-# Mode 2: command job (upstream-compatible; runs an external process)
-# pogo_scheduler {
-#     mode command
-#     command /opt/frampp/modules/frankenphp/php /opt/frampp/apps/default/bin/console schedule:run
-#     interval 1m
-#     timeout 5m
-#     overlap skip
-# }
+# Command jobs remain available but are disabled by default:
+# 命令任务仍受支持，但默认示例中不启用：
+#     job cleanup {
+#         mode command
+#         command /opt/frampp/modules/frankenphp/php /opt/frampp/apps/default/bin/console cleanup
+#         dir /opt/frampp
+#         interval 5m
+#         timeout 2m
+#         overlap skip
+#     }
+#
+# v0.1.0 top-level single-job syntax remains compatible. Do not mix top-level
+# job options with `job` blocks. v0.1.0 顶层单任务语法仍兼容，不可混用。
 EOF
 fi
 SCHEDULER_IMPORT="import $SCHEDULER_CADDY"
@@ -709,7 +728,8 @@ cat > "$RUNTIME_DIR/var/runtime.json" <<EOF
         "mysql": "$MYSQL_VERSION",
         "redis": "$REDIS_VERSION",
         "composer": "$COMPOSER_VERSION",
-        "python": "$PYTHON_VERSION"
+        "python": "$PYTHON_VERSION",
+        "scheduler": "0.2.0"
     },
     "db_initialized": $DB_INITIALIZED
 }

@@ -8,6 +8,7 @@
 #   - Caddy 模块：去掉 Mercure / Vulcain，加入 Souin（HTTP 缓存）、caddy-cbrotli
 #     与 caddy-access-filter（access/filter 可编程钩子）
 #   - LIBC=musl：完全静态二进制（不依赖目标系统 libc）
+#   - SPC_TARGET/CPU flags：固定最低 CPU 基线，禁止把构建机指令集带入发布包
 #   - 默认不启用 UPX：static-php-cli v3 的 arm64 UPX 工具在部分构建环境不可执行
 #   - Go 链接器 -w -s 去符号（spc 默认执行）
 #
@@ -66,6 +67,34 @@ export PHP_EXTENSIONS="amqp,apcu,ast,brotli,bz2,calendar,ctype,curl,dba,dom,file
 # static-php-cli v3 使用 LIBC 选择工具链；unset 旧 v2 变量，避免构建链混用。
 export LIBC="${FRAMPP_SPC_LIBC:-musl}"
 unset SPC_LIBC
+
+# 发布包必须能在旧 CPU 上启动。尤其不能使用 SPC 默认的 native-native-*：
+# 它会让 LLVM/Zig 按构建机 CPU 生成 AVX2/ADX 等指令。
+SPC_BASE_CFLAGS="-fPIC -O3 -pipe -fno-plt -fno-semantic-interposition -fstack-clash-protection -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffunction-sections -fdata-sections -Wno-unused-command-line-argument"
+BUILD_ARCH="$(uname -m)"
+case "$BUILD_ARCH" in
+    x86_64|amd64)
+        export SPC_TARGET="x86_64-linux-musl"
+        CPU_BASELINE="x86-64-v2"
+        CPU_FLAGS="-march=x86-64-v2 -mtune=generic"
+        export GOAMD64="v1"
+        ;;
+    aarch64|arm64)
+        export SPC_TARGET="aarch64-linux-musl"
+        CPU_BASELINE="generic"
+        CPU_FLAGS="-mcpu=generic"
+        ;;
+    *)
+        echo "不支持的构建架构 / unsupported build architecture: $BUILD_ARCH" >&2
+        exit 1
+        ;;
+esac
+export SPC_DEFAULT_CFLAGS="$SPC_BASE_CFLAGS $CPU_FLAGS"
+export SPC_DEFAULT_CXXFLAGS="$SPC_DEFAULT_CFLAGS"
+# 部分依赖直接读取 CFLAGS/CXXFLAGS；SPC_DEFAULT_* 负责库级完整参数。
+export CFLAGS="$CPU_FLAGS"
+export CXXFLAGS="$CPU_FLAGS"
+
 if [[ "${FRAMPP_COMPRESS:-0}" == "1" ]]; then
     export COMPRESS=1
 else
@@ -82,13 +111,14 @@ export FRANKENPHP_VERSION="${FP_VERSION#v}"
 # 与 caddy-access-filter（access/filter 可编程钩子，v1.2.1：本地 IP/CIDR/国家码规则 + GeoIP）
 # 注意：所有模块必须锁定版本，否则 xcaddy 取最新会导致 MVS 抬升 Caddy 版本，
 # 不同架构/不同时间构建出的产物会出现版本漂移（0.8.1 曾出现 2.11.4 vs 2.11.7）。
-# scheduler 的 go.mod 位于仓库 module/ 子目录。默认仍固定正式版使用的 v0.1.0
-# 对应 commit；临时构建可通过 FRAMPP_SCHEDULER_REF 覆盖为 v0.2.0 commit。
-SCHEDULER_REF="${FRAMPP_SCHEDULER_REF:-e492454bf1ad75cafd2648b99c1840f0a8706c61}"
+# scheduler 的 go.mod 位于仓库 module/ 子目录。v0.2.0 支持多个独立 job，
+# 仍保留 v0.1.0 顶层单任务语法兼容。
+SCHEDULER_REF="${FRAMPP_SCHEDULER_REF:-2c8552504066cd276b704b7e6cc357405ef1b84b}"
 export XCADDY_ARGS="--with github.com/dunglas/caddy-cbrotli@v1.0.1 --with github.com/darkweak/souin/plugins/caddy@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/souin@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/storages/otter/caddy@v0.0.20 --with github.com/wangbo5825/caddy-access-filter@v1.2.1 --with github.com/wangbo5825/scheduler/module@${SCHEDULER_REF}"
 
-echo "==> 构建 FrankenPHP $FRANKENPHP_VERSION（PHP $PHP_VERSION, libc=$LIBC, SPC=v3, UPX=${COMPRESS:-0}）..."
+echo "==> 构建 FrankenPHP $FRANKENPHP_VERSION（PHP $PHP_VERSION, libc=$LIBC, target=$SPC_TARGET, cpu=$CPU_BASELINE, SPC=v3, UPX=${COMPRESS:-0}）..."
 echo "    扩展: ${PHP_EXTENSIONS//,/, }"
+echo "    CPU flags: $SPC_DEFAULT_CFLAGS"
 echo "    scheduler ref: $SCHEDULER_REF"
 echo "    Caddy 模块: $XCADDY_ARGS"
 bash ./build-static.sh
@@ -111,6 +141,15 @@ fi
 cp "$PHP_BIN" "$OUT_DIR/php"
 chmod +x "$OUT_DIR/php"
 
+{
+    echo "frankenphp_version=$FRANKENPHP_VERSION"
+    echo "php_version=$PHP_VERSION"
+    echo "spc_target=$SPC_TARGET"
+    echo "cpu_baseline=$CPU_BASELINE"
+    echo "cpu_flags=$CPU_FLAGS"
+    echo "scheduler_ref=$SCHEDULER_REF"
+} > "$OUT_DIR/build-info.txt"
+
 # sudo 重执行时产物归 root，交还属主给原用户，便于后续脚本读写
 if [[ -n "${SUDO_USER:-}" ]]; then
     chown -R "$SUDO_USER":"$SUDO_USER" "$OUT_DIR"
@@ -121,4 +160,4 @@ echo "==> 验证:"
 "$OUT_DIR/frankenphp" build-info || true
 "$OUT_DIR/php" -v
 ls -lh "$OUT_DIR/frankenphp" "$OUT_DIR/php"
-echo "FRANKENPHP_BUILD_OK version=$FP_VERSION php=$PHP_VERSION spc=v3 scheduler=$SCHEDULER_REF"
+echo "FRANKENPHP_BUILD_OK version=$FP_VERSION php=$PHP_VERSION target=$SPC_TARGET cpu=$CPU_BASELINE scheduler=$SCHEDULER_REF"

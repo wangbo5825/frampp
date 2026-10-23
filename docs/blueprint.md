@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.18（2026-10-22，v0.8.3 已发布；v0.9.0 计划纳入 scheduler v0.2.0、MySQL 初始化 fail-fast 与静态资源/PHP matcher 修复）
+> 状态：设计稿 v1.19（2026-10-23，v0.8.4 已准备发布；Linux x86_64 固定 x86-64-v2 基线，scheduler v0.2.0 多任务已集成；v0.9.0 保留 MySQL 初始化 fail-fast 与静态资源/PHP matcher 修复）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -119,6 +119,10 @@
 - **问题**：0.3.0 源码编译 MariaDB/FrankenPHP 在 CI `ubuntu-latest`（glibc 2.39）与本机 WSL Ubuntu 26（glibc 2.43）上执行，产物带 `GLIBC_2.38` 及以上符号要求，无法在旧 glibc 发行版运行（报 `GLIBC_2.38 not found`）。
 - **根因**：glibc 向下兼容——新 glibc 编译的二进制不能在旧 glibc 运行，反之可以。
 - **FrankenPHP → musl 完全静态**：改为在 `alpine:3.21` 容器内以 `SPC_LIBC=musl` 构建（`installer/scripts/linux/build-frankenphp-musl.sh`），产物不链接 glibc，可运行于任意 glibc 版本甚至 Alpine；这也是 FrankenPHP 官方静态构建默认方式。spc 运行需 PHP ≥ 8.4，由 Alpine 的 `php84` 包提供。
+- **CPU ISA 基线（v0.8.4 补充）**：musl 静态只解决 libc 依赖，不保证 CPU 指令集兼容。x86_64 构建不得使用 SPC 的 `native-native-musl` 或 `-march=native`；固定为
+  `SPC_TARGET=x86_64-linux-musl` 和 `-march=x86-64-v2 -mtune=generic`，
+  确保 Sandy Bridge / Xeon E5-2660（AVX，无 AVX2/ADX）可启动。CI 使用
+  QEMU Sandy Bridge 模型验证 PHP CLI 与 FrankenPHP。
 - **MariaDB → glibc 2.31 基线**：MariaDB 无法轻易静态化，改在 `ubuntu:20.04` 容器内编译（`installer/scripts/linux/build-mariadb-glibc.sh`），把最低 glibc 要求锁到 2.31，覆盖 Ubuntu 20.04+、Debian 11+、RHEL 9 / Rocky 9 / Alma 9（glibc 2.34）。新增 `assert-glibc-max.sh` 校验，CI 冒烟断言防止回归。
 - **Redis / Python 不受影响**：Redis 用 Alpine musl 静态编译；Python 用 python-build-standalone（自带低 glibc 基线）。
 
@@ -397,7 +401,7 @@
   0.8.3 定位为安全修复版，不引入 v0.9.0 的安装目录 `/opt`、setcap、chroot 或
   上传策略等新功能。升级不修改配置格式、数据库结构或 `apps/` 布局。
 
-### 2.19 v0.9.0 scheduler v0.2.0 多定时器计划（v1.15，2026-10-22，仅记录）
+### 2.19 v0.8.4 scheduler v0.2.0 多定时器与 CPU 兼容性（v1.19，2026-10-23）
 
 - **版本确认**：`wangbo5825/scheduler` 已有 `v0.2.0` tag，对应 commit
   `2c8552504066cd276b704b7e6cc357405ef1b84b`。由于 Go module 位于仓库
@@ -406,11 +410,17 @@
 - **能力变化**：v0.2.0 新增多个命名 job，可在一个 `pogo_scheduler` 全局块中定义多套
   HTTP / command 任务；每个 job 独立拥有 interval / cron、timeout、overlap 与执行状态。
   顶层单任务语法继续兼容，但顶层任务参数不能与 `job` 块混用。
-- **实施边界**：该变更排期 v0.9.0，本文只记录计划，不修改当前 v0.8.3 的 scheduler
-  0.1.0 依赖、默认配置或发布产物。实施时需更新构建缓存标记、安装包中的
-  `etc/scheduler.caddy` 示例、中英文用户文档与 Linux 双架构 CI 冒烟。
-- **验收方向**：至少配置两个不同周期任务，验证二者均能独立触发；其中一个任务处于
-  `overlap skip` 运行状态时，另一个任务不受影响；旧 v0.1.0 单任务配置继续可用。
+- **实施结果**：v0.8.4 已将 Linux 定制构建固定到 v0.2.0 commit；新安装的
+  `etc/scheduler.caddy` 提供多个 `job` 示例，控制面板与文档同步更新。
+  v0.1.0 顶层单任务语法继续兼容，但禁止与 `job` 块混用。
+- **CPU 兼容性结果**：v0.8.3 的 x86_64 产物由 SPC `native-native-musl`
+  路径生成，入口无条件使用 AVX2，导致 Sandy Bridge 启动 `SIGILL`。v0.8.4 固定
+  `SPC_TARGET=x86_64-linux-musl` 与 `-march=x86-64-v2 -mtune=generic`，
+  构建缓存标记包含脚本指纹与 CPU 基线，CI 使用 QEMU `-cpu SandyBridge`
+  分别运行独立 PHP CLI 和 FrankenPHP。PHP 8.5.12 / FrankenPHP 1.13.2
+  安全修复保持不变。
+- **验收结果**：冒烟测试同时运行一个频繁 HTTP job 与一个耗时 job，验证
+  前者在后者运行期间继续触发；随后恢复 v0.1.0 顶层配置，验证兼容性。
 
 ### 2.20 v0.9.0 运行时依赖与静态资源缺陷计划（v1.18，2026-10-22，仅记录）
 
@@ -658,10 +668,9 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 7. ✅ 发布 **v0.7.1**（LAMPP 风格根目录总控命令）与 **v0.7.2**（caddy-access-filter 1.2.1 升级）
 8. ✅ v0.8.0 改进计划已记录（2026-09-01，见 `docs/0.8.0-plan.md`）：README/docs 并入 `share/docs/` 并补齐中文版、启动前端口预检 + 启动后延迟就绪检测、`frampp restart` 指令、安装脚本提示语中英双语、`VERSION` 移入 `etc/`、缺省端口 8080/8081 冲突调研、caddy-exec 服务生命周期钩子、caddy-panel Web 管理界面（caddy-timer 定时模块为 backlog）；实施时在本蓝图补决策记录
 9. ✅ 发布 **v0.8.0**（caddy-panel `/panel`、`frampp restart`、启动就绪检测、`share/docs` 布局、`VERSION`→`etc/`、安装脚本双语）
-10. 下一步：**v0.9.0** 升级 scheduler 自 fork 到 v0.2.0 多定时器、修复 libaio 启动依赖
-    与 CSS MIME、一键安装器英文优先、应用目录结构
-    （`apps/<app>/htdocs`）、Linux 缺省安装目录 `/opt/frampp`、非 root + setcap
-    绑定 80/443、启动 chroot / 沙箱隔离、上传内容禁止 PHP/可执行代码等，见
+10. 下一步：**v0.9.0** 修复 libaio 启动依赖与 CSS MIME；实施 Linux 缺省安装目录
+    `/opt/frampp`、非 root + setcap、chroot / 沙箱、上传内容禁止 PHP/可执行代码，
+    并继续完善安装器英文优先与应用目录结构，见
     `docs/0.9.0-plan.md`；或 macOS / A2A 变体
 11. ✅ 发布 **v0.8.1**（Linux arm64 / aarch64 变体、多架构 Docker 镜像、
     `frampp restart` 竞态修复）
@@ -669,3 +678,6 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
     v0.1.0、安装器英文优先）
 13. ✅ v0.8.3 安全更新：PHP **8.5.12**、FrankenPHP **1.13.2**、static-php-cli v3；
     Linux x86_64/aarch64、Windows x64 与多架构 Docker 统一切换到安全基线
+14. ✅ v0.8.4：pogo_scheduler **v0.2.0** 多任务、Linux x86_64
+    **x86-64-v2** CPU 基线、Sandy Bridge CI 启动验证；保留 PHP 8.5.12 /
+    FrankenPHP 1.13.2 安全修复

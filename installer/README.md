@@ -20,8 +20,8 @@ Windows：
 
 Linux（x86_64 / aarch64）：
 
-- FrankenPHP 1.13.2：源码定制构建（PHP 8.5.12、static-php-cli v3、去部分扩展 + Souin + `caddy-access-filter`，musl 完全静态），在目标架构上原生编译
-- pogo_scheduler 0.1.0：`github.com/wangbo5825/scheduler/module@v0.1.0`，可通过 `etc/scheduler.caddy` 启用 HTTP / 命令定时任务（Linux 定制构建）
+- FrankenPHP 1.13.2：源码定制构建（PHP 8.5.12、static-php-cli v3、去部分扩展 + Souin + `caddy-access-filter`，musl 完全静态）；x86_64 固定 `x86-64-v2` CPU 基线，aarch64 使用 generic CPU
+- pogo_scheduler 0.2.0：`github.com/wangbo5825/scheduler/module@2c85525`，可通过 `etc/scheduler.caddy` 的多个 `job` 块启用独立 HTTP / 命令定时任务（Linux 定制构建）
 - MySQL 8.0.46：官方通用包裁剪（`installer/scripts/linux/trim-mysql.sh`，自带 OpenSSL）——x86_64 用 glibc 2.17 minimal（CentOS 7 兼容），aarch64 用 glibc 2.28 通用包（官方无 arm64 minimal 变体）
 - Redis 8.10.1：官方源码静态编译（目标架构原生）
 - Python 3.13.15：`python-build-standalone` 精简运行时（对应架构）
@@ -47,16 +47,16 @@ bin/frampp stop all
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/scripts/build-installer.ps1
-# Windows 产物：dist/installer/frampp-0.8.3-windows-x64.exe
+# Windows 产物：dist/installer/frampp-0.8.4-windows-x64.exe
 
 pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-x86_64
-# Linux 产物：dist/installer/frampp-0.8.3-linux-x86_64.run
+# Linux 产物：dist/installer/frampp-0.8.4-linux-x86_64.run
 
 pwsh -File installer/scripts/build-linux-package.ps1 -Env linux-aarch64
-# Linux arm64 产物：dist/installer/frampp-0.8.3-linux-aarch64.run（须在 arm64 主机/runner 上构建）
+# Linux arm64 产物：dist/installer/frampp-0.8.4-linux-aarch64.run（须在 arm64 主机/runner 上构建）
 
 pwsh -File installer/scripts/build-docker.ps1 -ImageName frampp
-# Docker 产物：frampp:0.8.3 镜像（复用上面的 .run 载荷；多架构 manifest 由 CI 合并 amd64 + arm64）
+# Docker 产物：frampp:0.8.4 镜像（复用上面的 .run 载荷；多架构 manifest 由 CI 合并 amd64 + arm64）
 ```
 
 ### Docker 镜像
@@ -72,7 +72,7 @@ docker run -d --name frampp \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-apps:/opt/frampp/apps \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  frampp:0.8.3
+  frampp:0.8.4
 ```
 
 详细卷、端口与发布说明见 [docs/docker.md](../docs/docker.md)。

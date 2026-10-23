@@ -23,6 +23,8 @@ include this directory under `share/docs/user/` since v0.8.0 (root `docs/` befor
   通用二进制（自带 OpenSSL，服务端仅需 `libaio`；Debian/Ubuntu 请安装
   `libaio1`，命令行 `mysql` 客户端在新 Debian/Ubuntu 可能还需要
   `libtinfo5`——不影响 PHP 与控制面板）。
+  v0.8.4 起 CPU 基线固定为 **x86-64-v2**（SSE4.2/POPCNT，不要求
+  AVX2/ADX），包括 Intel Sandy Bridge / Xeon E5-2660。
   Ubuntu 24.04+ / Debian 13 的 libaio 包名为 `libaio1t64`（仅提供
   `libaio.so.1t64`），请安装后创建兼容链接：
   `sudo ln -sf libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1`。

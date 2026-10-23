@@ -20,7 +20,7 @@ docker run -d --name frampp \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-apps:/opt/frampp/apps \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.3
+  ghcr.io/wangbo5825/frampp:0.8.4
 ```
 
 `frampp-htdocs` 仅为旧布局兼容卷；新安装的站点数据在 `frampp-apps` 中（可省略
@@ -54,14 +54,14 @@ docker compose down
 
 默认只映射 8080（站点）与 8081（控制面板）。如需从宿主机直连 MySQL 或
 Redis，取消 `docker-compose.yml` 中 3306 / 6379 端口的注释。
-若使用本地构建的 `frampp:0.8.3` 镜像，可覆盖镜像名：
-`FRAMPP_IMAGE=frampp:0.8.3 docker compose up -d`。
+若使用本地构建的 `frampp:0.8.4` 镜像，可覆盖镜像名：
+`FRAMPP_IMAGE=frampp:0.8.4 docker compose up -d`。
 
 The root `docker-compose.yml` wraps the common ports and named volumes. Only
 8080 (site) and 8081 (control panel) are published by default; uncomment 3306 /
 6379 if you need host access to MySQL or Redis.
-To use a locally built `frampp:0.8.3` image instead, override the image:
-`FRAMPP_IMAGE=frampp:0.8.3 docker compose up -d`.
+To use a locally built `frampp:0.8.4` image instead, override the image:
+`FRAMPP_IMAGE=frampp:0.8.4 docker compose up -d`.
 
 ## 卷 / Volumes
 
@@ -115,8 +115,8 @@ pwsh -File installer/scripts/build-docker.ps1 -ImageName frampp
 或直接使用 Docker：
 
 ```bash
-docker build -t frampp:0.8.3 \
-  --build-arg FRAMPP_PACKAGE=dist/installer/frampp-0.8.3-linux-x86_64.run .
+docker build -t frampp:0.8.4 \
+  --build-arg FRAMPP_PACKAGE=dist/installer/frampp-0.8.4-linux-x86_64.run .
 ```
 
 构建时通过 `--extract-only` 仅解压载荷，不生成密钥；`var/` 在容器首次启动时

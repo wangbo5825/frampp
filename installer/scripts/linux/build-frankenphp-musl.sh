@@ -40,6 +40,20 @@ mkdir -p "$OUT_DIR"
 abs() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
 SRC_TAR_ABS="$(abs "$SRC_TAR")"
 OUT_DIR_ABS="$(abs "$OUT_DIR")"
+docker_host_path() {
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -m "$1"
+    else
+        printf '%s\n' "$1"
+    fi
+}
+DOCKER_SRC_TAR="$(docker_host_path "$SRC_TAR_ABS")"
+DOCKER_OUT_DIR="$(docker_host_path "$OUT_DIR_ABS")"
+BUILD_SCRIPT_DIR="$(mktemp -d)"
+trap 'rm -rf "$BUILD_SCRIPT_DIR"' EXIT
+# Windows checkouts may retain CRLF in shell scripts; normalize before bind-mounting.
+tr -d '\r' < "$HERE/build-frankenphp.sh" > "$BUILD_SCRIPT_DIR/build-frankenphp.sh"
+DOCKER_BUILD_SCRIPT="$(docker_host_path "$BUILD_SCRIPT_DIR/build-frankenphp.sh")"
 
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
     echo "==> Docker 不可用，回退宿主裸构建（musl 静态，需宿主机支持）" >&2
@@ -52,12 +66,13 @@ docker run --rm --platform "$DOCKER_PLATFORM" \
     -e "FRAMPP_PHP_VERSION=${FRAMPP_PHP_VERSION:-8.5.12}" \
     -e "FRAMPP_SPC_LIBC=musl" \
     -e "LIBC=musl" \
+    -e "FRAMPP_SCHEDULER_REF=${FRAMPP_SCHEDULER_REF:-e492454bf1ad75cafd2648b99c1840f0a8706c61}" \
     -e "FP_VERSION=$FP_VERSION" \
     -e "GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
     -e "SPC_GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
-    -v "$SRC_TAR_ABS:/src/frankenphp.tar.gz:ro" \
-    -v "$OUT_DIR_ABS:/out" \
-    -v "$HERE/build-frankenphp.sh:/build-frankenphp.sh:ro" \
+    -v "$DOCKER_SRC_TAR:/src/frankenphp.tar.gz:ro" \
+    -v "$DOCKER_OUT_DIR:/out" \
+    -v "$DOCKER_BUILD_SCRIPT:/build-frankenphp.sh:ro" \
     "$IMAGE" sh -c '
 set -eu
 apk add --no-cache \

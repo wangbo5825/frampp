@@ -82,12 +82,14 @@ export FRANKENPHP_VERSION="${FP_VERSION#v}"
 # 与 caddy-access-filter（access/filter 可编程钩子，v1.2.1：本地 IP/CIDR/国家码规则 + GeoIP）
 # 注意：所有模块必须锁定版本，否则 xcaddy 取最新会导致 MVS 抬升 Caddy 版本，
 # 不同架构/不同时间构建出的产物会出现版本漂移（0.8.1 曾出现 2.11.4 vs 2.11.7）。
-# scheduler 的 go.mod 位于仓库 module/ 子目录，根目录 tag v0.1.0 不适用于子模块；
-# 用 v0.1.0 对应的 commit（e492454）固定版本，Go 会解析为 pseudo-version。
-export XCADDY_ARGS="--with github.com/dunglas/caddy-cbrotli@v1.0.1 --with github.com/darkweak/souin/plugins/caddy@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/souin@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/storages/otter/caddy@v0.0.20 --with github.com/wangbo5825/caddy-access-filter@v1.2.1 --with github.com/wangbo5825/scheduler/module@e492454bf1ad75cafd2648b99c1840f0a8706c61"
+# scheduler 的 go.mod 位于仓库 module/ 子目录。默认仍固定正式版使用的 v0.1.0
+# 对应 commit；临时构建可通过 FRAMPP_SCHEDULER_REF 覆盖为 v0.2.0 commit。
+SCHEDULER_REF="${FRAMPP_SCHEDULER_REF:-e492454bf1ad75cafd2648b99c1840f0a8706c61}"
+export XCADDY_ARGS="--with github.com/dunglas/caddy-cbrotli@v1.0.1 --with github.com/darkweak/souin/plugins/caddy@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/souin@65cb24114d76a7de3f4e8c7b8ef7df3efd028899 --with github.com/darkweak/storages/otter/caddy@v0.0.20 --with github.com/wangbo5825/caddy-access-filter@v1.2.1 --with github.com/wangbo5825/scheduler/module@${SCHEDULER_REF}"
 
 echo "==> 构建 FrankenPHP $FRANKENPHP_VERSION（PHP $PHP_VERSION, libc=$LIBC, SPC=v3, UPX=${COMPRESS:-0}）..."
 echo "    扩展: ${PHP_EXTENSIONS//,/, }"
+echo "    scheduler ref: $SCHEDULER_REF"
 echo "    Caddy 模块: $XCADDY_ARGS"
 bash ./build-static.sh
 
@@ -119,4 +121,4 @@ echo "==> 验证:"
 "$OUT_DIR/frankenphp" build-info || true
 "$OUT_DIR/php" -v
 ls -lh "$OUT_DIR/frankenphp" "$OUT_DIR/php"
-echo "FRANKENPHP_BUILD_OK version=$FP_VERSION php=$PHP_VERSION spc=v3"
+echo "FRANKENPHP_BUILD_OK version=$FP_VERSION php=$PHP_VERSION spc=v3 scheduler=$SCHEDULER_REF"

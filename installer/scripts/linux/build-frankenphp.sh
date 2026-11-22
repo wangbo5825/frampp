@@ -60,8 +60,8 @@ fi
 sed -i 's/^sapi:.*/sapi: "frankenphp,cli"/' craft.yml
 
 # PHP 版本与精简扩展集（默认集去掉 intl/soap/gmp/bcmath/exif/imagick）
-# 8.5.12 修复 CVE-2026-109618 / CVE-2026-109619（PHP2Shell），不得降级。
-export PHP_VERSION="${FRAMPP_PHP_VERSION:-8.5.12}"
+# PHP 8.5.13 包含 2026-11-19 的完整安全修复集合，不得降级。
+export PHP_VERSION="${FRAMPP_PHP_VERSION:-8.5.13}"
 export PHP_EXTENSIONS="amqp,apcu,ast,brotli,bz2,calendar,ctype,curl,dba,dom,fileinfo,filter,ftp,gd,gettext,iconv,igbinary,ldap,lz4,mbregex,mbstring,memcached,mysqli,mysqlnd,opcache,openssl,password-argon2,parallel,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,protobuf,readline,redis,session,shmop,simplexml,sockets,sodium,sqlite3,ssh2,sysvmsg,sysvsem,sysvshm,tidy,tokenizer,xlswriter,xml,xmlreader,xmlwriter,xsl,xz,zip,zlib,yaml,zstd"
 
 # static-php-cli v3 使用 LIBC 选择工具链；unset 旧 v2 变量，避免构建链混用。

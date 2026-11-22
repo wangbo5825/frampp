@@ -1,8 +1,6 @@
 <?php
 
 declare(strict_types=1);
-
-$version = PHP_VERSION;
 ?>
 <!doctype html>
 <html lang="zh-CN">
@@ -19,7 +17,7 @@ $version = PHP_VERSION;
 <body>
 <main>
     <h1>FRAMPP 已就绪 🎉</h1>
-    <p>FrankenPHP / MariaDB / Redis 运行正常，PHP <?= htmlspecialchars($version) ?>。</p>
+    <p>应用服务器、数据库与缓存服务运行正常。</p>
     <p>把项目代码放到 <code>apps/&lt;name&gt;/htdocs/</code>（默认应用为 <code>apps/default/htdocs/</code>），或访问 <code><a href="http://127.0.0.1:8081/">控制面板</a></code>。</p>
 </main>
 </body>

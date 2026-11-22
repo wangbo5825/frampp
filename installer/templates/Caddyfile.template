@@ -22,7 +22,36 @@
 	# }
 }
 
+(frampp_fingerprint_privacy) {
+	# Remove server/technology signatures from normal and error responses.
+	header {
+		-Server
+		-X-Powered-By
+		-X-Powered-By-PHP
+		-Via
+		defer
+	}
+	handle_errors {
+		header {
+			-Server
+			-X-Powered-By
+			-X-Powered-By-PHP
+			-Via
+		}
+		@not_found expression {http.error.status_code} == 404
+		handle @not_found {
+			respond "Not Found" 404
+		}
+		@server_error expression {http.error.status_code} >= 500
+		handle @server_error {
+			respond "Internal Server Error" {http.error.status_code}
+		}
+		respond "Request Error" {http.error.status_code}
+	}
+}
+
 http://127.0.0.1:8080 {
+	import frampp_fingerprint_privacy
 	root * {{HTDOCS}}
 	encode zstd gzip
 	route {
@@ -37,6 +66,7 @@ http://127.0.0.1:8080 {
 }
 
 http://127.0.0.1:8081 {
+	import frampp_fingerprint_privacy
 	encode zstd gzip
 	# Caddy 管理界面（caddy-panel）：子路由 /panel，去掉前缀后交给模块 webroot
 	handle_path /panel/* {

@@ -11,15 +11,15 @@ LAMPP / XAMPP / NMPP 的产品形态，并内置基于 MCP 的 AI Agent 接入�
 ## 当前状态
 
 - 里程碑：**M4 生产模式 + Linux x86_64 / aarch64 + Docker 变体**
-- 最新版本线：**0.8.4 兼容性更新**，提供 Windows x64、Linux x86_64/aarch64
-  安装包和多架构 Docker 镜像。继续使用 **PHP 8.5.12** 修复 PHP2Shell 两个严重
-  远程代码执行漏洞（CVE-2026-109618 / CVE-2026-109619），以及
-  **FrankenPHP 1.13.2** 的 4 个自身安全修复。
-- 兼容性：Linux x86_64 固定 **x86-64-v2** CPU 基线，不再要求 AVX2/ADX，
-  CI 使用 Sandy Bridge CPU 模型验证启动；**pogo_scheduler v0.2.0** 支持多个
-  独立定时任务。保留 `apps/<app>/{htdocs,config,src,var}` 应用布局与安装器
-  英文优先；Linux 数据库为 MySQL 8.0（x86_64 glibc 2.17 / aarch64 glibc 2.28）。
-- 当前通道：PHP **8.5.12** / FrankenPHP **1.13.2**
+- 最新版本线：**0.8.5 安全更新**，提供 Windows x64、Linux x86_64/aarch64
+  安装包和多架构 Docker 镜像。**PHP 8.5.13** 包含 PHP 官方 2026-11-19
+  发布的完整安全修复；FrankenPHP 同步升级到 **1.13.6**。
+- 指纹收敛：默认关闭 PHP 错误回显与异常参数；HTTP 响应移除
+  `Server` / `X-Powered-By` / `Via` 等技术指纹；错误页只返回通用文本；
+  默认首页、项目模板与 caddy-panel 不再显示 PHP 精确版本。
+- 兼容性：Linux x86_64 固定 **x86-64-v2** CPU 基线，CI 使用 Sandy Bridge
+  模型验证启动；**pogo_scheduler v0.2.0** 支持多个独立定时任务。
+- 当前通道：PHP **8.5.13** / FrankenPHP **1.13.6**
 
 ## FRAMPP 是什么？
 
@@ -63,19 +63,19 @@ FRAMPP 把 PHP 应用服务器、MySQL / MariaDB 和 Redis 打包成自包含的
 ### Windows
 
 从 [GitHub Releases](https://github.com/wangbo5825/frampp/releases) 下载
-`frampp-0.8.4-windows-x64.exe`，双击安装。安装器会自动初始化并启动
+`frampp-0.8.5-windows-x64.exe`，双击安装。安装器会自动初始化并启动
 整套环境。
 
 ### Linux（x86_64 / aarch64）
 
 ```bash
-chmod +x frampp-0.8.4-linux-x86_64.run
-./frampp-0.8.4-linux-x86_64.run
-./frampp-0.8.4-linux-x86_64.run --prefix /opt/frampp
+chmod +x frampp-0.8.5-linux-x86_64.run
+./frampp-0.8.5-linux-x86_64.run
+./frampp-0.8.5-linux-x86_64.run --prefix /opt/frampp
 
-# arm64（aarch64）主机请下载 frampp-0.8.4-linux-aarch64.run：
-chmod +x frampp-0.8.4-linux-aarch64.run
-./frampp-0.8.4-linux-aarch64.run --prefix /opt/frampp
+# arm64（aarch64）主机请下载 frampp-0.8.5-linux-aarch64.run：
+chmod +x frampp-0.8.5-linux-aarch64.run
+./frampp-0.8.5-linux-aarch64.run --prefix /opt/frampp
 ```
 
 安装完成后：
@@ -87,8 +87,8 @@ chmod +x frampp-0.8.4-linux-aarch64.run
   `bin/redis-cli`；环境变量可 `source bin/env` 一次性配置。
 - systemd：`sudo bin/install-systemd` 安装开机自启服务。
 
-0.8.4 延续 PHP 8.5.12 / FrankenPHP 1.13.2 安全基线，并修复 Linux x86_64
-发布包的 CPU 兼容性：构建固定 `x86-64-v2`，CI 使用 Sandy Bridge 模型验证。
+0.8.5 将安全基线升级到 PHP 8.5.13 / FrankenPHP 1.13.6，并默认隐藏
+PHP/服务器技术版本、关闭错误详情回显、使用通用错误页。
 默认站点根为 `apps/default/htdocs`；`frampp new-project` 创建
 `apps/<name>/{htdocs,config,src,var}`；可选 Linux 定时任务在
 `etc/scheduler.caddy` 中用多个 `job` 配置，支持独立周期与重叠策略；
@@ -105,7 +105,7 @@ docker run -d --name frampp \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-apps:/opt/frampp/apps \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.4
+  ghcr.io/wangbo5825/frampp:0.8.5
 ```
 
 也可使用仓库中的 Docker Compose：
@@ -137,6 +137,7 @@ GLIBC ≤ 2.17，并在 Sandy Bridge QEMU 模型下输出 `CPU_COMPAT_OK`）。
 - [蓝图](docs/blueprint.md)
 - [版本发布](docs/releases.md)
 - [用户文档（随安装包发布）](docs/user/README.md)
+- [安全与指纹策略](docs/user/security.md)
 - [安装 / 升级](docs/user/upgrade.md)
 - [安装器](installer/README.md)
 - [Agent](agent/README.md)

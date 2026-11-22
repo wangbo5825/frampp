@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# FRAMPP PHP CLI：优先使用 FrankenPHP 1.13.2+ 随包构建的独立 CLI。
+# FRAMPP PHP CLI：优先使用 FrankenPHP 1.13.6+ 随包构建的独立 CLI。
 #
 set -e
 

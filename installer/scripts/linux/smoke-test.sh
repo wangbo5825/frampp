@@ -46,15 +46,30 @@ echo "=== version ==="
 ./bin/frampp version || true
 PHP_FULL="$(./modules/frankenphp/php -r 'echo PHP_VERSION;' 2>/dev/null || true)"
 echo "PHP_VERSION=$PHP_FULL"
-if [[ "$PHP_FULL" != "8.5.12" ]]; then
-  echo "PHP_VERSION_UNSAFE ($PHP_FULL != 8.5.12)"; exit 1
+if [[ "$PHP_FULL" != "8.5.13" ]]; then
+  echo "PHP_VERSION_UNSAFE ($PHP_FULL != 8.5.13)"; exit 1
 fi
 echo "PHP_VERSION_OK $PHP_FULL"
+if ! PHPRC="$PWD/etc/php.ini" ./modules/frankenphp/php -r '
+    $expected = "Mozilla/5.0 (compatible; Application)";
+    $enabled = static fn (string $key): bool => filter_var(ini_get($key), FILTER_VALIDATE_BOOLEAN);
+    if ($enabled("expose_php") || $enabled("display_errors") || $enabled("display_startup_errors") || $enabled("html_errors")) {
+        fwrite(STDERR, "PHP privacy flags are not disabled\n");
+        exit(1);
+    }
+    if (ini_get("user_agent") !== $expected || ini_get("zend.exception_ignore_args") !== "1") {
+        fwrite(STDERR, "PHP User-Agent or exception argument policy is not enforced\n");
+        exit(1);
+    }
+'; then
+  echo "PHP_FINGERPRINT_CONFIG_BAD"; exit 1
+fi
+echo "PHP_FINGERPRINT_CONFIG_OK"
 FP_FULL="$(./modules/frankenphp/frankenphp version 2>&1 || true)"
 echo "$FP_FULL"
 FP_VER="$(printf '%s\n' "$FP_FULL" | sed -n 's/.*FrankenPHP v\([0-9][0-9.]*\).*/\1/p' | head -n1)"
-if [[ -z "$FP_VER" ]] || [ "$(printf '%s\n%s\n' "1.13.2" "$FP_VER" | sort -V | head -n1)" != "1.13.2" ]; then
-  echo "FRANKENPHP_VERSION_UNSAFE ($FP_VER < 1.13.2)"; exit 1
+if [[ -z "$FP_VER" ]] || [ "$(printf '%s\n%s\n' "1.13.6" "$FP_VER" | sort -V | head -n1)" != "1.13.6" ]; then
+  echo "FRANKENPHP_VERSION_UNSAFE ($FP_VER < 1.13.6)"; exit 1
 fi
 echo "FRANKENPHP_VERSION_OK $FP_VER"
 echo "=== root master command (LAMPP-style symlink) ==="
@@ -112,6 +127,22 @@ if ! printf '%s' "$PANEL_BODY" | grep -q 'FRAMPP 控制面板'; then
   echo "PANEL_NOT_RENDERED"; exit 1
 fi
 echo "PANEL_OK"
+assert_private_headers() {
+  local url="$1"
+  local headers
+  headers="$(curl -sS -D - -o /dev/null --max-time 15 "$url" || true)"
+  if printf '%s\n' "$headers" | grep -Eiq '^(Server|X-Powered-By|X-Powered-By-PHP|Via):'; then
+    echo "HTTP_FINGERPRINT_HEADER_LEAK url=$url"
+    printf '%s\n' "$headers" | grep -Ei '^(Server|X-Powered-By|X-Powered-By-PHP|Via):' || true
+    exit 1
+  fi
+}
+assert_private_headers http://127.0.0.1:8080/
+assert_private_headers http://127.0.0.1:8081/
+SITE_BODY="$(curl -sS --max-time 15 http://127.0.0.1:8080/ || true)"
+if printf '%s' "$SITE_BODY" | grep -Eqi 'PHP[ /]8\.[0-9]+\.[0-9]+'; then
+  echo "SITE_PHP_VERSION_LEAK"; exit 1
+fi
 echo "=== adapted config (routes per server) ==="
 ./modules/frankenphp/frankenphp adapt --config etc/Caddyfile --adapter caddyfile 2>/dev/null \
   | grep -o '"handler":"[a-z_]*"' | sort | uniq -c || true
@@ -245,6 +276,36 @@ if [ "$LEGACY_OK" -ne 1 ]; then
   exit 1
 fi
 echo "SCHEDULER_LEGACY_OK $(head -n1 var/scheduler-legacy.log)"
+
+echo "=== generic Web error page and PHP error privacy ==="
+cat > apps/default/htdocs/fingerprint-error.php <<'PHP'
+<?php
+throw new RuntimeException('FRAMPP_FINGERPRINT_SECRET');
+PHP
+PHP_ERROR_STATUS="$(curl -sS -o var/php-error-smoke.body -w '%{http_code}' --max-time 15 http://127.0.0.1:8080/fingerprint-error.php || true)"
+if [[ "$PHP_ERROR_STATUS" != "500" ]]; then
+  echo "PHP_ERROR_STATUS_UNEXPECTED status=$PHP_ERROR_STATUS"; exit 1
+fi
+if grep -Eqi 'FRAMPP_FINGERPRINT_SECRET|PHP [0-9]+\.[0-9]+\.[0-9]+|/apps/default/' var/php-error-smoke.body; then
+  echo "PHP_ERROR_FINGERPRINT_LEAK"; cat var/php-error-smoke.body; exit 1
+fi
+cat > etc/caddy.d/99-fingerprint-smoke.caddy <<'CADDY'
+http://127.0.0.1:18090 {
+    import frampp_fingerprint_privacy
+    error 404
+}
+CADDY
+./bin/frampp restart frankenphp
+for i in $(seq 1 20); do (exec 3<>/dev/tcp/127.0.0.1/18090) 2>/dev/null && break; sleep 1; done
+ERROR_HEADERS="$(curl -sS -D - -o var/generic-error.body --max-time 15 http://127.0.0.1:18090/ || true)"
+if printf '%s\n' "$ERROR_HEADERS" | grep -Eiq '^(Server|X-Powered-By|X-Powered-By-PHP|Via):'; then
+  echo "ERROR_FINGERPRINT_HEADER_LEAK"; exit 1
+fi
+if [ "$(cat var/generic-error.body)" != "Not Found" ]; then
+  echo "ERROR_PAGE_NOT_GENERIC"; cat var/generic-error.body; exit 1
+fi
+rm -f etc/caddy.d/99-fingerprint-smoke.caddy
+echo "HTTP_FINGERPRINT_OK"
 echo "=== stop ==="
 ./bin/frampp stop all || true
 ./bin/frampp status --json || true

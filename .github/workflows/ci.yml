@@ -45,7 +45,7 @@ jobs:
       - name: PHP lint (src, agent, control-panel)
         shell: pwsh
         run: |
-          $files = Get-ChildItem -Path src, agent, control-panel -Recurse -Filter *.php -ErrorAction SilentlyContinue
+          $files = Get-ChildItem -Path src, agent, control-panel, caddy-panel -Recurse -Filter *.php -ErrorAction SilentlyContinue
           if ($files) {
             $files | ForEach-Object { php -l $_.FullName }
           } else {

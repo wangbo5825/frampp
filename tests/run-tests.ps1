@@ -38,8 +38,8 @@ function Test-VersionsFile([string]$Path, [string]$Platform) {
     Assert-True ($config.schema -eq 1) "$label schema = 1"
     Assert-True ($config.platform -eq $Platform) "$label declares platform"
     Assert-True ([string]$config.channel -ne "") "$label declares channel"
-    Assert-True ($config.components.frankenphp.version -eq "1.13.2") "$label uses FrankenPHP 1.13.2"
-    Assert-True ($config.components.frankenphp.phpVersion -eq "8.5.12") "$label pins PHP 8.5.12"
+    Assert-True ($config.components.frankenphp.version -eq "1.13.6") "$label uses FrankenPHP 1.13.6"
+    Assert-True ($config.components.frankenphp.phpVersion -eq "8.5.13") "$label pins PHP 8.5.13"
 
     $required = @("name", "version", "url", "sha256", "cacheFile", "kind", "installDir")
     foreach ($prop in $config.components.PSObject.Properties) {
@@ -89,13 +89,25 @@ $tpl = Join-Path $Root "installer/templates"
 $phpIni = Get-Content -Raw -LiteralPath (Join-Path $tpl "php.ini.template")
 Assert-True ($phpIni -match 'apc\.enable_cli\s*=\s*1') "php.ini template enables APCu CLI"
 Assert-True ($phpIni -match 'extension\s*=\s*apcu') "php.ini template loads apcu extension"
+Assert-True ($phpIni -match '(?m)^expose_php\s*=\s*Off') "Windows php.ini disables expose_php"
+Assert-True ($phpIni -match '(?m)^display_errors\s*=\s*Off') "Windows php.ini disables error display"
+Assert-True ($phpIni -match '(?m)^display_startup_errors\s*=\s*Off') "Windows php.ini disables startup error display"
+Assert-True ($phpIni -match '(?m)^user_agent\s*=\s*"Mozilla/5\.0 \(compatible; Application\)"') "Windows php.ini uses a versionless generic User-Agent"
 $initPs1 = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/init.ps1")
 Assert-True ($initPs1 -match 'extension_dir = "') "Windows init writes an absolute PHP extension_dir"
 Assert-True ($initPs1 -match 'APCu shares modules/frankenphp/ext') "Windows init preserves shared FrankenPHP extension directory"
+$serviceManager = Get-Content -Raw -LiteralPath (Join-Path $Root "control-panel/src/ServiceManager.php")
+Assert-True ($serviceManager -match 'DB_READY_TIMEOUT_MS\s*=\s*60000') "database startup wait uses the temporary 60s timeout"
+Assert-True ($serviceManager -match 'READY_TIMEOUT_MS\s*=\s*10000') "non-database startup wait remains at 10s"
+Assert-True ($serviceManager -match 'READY_POLL_INTERVAL_US\s*=\s*100000') "startup readiness polling returns within 100ms"
+Assert-True ($serviceManager -match 'PROCESS_CHECK_INTERVAL_SECONDS\s*=\s*1\.0') "startup process checks are throttled to once per second"
 
 $phpIniLinux = Get-Content -Raw -LiteralPath (Join-Path $tpl "php.ini.linux.template")
 Assert-True ($phpIniLinux -match 'apc\.enable_cli\s*=\s*1') "php.ini.linux template enables APCu CLI"
 Assert-True ($phpIniLinux -notmatch '(?m)^\s*extension\s*=') "php.ini.linux template has no dynamic extension lines"
+Assert-True ($phpIniLinux -match '(?m)^expose_php\s*=\s*Off') "Linux php.ini disables expose_php"
+Assert-True ($phpIniLinux -match '(?m)^display_errors\s*=\s*Off') "Linux php.ini disables error display"
+Assert-True ($phpIniLinux -match '(?m)^user_agent\s*=\s*"Mozilla/5\.0 \(compatible; Application\)"') "Linux php.ini uses a versionless generic User-Agent"
 
 $redisConf = Get-Content -Raw -LiteralPath (Join-Path $tpl "redis.conf.template")
 Assert-True ($redisConf -match 'bind 127\.0\.0\.1') "redis.conf binds loopback only"
@@ -110,6 +122,26 @@ Assert-True ($caddy -match '\{\{ACCESS_IMPORT\}\}') "Caddyfile template has acce
 Assert-True ($caddy -match '\{\{CADDY_PANEL_ROOT\}\}') "Caddyfile template has caddy-panel webroot placeholder"
 Assert-True ($caddy -match 'handle_path /panel/') "Caddyfile template routes /panel to caddy-panel"
 Assert-True ($caddy -match '\{\{SCHEDULER_IMPORT\}\}') "Caddyfile template has pogo_scheduler import placeholder"
+Assert-True ($caddy -match '\(frampp_fingerprint_privacy\)') "Caddyfile defines the fingerprint privacy snippet"
+Assert-True ($caddy -match '(?m)^\s*-Server\s*$' -and $caddy -match '(?m)^\s*-X-Powered-By\s*$') "Caddyfile strips server and PHP signature headers"
+Assert-True ($caddy -match 'handle_errors') "Caddyfile defines generic privacy-preserving error responses"
+$defaultIndex = Get-Content -Raw -LiteralPath (Join-Path $tpl "htdocs/index.php")
+Assert-True ($defaultIndex -notmatch 'PHP_VERSION') "Default landing page does not expose the PHP version"
+$projectIndex = Get-Content -Raw -LiteralPath (Join-Path $tpl "project-minimal/public/index.php")
+Assert-True ($projectIndex -notmatch 'PHP_VERSION') "Generated project template does not expose the PHP version"
+Assert-True ($initPs1 -match 'zend\.exception_ignore_args' -and $initPs1 -match 'session\.use_strict_mode') "Windows init migrates existing php.ini to the privacy baseline"
+$controlSiteManager = Get-Content -Raw -LiteralPath (Join-Path $Root "control-panel/src/SiteManager.php")
+Assert-True ($controlSiteManager -match 'import frampp_fingerprint_privacy') "Control-panel generated sites import the fingerprint privacy snippet"
+$controlAdminClient = Get-Content -Raw -LiteralPath (Join-Path $Root "control-panel/src/CaddyAdminClient.php")
+Assert-True ($controlAdminClient -match "user_agent.*Mozilla/5\.0 \(compatible; Application\)") "Control-panel streams use the versionless generic User-Agent"
+$panelSiteManager = Get-Content -Raw -LiteralPath (Join-Path $Root "caddy-panel/src/php/SiteManager.php")
+Assert-True ($panelSiteManager -match 'import frampp_fingerprint_privacy') "caddy-panel generated sites import the fingerprint privacy snippet"
+$panelStatus = Get-Content -Raw -LiteralPath (Join-Path $Root "caddy-panel/src/php/Controllers/StatusController.php")
+Assert-True ($panelStatus -notmatch 'PHP_VERSION') "caddy-panel status API does not expose the PHP version"
+$panelInstaller = Get-Content -Raw -LiteralPath (Join-Path $Root "caddy-panel/public/install.php")
+Assert-True ($panelInstaller -notmatch 'PHP_VERSION\b') "caddy-panel installer does not expose the PHP version"
+$panelAdminClient = Get-Content -Raw -LiteralPath (Join-Path $Root "caddy-panel/src/php/AdminClient.php")
+Assert-True ($panelAdminClient -match 'CURLOPT_USERAGENT.*Mozilla/5\.0 \(compatible; Application\)') "caddy-panel uses the versionless generic User-Agent"
 
 # 4. 安装器资产（Windows + Linux）
 $setupIss = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/setup.iss")
@@ -154,7 +186,7 @@ Assert-True ($buildLinux -match 'buildFingerprint') "build-linux-package.ps1 fin
 Assert-True ($buildLinux -match 'scheduler0\.2\.0') "build-linux-package.ps1 marker identifies scheduler 0.2.0"
 Assert-True ($buildLinux -match 'build-info\.txt') "build-linux-package.ps1 stages FrankenPHP build metadata"
 $buildFrankenPHP = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/build-frankenphp.sh")
-Assert-True ($buildFrankenPHP -match 'FRAMPP_PHP_VERSION:-8\.5\.12') "FrankenPHP build pins PHP 8.5.12"
+Assert-True ($buildFrankenPHP -match 'FRAMPP_PHP_VERSION:-8\.5\.13') "FrankenPHP build pins PHP 8.5.13"
 Assert-True ($buildFrankenPHP -match 'static-php-cli v3') "FrankenPHP build documents SPC v3"
 Assert-True ($buildFrankenPHP -match 'export LIBC=') "FrankenPHP build uses SPC v3 LIBC"
 Assert-True ($buildFrankenPHP -match 'SPC_TARGET="x86_64-linux-musl"') "FrankenPHP build pins the x86_64 musl target"
@@ -169,12 +201,14 @@ $phpWrapper = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/runtime/
 Assert-True ($phpWrapper -match 'modules/frankenphp/php') "Linux bin/php uses standalone PHP CLI"
 Assert-True ($setupIss -match 'modules\\frankenphp\\php\.exe') "Windows installer runs control panel through standalone php.exe"
 $smokeLinux = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/smoke-test.sh")
-Assert-True ($smokeLinux -match 'PHP_FULL.*!=.*8\.5\.12' -or $smokeLinux -match '8\.5\.12') "Linux smoke test asserts PHP 8.5.12"
+Assert-True ($smokeLinux -match 'PHP_FULL.*!=.*8\.5\.13' -or $smokeLinux -match '8\.5\.13') "Linux smoke test asserts PHP 8.5.13"
 Assert-True ($smokeLinux -match 'FRANKENPHP_VERSION_UNSAFE') "Linux smoke test asserts FrankenPHP security version"
 Assert-True ($smokeLinux -match 'PT_INTERP / DT_NEEDED') "Linux smoke test accepts static-PIE and checks ELF dependencies"
 Assert-True ($smokeLinux -match 'qemu-x86_64 -cpu SandyBridge') "Linux smoke test runs under a Sandy Bridge CPU model"
 Assert-True ($smokeLinux -match 'SCHEDULER_MULTI_JOB_OK') "Linux smoke test verifies independent scheduler jobs"
 Assert-True ($smokeLinux -match 'SCHEDULER_LEGACY_OK') "Linux smoke test verifies legacy scheduler compatibility"
+Assert-True ($smokeLinux -match 'HTTP_FINGERPRINT_OK') "Linux smoke test verifies response headers and generic errors"
+Assert-True ($smokeLinux -match 'PHP_FINGERPRINT_CONFIG_OK') "Linux smoke test verifies PHP privacy settings"
 $linuxInit = Get-Content -Raw -LiteralPath (Join-Path $Root "installer/scripts/linux/init.sh")
 Assert-True ($linuxInit -match 'pogo_scheduler v0\.2\.0') "Linux init documents scheduler 0.2.0"
 Assert-True ($linuxInit -match 'job heartbeat' -and $linuxInit -match 'job nightly') "Linux scheduler template provides multiple jobs"
@@ -184,6 +218,7 @@ Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/releases.md")) "docs/
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/README.md")) "docs/user/README.md exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/upgrade.md")) "docs/user/upgrade.md exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/docker.md")) "docs/user/docker.md exists"
+Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/user/security.md")) "docs/user/security.md exists"
 Assert-True (Test-Path -LiteralPath (Join-Path $Root "docs/blueprint.md")) "docs/blueprint.md exists"
 Assert-True ($setupIss -match 'docs\\user') "setup.iss ships docs/user only"
 Assert-True ($buildLinux -match 'docs/user') "build-linux-package.ps1 ships docs/user only"
@@ -193,7 +228,7 @@ Assert-True ($versionFile -match '^\d+\.\d+\.\d+\s*$') "VERSION file is a semver
 # 5. PHP lint（控制面板 + Agent）与 CLI 冒烟（需要 php；CI 中由 setup-php 提供）
 $php = Get-Command php -ErrorAction SilentlyContinue
 if ($php) {
-    $phpFiles = Get-ChildItem -Path (Join-Path $Root "control-panel"), (Join-Path $Root "agent") -Recurse -Filter *.php
+    $phpFiles = Get-ChildItem -Path (Join-Path $Root "control-panel"), (Join-Path $Root "agent"), (Join-Path $Root "caddy-panel") -Recurse -Filter *.php
     foreach ($f in $phpFiles) {
         & php -l $f.FullName | Out-Null
         Assert-True ($LASTEXITCODE -eq 0) "php -l $($f.Name)"

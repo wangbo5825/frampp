@@ -63,7 +63,7 @@ fi
 echo "==> 使用 Docker ($IMAGE, $DOCKER_PLATFORM) musl 完全静态构建 FrankenPHP $FP_VERSION ..."
 docker run --rm --platform "$DOCKER_PLATFORM" \
     -e "HOST_UID=$(id -u)" -e "HOST_GID=$(id -g)" \
-    -e "FRAMPP_PHP_VERSION=${FRAMPP_PHP_VERSION:-8.5.12}" \
+    -e "FRAMPP_PHP_VERSION=${FRAMPP_PHP_VERSION:-8.5.13}" \
     -e "FRAMPP_SPC_LIBC=musl" \
     -e "LIBC=musl" \
     -e "FRAMPP_SCHEDULER_REF=${FRAMPP_SCHEDULER_REF:-2c8552504066cd276b704b7e6cc357405ef1b84b}" \
@@ -109,5 +109,5 @@ echo "FRANKENPHP_STATIC_OK version=$FP_VERSION"
 assert_static_elf "$OUT_DIR/php" || {
     echo "PHP_CLI_NOT_STATIC"; exit 1;
 }
-echo "PHP_CLI_STATIC_OK version=${FRAMPP_PHP_VERSION:-8.5.12}"
-echo "FRANKENPHP_MUSL_BUILD_OK version=$FP_VERSION php=${FRAMPP_PHP_VERSION:-8.5.12} spc=v3 image=$IMAGE"
+echo "PHP_CLI_STATIC_OK version=${FRAMPP_PHP_VERSION:-8.5.13}"
+echo "FRANKENPHP_MUSL_BUILD_OK version=$FP_VERSION php=${FRAMPP_PHP_VERSION:-8.5.13} spc=v3 image=$IMAGE"

@@ -11,7 +11,7 @@ FRAMPP = FrankenPHP + Redis + Agent(MCP) + MySQL + PHP + Python：面向现代 P
 - 当前里程碑：**M4 生产模式（已实现）**——Inno Setup 安装器、发布管线（channels / releases）、升级文档
 - Linux 变体（M5 部分）：**linux-x86_64 / linux-aarch64 一键安装包**已实现——`versions-linux-{x86_64,aarch64}.json` + `installer/scripts/linux/*`（init/install/uninstall/build-redis/trim-mysql/smoke-test）+ `build-linux-package.ps1`，CI 分别在 ubuntu-latest 与 ubuntu-24.04-arm 上构建并冒烟
 - Docker 变体（M5 部分）：**多架构单镜像 all-in-one**已实现——`Dockerfile` + `docker-compose.yml` + `installer/scripts/linux/docker-*.sh` + `build-docker.ps1`，复用 `.run` 产物，CI 构建/冒烟/tag 推送 GHCR 并通过 manifest list 合并 amd64 + arm64
-- 当前版本 **v0.8.4（2026-10-23）**：保留 PHP 8.5.12 + FrankenPHP 1.13.2 安全基线；Linux x86_64 固定 `x86-64-v2` CPU 基线并由 Sandy Bridge QEMU 冒烟验证；pogo_scheduler **v0.2.0** 支持多个独立 `job`
+- 当前版本 **v0.8.5（2026-11-22）**：PHP **8.5.13** + FrankenPHP **1.13.6** 安全基线；Linux x86_64 固定 `x86-64-v2` CPU 基线；默认隐藏 PHP 精确版本与服务器技术响应头，错误响应统一为通用文本
 - 下一步：**v0.9.0** 修复缺失 `libaio.so.1` 的启动诊断，以及裸 `php` 导致静态文件被 PHP 处理 / CSS `text/html` 回退；并处理 Linux 缺省目录、非 root / setcap、chroot 与上传安全
 
 ## 目录约定

@@ -11,6 +11,7 @@ include this directory under `share/docs/user/` since v0.8.0 (root `docs/` befor
 - [安装、升级与卸载 / Install, Upgrade & Uninstall](upgrade.md)
 - [Docker 镜像使用 / Docker Image Usage](docker.md)
 - [定时任务 / Scheduler](scheduler.md)（Linux 0.8.2+）
+- [安全与指纹 / Security & Fingerprints](security.md)
 - 快速开始 / Quick Start：安装目录下 `share/docs/README.md`（项目概览 /
   project overview；英文与中文 `README.zh-CN.md`）
 
@@ -84,6 +85,7 @@ apps/default/
 - 服务仅绑定 `127.0.0.1`；数据库与 Redis 不向外部暴露。
 - 首次安装生成随机 MySQL root 密码、只读账号 `frampp_ro`、Redis 密码与面板令牌。
 - 控制面板（`http://127.0.0.1:8081/`）的变更操作需要面板令牌。
+- 默认 HTTP 响应移除 PHP/服务器技术版本，关闭 PHP 错误回显，并仅返回通用错误页。
 
 ## 常用命令 / Common Commands
 

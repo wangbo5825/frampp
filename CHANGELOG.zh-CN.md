@@ -2,6 +2,30 @@
 
 FRAMPP 的重要变更记录。
 
+## [0.8.5] - 2026-11-22
+
+安全与指纹收敛更新。
+
+### 安全
+
+- 内置运行时升级到 **PHP 8.5.13**，包含 PHP 官方 2026-11-19 发布的
+  Core、CLI、CGI、Session、Streams、DOM、SOAP、OpenSSL 等安全修复。
+- FrankenPHP 升级到 **1.13.6**：官方 Windows 包内置 PHP 8.5.13，并修复
+  Go 抢占信号干扰 PHP 系统调用、配置重载期间 worker restart 崩溃等问题。
+- 默认关闭 PHP 错误回显和异常参数暴露；详细诊断仅写入日志。
+
+### 修复
+
+- 数据库就绪检测现在立即执行首次探测，并为 MySQL/MariaDB 慢启动或
+  InnoDB recovery 留出最多 60 秒，不再用通用的 10 秒上限误杀正常启动进程。
+
+### 隐私
+
+- Caddy 通用错误页不再显示 Caddy、FrankenPHP、FRAMPP、PHP 精确版本或内部路径。
+- 托管站点及错误响应移除 `Server`、`X-Powered-By`、`X-Powered-By-PHP`、`Via`。
+- 默认首页、新项目模板与 caddy-panel 不再显示 PHP 精确版本。
+- PHP stream 请求使用不含产品或版本号的通用 User-Agent。
+
 ## [0.8.4] - 2026-10-23
 
 兼容性更新，继续使用 0.8.3 安全基线。

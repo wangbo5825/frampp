@@ -426,6 +426,7 @@ if [[ ! -f "$SCHEDULER_CADDY" ]]; then
 #     job heartbeat {
 #         mode http
 #         url http://127.0.0.1:8080/scheduler/heartbeat
+#         header User-Agent "Mozilla/5.0 (compatible; Application)"
 #         interval 1m
 #         timeout 30s
 #         overlap skip
@@ -434,6 +435,7 @@ if [[ ! -f "$SCHEDULER_CADDY" ]]; then
 #     job nightly {
 #         mode http
 #         url http://127.0.0.1:8080/scheduler/nightly
+#         header User-Agent "Mozilla/5.0 (compatible; Application)"
 #         schedule "0 3 * * *"
 #         timeout 10m
 #         overlap skip

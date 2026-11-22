@@ -13,13 +13,13 @@
 ### Linux（x86_64 / aarch64）
 
 ```bash
-chmod +x frampp-0.8.4-linux-x86_64.run
-./frampp-0.8.4-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
-./frampp-0.8.4-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
+chmod +x frampp-0.8.5-linux-x86_64.run
+./frampp-0.8.5-linux-x86_64.run                 # 默认安装到 ~/frampp / installs to ~/frampp
+./frampp-0.8.5-linux-x86_64.run --prefix /opt/frampp   # 自定义目录 / custom directory
 
-# arm64（aarch64）主机使用 frampp-0.8.4-linux-aarch64.run（glibc ≥ 2.28）
-chmod +x frampp-0.8.4-linux-aarch64.run
-./frampp-0.8.4-linux-aarch64.run --prefix /opt/frampp
+# arm64（aarch64）主机使用 frampp-0.8.5-linux-aarch64.run（glibc ≥ 2.28）
+chmod +x frampp-0.8.5-linux-aarch64.run
+./frampp-0.8.5-linux-aarch64.run --prefix /opt/frampp
 ```
 
 单文件安装器会自动校验完整性、解压并执行 `bin/frampp init`
@@ -117,6 +117,19 @@ The single-file installer verifies integrity, extracts, runs `init.sh` (configs,
 > remains compatible. Data, secrets and configuration formats are unchanged;
 > stop services, install over the existing directory, then run
 > `bin/frampp restart all`.
+>
+> **0.8.4 → 0.8.5（安全与指纹收敛）**：PHP 升级到 8.5.13，FrankenPHP 升级到
+> 1.13.6；默认关闭 PHP 错误回显、异常参数暴露，并移除技术响应头与错误页签名。
+> 运行 `bin/frampp init` 会刷新 Caddyfile 并迁移已有 `etc/php.ini` 的安全项；
+> 自定义站点应导入 `frampp_fingerprint_privacy` 片段。详细说明见
+> [安全与指纹](security.md)。无需迁移数据库、密钥或应用目录。
+> **0.8.4 → 0.8.5 (security and fingerprint minimization)**: PHP is upgraded
+> to 8.5.13 and FrankenPHP to 1.13.6. Error display, exception arguments,
+> technology headers and signed error pages are disabled by default. Running
+> `bin/frampp init` refreshes the Caddyfile and migrates the security directives
+> in an existing `etc/php.ini`; custom sites should import the
+> `frampp_fingerprint_privacy` snippet. See [Security & Fingerprints](security.md).
+> No database, secret or application-layout migration is required.
 >
 > 版本间数据库结构变化（如数据库大版本升级）时，建议先在备份上演练。
 > If the database schema changes between versions (e.g. a major DB upgrade), rehearse on a backup first.

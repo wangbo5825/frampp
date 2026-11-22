@@ -40,6 +40,7 @@ final class CaddyAdminClient
                 'method'        => 'GET',
                 'ignore_errors' => true,
                 'timeout'       => 5,
+                'user_agent'    => 'Mozilla/5.0 (compatible; Application)',
             ],
         ]);
         $body = @file_get_contents($address . $path, false, $ctx);
@@ -56,6 +57,7 @@ final class CaddyAdminClient
                 'content'       => $body,
                 'ignore_errors' => true,
                 'timeout'       => 5,
+                'user_agent'    => 'Mozilla/5.0 (compatible; Application)',
             ],
         ]);
         $resp = @file_get_contents($address . $path, false, $ctx);
@@ -76,7 +78,7 @@ final class CaddyAdminClient
         if ($fp === false) {
             return ['status' => 0, 'body' => "unix socket 连接失败: $errstr"];
         }
-        $head = "$method $path HTTP/1.1\r\nHost: localhost\r\n";
+        $head = "$method $path HTTP/1.1\r\nHost: localhost\r\nUser-Agent: Mozilla/5.0 (compatible; Application)\r\n";
         if ($body !== '') {
             $head .= "Content-Type: $contentType\r\nContent-Length: " . strlen($body) . "\r\n";
         }

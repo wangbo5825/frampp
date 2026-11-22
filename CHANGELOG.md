@@ -2,6 +2,37 @@
 
 All notable changes to FRAMPP are documented here.
 
+## [0.8.5] - 2026-11-22
+
+Security and fingerprint-minimization update.
+
+### Security
+
+- Upgraded the bundled runtime to **PHP 8.5.13**, including the PHP
+  security fixes published on 2026-11-19 for Core, CLI, CGI, Session,
+  Streams, DOM, SOAP, OpenSSL and related components.
+- Upgraded FrankenPHP to **1.13.6**, which ships PHP 8.5.13 in its official
+  Windows package and fixes preemption-signal interference with PHP system
+  calls and a worker-restart crash during configuration reload.
+- Disabled PHP error display and exception argument exposure by default;
+  detailed diagnostics remain in logs.
+
+### Fixed
+
+- Database readiness detection now performs the first probe immediately and
+  allows up to 60 seconds for MySQL/MariaDB startup or InnoDB recovery instead
+  of aborting slow-but-healthy instances after the generic 10-second limit.
+
+### Privacy
+
+- Generic Caddy error responses no longer expose Caddy, FrankenPHP, FRAMPP,
+  PHP versions or internal filesystem paths.
+- Removed `Server`, `X-Powered-By`, `X-Powered-By-PHP` and `Via` response
+  headers from managed sites and their error responses.
+- The default landing page, generated project template and caddy-panel no
+  longer display the exact PHP version.
+- PHP stream requests use a versionless generic User-Agent.
+
 ## [0.8.4] - 2026-10-23
 
 Compatibility update retaining the 0.8.3 security baseline.

@@ -7,9 +7,10 @@
 [中文](README.zh-CN.md) · [Blueprint](docs/blueprint.md) ·
 [Releases](https://github.com/wangbo5825/frampp/releases)
 
-> Current status: **v0.8.4 compatibility update** — **PHP 8.5.12** and
-> **FrankenPHP 1.13.2** retain the critical PHP2Shell fixes
-> (CVE-2026-109618 / CVE-2026-109619) and four FrankenPHP security fixes.
+> Current status: **v0.8.5 security update** — **PHP 8.5.13** and
+> **FrankenPHP 1.13.6** include the PHP security fixes published on
+> 2026-11-19. Default web responses hide PHP/server technology versions and
+> use generic error pages.
 > Windows x64, Linux x86_64/aarch64 installers and the multi-arch Docker image
 > all use this security baseline. The `apps/<app>/{htdocs,config,src,var}`
 > layout and English-first installer messages remain available. The Linux
@@ -39,7 +40,7 @@ Key characteristics:
   relocatable and `bin/frampp init` re-initializes after moving.
 - **One-command management** — `frampp {status|start|stop|restart|cleanup|mode|logs|new-project|ip-access}` plus a web console (services & IP access control) and the caddy-panel Caddy management UI at `http://127.0.0.1:8081/panel` (sites, Caddyfile, certificates, logs, snapshots).
 - **AI-ready** — a built-in Agent (MCP) layer lets AI assistants interact with your local stack through standard MCP tools.
-- **Secure by default** — services bind to localhost, runtime secrets are generated per installation, read-only database accounts are used where applicable, and audit logs are kept.
+- **Secure by default** — services bind to localhost, runtime secrets are generated per installation, read-only database accounts are used where applicable, audit logs are kept, and PHP/server technology versions are hidden from default HTTP responses.
 - **Separate bilingual docs** — English and Chinese root README / changelog files.
 
 ### Components
@@ -58,7 +59,7 @@ Key characteristics:
 #### Windows
 
 ```powershell
-# Download frampp-0.8.4-windows-x64.exe from GitHub Releases,
+# Download frampp-0.8.5-windows-x64.exe from GitHub Releases,
 # then double-click to install; the installer initializes and starts the stack automatically.
 
 # Dev preview (run from source)
@@ -72,22 +73,23 @@ php control-panel/bin/frampp stop all                                     # stop
 #### Linux (x86_64 / aarch64, one-click installer)
 
 ```bash
-# Download frampp-0.8.4-linux-x86_64.run from GitHub Releases
-chmod +x frampp-0.8.4-linux-x86_64.run
-./frampp-0.8.4-linux-x86_64.run                              # installs to ~/frampp
-./frampp-0.8.4-linux-x86_64.run --prefix /opt/frampp         # custom directory
+# Download frampp-0.8.5-linux-x86_64.run from GitHub Releases
+chmod +x frampp-0.8.5-linux-x86_64.run
+./frampp-0.8.5-linux-x86_64.run                              # installs to ~/frampp
+./frampp-0.8.5-linux-x86_64.run --prefix /opt/frampp         # custom directory
 
-# arm64 (aarch64) hosts: download frampp-0.8.4-linux-aarch64.run instead
-chmod +x frampp-0.8.4-linux-aarch64.run
-./frampp-0.8.4-linux-aarch64.run --prefix /opt/frampp
+# arm64 (aarch64) hosts: download frampp-0.8.5-linux-aarch64.run instead
+chmod +x frampp-0.8.5-linux-aarch64.run
+./frampp-0.8.5-linux-aarch64.run --prefix /opt/frampp
 ```
 
 The installer verifies package integrity, extracts the bundle, initializes the runtime (random secrets, MySQL data directory) and starts all services, then prints the URLs.
 
-0.8.4 keeps the PHP 8.5.12 / FrankenPHP 1.13.2 security baseline and fixes
-Linux x86_64 portability by pinning the `x86-64-v2` ISA baseline. The Linux
-build now runs a Sandy Bridge CPU compatibility check in CI. The default site
-is `apps/default/htdocs`; `frampp new-project` creates
+0.8.5 upgrades the security baseline to PHP 8.5.13 / FrankenPHP 1.13.6 and
+reduces remote fingerprinting: PHP error display is disabled, exact PHP
+versions are removed from default pages and caddy-panel, technology headers
+are stripped, and Caddy errors return generic text. The default site is
+`apps/default/htdocs`; `frampp new-project` creates
 `apps/<name>/{htdocs,config,src,var}`. Optional Linux scheduling is configured
 in `etc/scheduler.caddy` using multiple independent `job` blocks, and older
 `htdocs/` content is migrated by `init`.
@@ -119,7 +121,7 @@ docker run -d --name frampp \
   -v frampp-logs:/opt/frampp/logs \
   -v frampp-apps:/opt/frampp/apps \
   -v frampp-htdocs:/opt/frampp/htdocs \
-  ghcr.io/wangbo5825/frampp:0.8.4
+  ghcr.io/wangbo5825/frampp:0.8.5
 ```
 
 Or use Docker Compose from the repository:
@@ -170,6 +172,7 @@ See [docs/releases.md](docs/releases.md).
 - Blueprint & milestones: [docs/blueprint.md](docs/blueprint.md)
 - Releases: [docs/releases.md](docs/releases.md)
 - User docs (shipped with installers): [docs/user/README.md](docs/user/README.md)
+- Security and fingerprint policy: [docs/user/security.md](docs/user/security.md)
 
 ### License
 

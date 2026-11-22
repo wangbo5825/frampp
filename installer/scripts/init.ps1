@@ -271,6 +271,27 @@ $phpIniText = [System.IO.File]::ReadAllText($phpIni, [System.Text.Encoding]::UTF
 $extensionDir = Convert-PathToForward (Join-Path $RuntimeDir "modules\frankenphp\ext")
 $updatedPhpIni = $phpIniText -replace '(?m)^extension_dir\s*=\s*"ext"\s*$',
     ('extension_dir = "' + $extensionDir + '"')
+$securityPhpIni = [ordered]@{
+    expose_php                = 'Off'
+    display_errors            = 'Off'
+    display_startup_errors    = 'Off'
+    html_errors               = 'Off'
+    log_errors                = 'On'
+    'zend.exception_ignore_args' = 'On'
+    user_agent                = '"Mozilla/5.0 (compatible; Application)"'
+    'session.use_strict_mode' = '1'
+    'session.use_only_cookies' = '1'
+    'session.cookie_httponly' = '1'
+    'session.cookie_samesite' = 'Lax'
+}
+foreach ($key in $securityPhpIni.Keys) {
+    $pattern = '(?mi)^[ \t]*' + [regex]::Escape($key) + '[ \t]*=[^\r\n]*(?:\r?\n|$)'
+    $updatedPhpIni = [regex]::Replace($updatedPhpIni, $pattern, '')
+}
+$updatedPhpIni = $updatedPhpIni.TrimEnd() + "`r`n"
+foreach ($key in $securityPhpIni.Keys) {
+    $updatedPhpIni += "$key = $($securityPhpIni[$key])`r`n"
+}
 if ($updatedPhpIni -ne $phpIniText) {
     [System.IO.File]::WriteAllText($phpIni, $updatedPhpIni, (New-Object System.Text.UTF8Encoding($false)))
 }

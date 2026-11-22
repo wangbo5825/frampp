@@ -32,6 +32,16 @@ final class ServiceManager
 
     private const WINDOWS = PHP_OS_FAMILY === 'Windows';
 
+    /**
+     * 临时缓解 MySQL 在慢盘或 InnoDB recovery 时超过 10 秒仍未监听端口。
+     * 超时值是硬上限，不是固定等待时间；探测成功会立即返回。
+     * 正式方案应改为可配置超时 + 数据库协议探测，并优先读取数据库错误日志。
+     */
+    private const READY_TIMEOUT_MS = 10000;
+    private const DB_READY_TIMEOUT_MS = 60000;
+    private const READY_POLL_INTERVAL_US = 100000;
+    private const PROCESS_CHECK_INTERVAL_SECONDS = 1.0;
+
     public function __construct(private readonly Config $config)
     {
     }
@@ -121,7 +131,10 @@ final class ServiceManager
         if ($pid !== null) {
             // v0.8.0：启动后延迟检测就绪（进程存活 + 端口 / socket 可连），
             // 未就绪则回收进程并报错，避免“看起来启动了其实失败”。
-            if (!$this->waitReady($name, $pid)) {
+            $timeoutMs = $name === self::dbService()
+                ? self::DB_READY_TIMEOUT_MS
+                : self::READY_TIMEOUT_MS;
+            if (!$this->waitReady($name, $pid, $timeoutMs)) {
                 $this->killProcessTree($pid, true);
                 $this->removePid($name);
                 $tail = $this->tailLog($name, 8);
@@ -229,18 +242,24 @@ final class ServiceManager
     /**
      * 启动后就绪检测（v0.8.0）：进程存活且端口 / socket 可连接。
      */
-    private function waitReady(string $name, int $pid, int $timeoutMs = 10000): bool
+    private function waitReady(string $name, int $pid, int $timeoutMs): bool
     {
         $portKey = self::serviceMeta($name)['port'];
         $deadline = microtime(true) + $timeoutMs / 1000;
+        $nextProcessCheck = 0.0;
         do {
-            if (!$this->isProcessAlive($pid)) {
-                return false;
-            }
+            // 先探测就绪状态，正常启动时不再额外等待或执行进程探测命令。
             if ($this->readyProbe($portKey)) {
                 return true;
             }
-            usleep(250_000);
+            $now = microtime(true);
+            if ($now >= $nextProcessCheck) {
+                if (!$this->isProcessAlive($pid)) {
+                    return false;
+                }
+                $nextProcessCheck = $now + self::PROCESS_CHECK_INTERVAL_SECONDS;
+            }
+            usleep(self::READY_POLL_INTERVAL_US);
         } while (microtime(true) < $deadline);
         return $this->readyProbe($portKey);
     }

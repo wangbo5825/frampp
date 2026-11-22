@@ -108,6 +108,7 @@ final class SiteManager
         $lines = [];
         $lines[] = '# FRAMPP site: ' . $name . ' (managed by control panel)';
         $lines[] = $address . ' {';
+        $lines[] = '    import frampp_fingerprint_privacy';
         if ($type === 'php' || $type === 'static') {
             $lines[] = '    root * ' . $root;
         }

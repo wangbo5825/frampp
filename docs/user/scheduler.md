@@ -29,6 +29,7 @@ pogo_scheduler {
     job heartbeat {
         mode     http
         url      http://127.0.0.1:8080/scheduler/heartbeat
+        header   User-Agent "Mozilla/5.0 (compatible; Application)"
         interval 1m
         timeout  30s
         overlap  skip
@@ -39,6 +40,7 @@ pogo_scheduler {
         url      http://127.0.0.1:8080/scheduler/nightly
         method   POST
         header   Content-Type application/json
+        header   User-Agent "Mozilla/5.0 (compatible; Application)"
         body     "{\"source\":\"frampp\"}"
         schedule "0 3 * * *"
         timeout  10m

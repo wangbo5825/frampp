@@ -1,6 +1,6 @@
 # FRAMPP 项目蓝图
 
-> 状态：设计稿 v1.19（2026-10-23，v0.8.4 已准备发布；Linux x86_64 固定 x86-64-v2 基线，scheduler v0.2.0 多任务已集成；v0.9.0 保留 MySQL 初始化 fail-fast 与静态资源/PHP matcher 修复）
+> 状态：设计稿 v1.20（2026-11-22，v0.8.5 安全与指纹收敛；PHP 8.5.13 + FrankenPHP 1.13.6；v0.9.0 保留 MySQL 初始化 fail-fast 与静态资源/PHP matcher 修复）
 > 用途：独立 Codex 项目启动时的实施依据
 > 前置调研：已完成（组件选型、命名、Agent/MCP 定位、生态现状）
 
@@ -61,7 +61,7 @@
 
 - **产品定位**：只解决普通用户"一键安装、开箱即用"问题，**不提供**高级用户的多 PHP 版本并存（Laragon / Herd 式切换）。
 - **发布形态**：类似 XAMPP——按 **FRAMPP 版本 × 组件通道 × 环境** 发布不同的一键安装包：`frampp-setup-<channel>-<version>-<env>.exe`。
-- **通道**：当前仅 `8.5`（FrankenPHP 1.13.2 / PHP 8.5.12 / MariaDB 12.3.2 / Redis 8.10.1）；新增通道需 FrankenPHP 提供对应 Windows 构建并在 `channels.json` / `versions-<channel>.json` 注册。
+- **通道**：当前仅 `8.5`（FrankenPHP 1.13.6 / PHP 8.5.13 / MariaDB 12.3.2 / Redis 8.10.1）；新增通道需 FrankenPHP 提供对应 Windows 构建并在 `channels.json` / `versions-<channel>.json` 注册。
 - **发布管线**：`installer/scripts/release.ps1` 构建各通道、生成 SHA256SUMS、可选直发 GitHub Releases（tag `v<version>`）。流程见 [docs/releases.md](releases.md)。
 - **命名简化（v0.7.0 计划，2026-08-29 记录）**：FRAMPP 与 PHP 大版本保持一致（当前通道 `8.5`），安装包命名自 v0.7.0 起简化为
   `frampp-<version>-<env>.<ext>`（去掉通道段）；版本与 PHP / 组件矩阵的对应关系在 Release note 中说明。
@@ -446,6 +446,39 @@
 - **验证要求**：CI 同时断言真实 CSS 为 `200 + text/css`、缺失 CSS 为 `404`；
   libaio 冒烟覆盖缺包自检与 t64 兼容路径，确保错误可操作且正常环境不受影响。
 
+### 2.21 v0.8.5 PHP 安全升级与指纹收敛（v1.20，2026-11-22）
+
+- **安全基线**：PHP 官方于 2026-11-19 发布 **8.5.13**，修复多项安全公告，
+  包括 Core 魔术方法回溯 UAF、shutdown 后 fatal backtrace 全局状态复用的 UAF、
+  Session 文件覆盖/序列化不匹配/中断关闭 UAF、Timezone cache UAF、
+  DOM XML 序列化 double free、PHP-CGI PATH_INFO 越界及 Streams 凭据泄漏等问题，
+  其中多项可导致远程代码执行。FRAMPP 固定 PHP **8.5.13**。
+- **FrankenPHP 版本**：同步升级到 **1.13.6**。该版本在发布当天为 Linux/Windows
+  static、Windows ZIP 与 Docker 镜像内置 PHP 8.5.13，并修复 Go 抢占信号干扰 PHP
+  系统调用、配置重载期间 worker restart 崩溃等问题。Windows 直接使用官方
+  1.13.6 ZIP，禁止混用 8.5.12 的 `php.exe` / `php8ts.dll`；Linux 定制构建固定
+  FrankenPHP 1.13.6 源码并显式 `PHP_VERSION=8.5.13`。
+- **公开指纹最小化**：默认站点与应用模板不得输出 PHP 精确版本；PHP 配置首次生成
+  以及升级时均强制 `expose_php=Off`、`display_errors=Off`、
+  `display_startup_errors=Off`、`html_errors=Off`、`zend.exception_ignore_args=On`，
+  详细异常只写日志。PHP stream wrapper 使用不含产品名/版本的通用 User-Agent。
+- **HTTP 指纹**：Caddy 默认站点、控制台、`/panel` 和自定义站点统一导入指纹片段：
+  deferred 删除 `Server`、`X-Powered-By`、`X-Powered-By-PHP`、`Via`；
+  Caddy 错误页只返回固定通用文本，不包含 Caddy/FrankenPHP/PHP/FRAMPP 版本或内部路径。
+  这属于降低扫描信息量，不宣称服务不可识别。
+- **控制台边界**：caddy-panel 状态/安装检查不再返回或显示精确 PHP 版本；
+  控制台仍仅监听 127.0.0.1。反向代理默认保留客户端 User-Agent，不伪造浏览器身份；
+  外部调度 HTTP 任务如需统一 UA，使用 Caddyfile `header User-Agent ...` 显式配置。
+- **版本定位**：FRAMPP `VERSION` 提升到 **0.8.5**；Windows x64、Linux x86_64/
+  aarch64 与多架构 Docker 共用该安全基线。配置、数据库、`apps/` 布局与密钥无需迁移。
+- **验证门槛**：Linux 两架构必须精确断言 PHP 8.5.13、FrankenPHP ≥ 1.13.6；
+  HTTP 冒烟断言响应头无版本指纹、通用错误页无内部信息、默认首页不含 PHP 版本；
+  QEMU Sandy Bridge、scheduler v0.2.0、多任务和静态资源回归继续通过；Windows
+  安装包内置 `php.exe` 必须报告 8.5.13。
+- **同时纳入**：数据库启动就绪探测采用即时首探、100 ms 轮询和 60 秒数据库硬上限，
+  避免 MySQL 在慢盘 / InnoDB recovery 时被误判失败；正式的可配置超时与协议级
+  健康检查仍保留在 v0.9.0 计划。
+
 ---
 
 ## 3. 总体架构
@@ -681,3 +714,5 @@ FRAMPP 的“AI 接入层”：把本地环境能力封装成 MCP 工具，供�
 14. ✅ v0.8.4：pogo_scheduler **v0.2.0** 多任务、Linux x86_64
     **x86-64-v2** CPU 基线、Sandy Bridge CI 启动验证；保留 PHP 8.5.12 /
     FrankenPHP 1.13.2 安全修复
+15. ✅ v0.8.5：PHP **8.5.13**、FrankenPHP **1.13.6** 安全基线；默认移除
+    PHP/服务器技术指纹、关闭错误回显、使用通用错误页与 User-Agent
